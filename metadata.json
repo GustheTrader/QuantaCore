@@ -1,0 +1,8 @@
+{
+  "name": "QuantaAI Agents",
+  "description": "Quantum-powered personal AI agents that run locally with complete privacy and self-learning capabilities.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
