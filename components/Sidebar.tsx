@@ -7,9 +7,10 @@ interface SidebarProps {
   setIsOpen: (open: boolean) => void;
   onLogout: () => void;
   track: 'personal' | 'business';
+  profile: { name: string, callsign: string, personality: string };
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, onLogout, track }) => {
+const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, onLogout, track, profile }) => {
   const location = useLocation();
 
   const navItems = [
@@ -66,12 +67,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, onLogout, track })
         <div className="p-6 space-y-3 border-t border-slate-800/50">
           <div className={`glass-card rounded-2xl p-4 flex items-center ${!isOpen ? 'justify-center' : 'space-x-3'}`}>
             <div className="relative">
-              <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${track}`} alt="Profile" className="w-10 h-10 rounded-xl bg-slate-800" />
+              <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.callsign}`} alt="Profile" className="w-10 h-10 rounded-xl bg-slate-800" />
               <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 border-2 border-[#020617] rounded-full"></div>
             </div>
             {isOpen && (
               <div className="overflow-hidden">
-                <p className="text-xs font-bold text-white truncate uppercase">Quantum Operator</p>
+                <p className="text-xs font-bold text-white truncate uppercase">{profile.callsign}</p>
                 <p className="text-[10px] text-slate-500 uppercase tracking-tighter">{track} Core</p>
               </div>
             )}

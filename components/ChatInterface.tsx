@@ -6,7 +6,11 @@ import { ChatMessage, OptimizationTelemetry } from '../types';
 import { VoiceAgent } from './VoiceAgent';
 import { NeuralOptimizationWindow } from './NeuralOptimizationWindow';
 
-const ChatInterface: React.FC = () => {
+interface ChatInterfaceProps {
+  profile: { name: string, callsign: string, personality: string };
+}
+
+const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile }) => {
   const location = useLocation();
   const activeAgent = (location.state as any)?.agent || "Quanta Core";
   const storageKey = `quanta_chat_history_${activeAgent.replace(/\s+/g, '_').toLowerCase()}`;
@@ -19,7 +23,6 @@ const ChatInterface: React.FC = () => {
   const [agentConfig, setAgentConfig] = useState<{ prompt: string | null, skills: string[] }>({ prompt: null, skills: ['search'] });
   const [activeToolCall, setActiveToolCall] = useState<any>(null);
   
-  // Self-improvement Telemetry State
   const [telemetry, setTelemetry] = useState<OptimizationTelemetry>({
     reasoningDepth: 0,
     neuralSync: 0,
@@ -30,8 +33,6 @@ const ChatInterface: React.FC = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Polling or focusing this window should refresh history from storage
-    // to pick up changes from Voice sessions
     const syncHistory = () => {
       const savedHistory = localStorage.getItem(storageKey);
       if (savedHistory) {
@@ -61,7 +62,7 @@ const ChatInterface: React.FC = () => {
   }, [messages, storageKey]);
 
   const setDefaultMessage = () => {
-    setMessages([{ role: 'model', content: `Neural connection established. [${activeAgent}] online with Workspace connectors and Self-Improving Neural Link.`, timestamp: Date.now() }]);
+    setMessages([{ role: 'model', content: `Neural connection established. Welcome back, ${profile.callsign}. [${activeAgent}] online with Workspace connectors and ${profile.personality} logic.`, timestamp: Date.now() }]);
   };
 
   const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -85,7 +86,7 @@ const ChatInterface: React.FC = () => {
 
     try {
       const history = messages.map(m => ({ role: m.role, content: m.content }));
-      const response = await chatWithGemini(input, history, activeAgent, agentConfig.prompt || undefined, agentConfig.skills);
+      const response = await chatWithGemini(input, history, activeAgent, agentConfig.prompt || undefined, agentConfig.skills, profile);
       
       setTelemetry({
         reasoningDepth: Math.floor(Math.random() * 30) + 60,
@@ -94,7 +95,7 @@ const ChatInterface: React.FC = () => {
         optimizations: [
           `Memory blocks successfully retrieved and integrated.`,
           `Persistent context hash: ${Math.random().toString(16).substring(2, 8).toUpperCase()}`,
-          `Optimizing response based on historical user patterns.`
+          `Optimizing response based on ${profile.personality} pattern.`
         ]
       });
 
@@ -124,7 +125,6 @@ const ChatInterface: React.FC = () => {
   const getToolUI = (fc: any) => {
     const name = fc.name;
     const args = fc.args || {};
-    
     let explanation = "Accessing neural bridge...";
     let toolIcon = "M13 10V3L4 14h7v7l9-11h-7z";
     let toolColor = "bg-indigo-500";
@@ -152,7 +152,7 @@ const ChatInterface: React.FC = () => {
     } else if (name.includes('drive')) {
       toolText = "Drive Vault";
       toolColor = "bg-amber-500";
-      toolIcon = "M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z";
+      toolIcon = "M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2v10a2 2 0 00-2 2v10a2 2 0 002 2z";
       if (args.action === 'search') explanation = `Scanning Drive vault for files matching "${args.fileName || args.query}"...`;
     }
 
@@ -173,7 +173,7 @@ const ChatInterface: React.FC = () => {
 
   return (
     <div className="flex flex-col h-[calc(100vh-160px)] glass-card rounded-3xl overflow-hidden shadow-2xl animate-in slide-in-from-bottom-4 duration-700 relative">
-      <VoiceAgent isActive={isVoiceActive} agentName={activeAgent} systemInstruction={agentConfig.prompt || `You are ${activeAgent}.`} onClose={() => setIsVoiceActive(false)} />
+      <VoiceAgent isActive={isVoiceActive} agentName={activeAgent} systemInstruction={agentConfig.prompt || `You are ${activeAgent}.`} onClose={() => setIsVoiceActive(false)} profile={profile} />
       
       <NeuralOptimizationWindow 
         isOpen={isNeuralLinkActive} 
@@ -191,7 +191,7 @@ const ChatInterface: React.FC = () => {
             <h2 className="font-outfit font-black text-lg leading-tight uppercase tracking-tight">{activeAgent}</h2>
             <div className="flex items-center space-x-2">
               <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
-              <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-widest">Neural Memory Active</span>
+              <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-widest">Neural Link: {profile.personality}</span>
             </div>
           </div>
         </div>

@@ -2,7 +2,19 @@
 import { GoogleGenAI, Type, FunctionDeclaration } from "@google/genai";
 import { MemoryBlock } from "../types";
 
-const getAI = () => new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+const getApiKey = () => {
+  try {
+    if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
+      return process.env.API_KEY;
+    }
+    if (typeof window !== 'undefined' && (window as any).process?.env?.API_KEY) {
+      return (window as any).process.env.API_KEY;
+    }
+  } catch (e) {}
+  return '';
+};
+
+const getAI = () => new GoogleGenAI({ apiKey: getApiKey() });
 
 // Google Workspace Tool Definitions
 const gmailTool: FunctionDeclaration = {
@@ -67,14 +79,14 @@ export const chatWithGemini = async (
   history: {role: string, content: string}[], 
   agentName: string = "Aetheris",
   customPrompt?: string,
-  enabledSkills: string[] = ['search']
+  enabledSkills: string[] = ['search'],
+  profile?: { name: string, callsign: string, personality: string }
 ) => {
   const ai = getAI();
   
   const tools: any[] = [];
   const functionDeclarations: FunctionDeclaration[] = [];
 
-  // Skill Mapping
   if (enabledSkills.includes('search')) tools.push({ googleSearch: {} });
   if (enabledSkills.includes('gmail')) functionDeclarations.push(gmailTool);
   if (enabledSkills.includes('calendar')) functionDeclarations.push(calendarTool);
@@ -85,33 +97,34 @@ export const chatWithGemini = async (
     tools.push({ functionDeclarations });
   }
 
-  // Inject Knowledge Base (LM Notebook) - Filtered by assigned agent
   let knowledgeContext = "";
   try {
     const savedMemories = localStorage.getItem('quanta_notebook');
     if (savedMemories) {
       const memories: MemoryBlock[] = JSON.parse(savedMemories);
-      // Filter memories assigned to this specific agent OR "All Agents"
       const relevantMemories = memories.filter(m => 
         !m.assignedAgents || 
         m.assignedAgents.length === 0 || 
         m.assignedAgents.includes(agentName) || 
         m.assignedAgents.includes("All Agents")
       );
-      
       knowledgeContext = relevantMemories.map(m => `[MEMORY BLOCK: ${m.title} (${m.category})] - ${m.content}`).join('\n\n');
     }
   } catch (e) {}
 
-  const systemBase = customPrompt || `You are ${agentName}, a specialized SuperAgent part of the QuantaAI ecosystem. You have neural connectors to Google Workspace (Gmail, Calendar, Docs, and Drive). When you use tools, explain what you are doing in a professional, technical manner.`;
-  
-  const fullSystemInstruction = `${systemBase}
-  
-  --- NEURAL KNOWLEDGE BASE (LM NOTEBOOK) ---
-  Use the following sovereign data to answer accurately and with personal/business context relevant to your specialization. 
-  Only use this data if it is relevant to the user's query:
-  ${knowledgeContext || "(Notebook is currently empty or no blocks are assigned to you. No specialized context available.)"}
-  -----------------------------------------`;
+  const personalityMap: Record<string, string> = {
+    'Analytic Prime': 'Be highly logical, precise, and data-driven.',
+    'Aetheris Warmth': 'Be conversational, warm, and highly supportive.',
+    'Minimalist Node': 'Be ultra-concise.',
+    'Cyber-Tactician': 'Adopt a high-performance, futuristic tone.',
+    'Zen Architect': 'Be calm, philosophical, and focused on balance.'
+  };
+
+  const userIdentity = profile ? `You are addressing the user as "${profile.callsign}". Their legal name is ${profile.name}.` : "";
+  const personalityInstruction = profile ? personalityMap[profile.personality] || "" : "";
+
+  const systemBase = customPrompt || `You are ${agentName}, a specialized SuperAgent part of the QuantaAI ecosystem. ${userIdentity} ${personalityInstruction}`;
+  const fullSystemInstruction = `${systemBase}\n\n--- NEURAL KNOWLEDGE BASE ---\n${knowledgeContext || "(Notebook is empty.)"}`;
   
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
@@ -143,14 +156,8 @@ export const generateImage = async (prompt: string) => {
   const ai = getAI();
   const response = await ai.models.generateContent({
     model: 'gemini-2.5-flash-image',
-    contents: {
-      parts: [{ text: prompt }]
-    },
-    config: {
-      imageConfig: {
-        aspectRatio: "1:1"
-      }
-    }
+    contents: { parts: [{ text: prompt }] },
+    config: { imageConfig: { aspectRatio: "1:1" } }
   });
 
   let imageUrl = '';
@@ -160,7 +167,6 @@ export const generateImage = async (prompt: string) => {
       break;
     }
   }
-
   return imageUrl;
 };
 
@@ -168,26 +174,22 @@ export const optimizeTasks = async (tasks: string[]) => {
   const ai = getAI();
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
-    contents: `As a QuantaAI Optimization Agent, analyze these tasks for maximum efficiency. Tasks: ${tasks.join(', ')}`,
+    contents: `Analyze these tasks for efficiency: ${tasks.join(', ')}`,
     config: {
       responseMimeType: 'application/json',
       responseSchema: {
         type: Type.OBJECT,
         properties: {
-          suggestions: {
-            type: Type.ARRAY,
-            items: { type: Type.STRING }
-          }
+          suggestions: { type: Type.ARRAY, items: { type: Type.STRING } }
         },
         required: ['suggestions']
       }
     }
   });
-
   try {
     const data = JSON.parse(response.text || '{"suggestions":[]}');
     return data.suggestions as string[];
   } catch (e) {
-    return ["Optimize your high-value SME activities first."];
+    return ["Optimize your SME activities first."];
   }
 };

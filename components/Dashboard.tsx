@@ -27,6 +27,7 @@ interface AgentProps {
 
 interface DashboardProps {
   track: 'personal' | 'business';
+  profile: { name: string, callsign: string, personality: string };
 }
 
 const SuperAgentCard: React.FC<AgentProps & { 
@@ -42,7 +43,7 @@ const SuperAgentCard: React.FC<AgentProps & {
     gmail: 'M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z',
     calendar: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z',
     docs: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
-    drive: 'M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z',
+    drive: 'M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2v10a2 2 0 00-2 2v10a2 2 0 002 2z',
     vision: 'M15 12a3 3 0 11-6 0 3 3 0 016 0z'
   };
 
@@ -90,7 +91,7 @@ const SuperAgentCard: React.FC<AgentProps & {
   );
 };
 
-const Dashboard: React.FC<DashboardProps> = ({ track }) => {
+const Dashboard: React.FC<DashboardProps> = ({ track, profile }) => {
   const navigate = useNavigate();
   const [voiceConfig, setVoiceConfig] = useState({ active: false, agentName: '', prompt: '', skills: ['search'] });
   const [configModal, setConfigModal] = useState({ active: false, agentName: '', prompt: '', skills: ['search'] as string[], isCustom: false });
@@ -213,7 +214,7 @@ const Dashboard: React.FC<DashboardProps> = ({ track }) => {
     { id: 'gmail', name: 'Gmail Link', icon: 'M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z', color: 'text-red-400', desc: 'Secure email search, reading, and drafting.' },
     { id: 'calendar', name: 'Calendar Sync', icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z', color: 'text-blue-400', desc: 'Intelligent scheduling and event management.' },
     { id: 'docs', name: 'Docs Architect', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z', color: 'text-green-400', desc: 'Create and summarize high-fidelity documents.' },
-    { id: 'drive', name: 'Drive Vault', icon: 'M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z', color: 'text-amber-500', desc: 'Sovereign management of Drive files and folders.' },
+    { id: 'drive', name: 'Drive Vault', icon: 'M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2v10a2 2 0 00-2 2v10a2 2 0 002 2z', color: 'text-amber-500', desc: 'Sovereign management of Drive files and folders.' },
     { id: 'vision', name: 'Vision Forge', icon: 'M15 12a3 3 0 11-6 0 3 3 0 016 0z', color: 'text-purple-400', desc: 'Neural image generation and visual reasoning.' },
   ];
 
@@ -236,9 +237,10 @@ const Dashboard: React.FC<DashboardProps> = ({ track }) => {
         systemInstruction={voiceConfig.prompt} 
         enabledSkills={voiceConfig.skills}
         onClose={() => setVoiceConfig({ ...voiceConfig, active: false })} 
+        profile={profile}
       />
 
-      {/* Auth Handshake Modal - Keep for workspace sync visual */}
+      {/* Auth Handshake Modal */}
       {authModal.active && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/90 backdrop-blur-xl p-6">
            <div className="glass-card p-12 rounded-[4rem] w-full max-w-lg text-center border-indigo-500/30 relative overflow-hidden">
@@ -384,6 +386,7 @@ const Dashboard: React.FC<DashboardProps> = ({ track }) => {
       </nav>
 
       <section className="text-center mb-16 max-w-4xl mx-auto">
+        <p className="text-indigo-400 font-black uppercase tracking-[0.4em] text-[10px] mb-4">Neural Buffer Ready: Addressing as {profile.callsign}</p>
         <h2 className="text-4xl lg:text-7xl font-outfit font-black text-white mb-6 uppercase tracking-tighter">Choose Your <span className="quantum-gradient-text italic underline decoration-indigo-500/50 decoration-8 underline-offset-8">SuperAgent</span></h2>
         <p className="text-slate-500 text-sm font-black uppercase tracking-[0.4em] leading-relaxed">Specialized neural cores tailored for your {track} imperatives.</p>
       </section>
@@ -457,17 +460,6 @@ const Dashboard: React.FC<DashboardProps> = ({ track }) => {
             </ResponsiveContainer>
           </div>
         </div>
-      </section>
-
-      {/* QUICK KPI GRID */}
-      <section className="mb-24 grid grid-cols-2 md:grid-cols-4 gap-6">
-        {performanceData.slice(0, 4).map((data, idx) => (
-          <div key={idx} className="glass-card p-6 rounded-[2rem] border-slate-800/30 flex flex-col items-center text-center">
-            <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-3">{data.fullName}</p>
-            <div className="text-2xl font-outfit font-black text-indigo-400 mb-1">{data.satisfaction}★</div>
-            <p className="text-[8px] font-bold text-slate-600 uppercase">User Sentiment</p>
-          </div>
-        ))}
       </section>
 
       <section className="mb-32">
