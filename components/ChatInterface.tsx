@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { chatWithGemini } from '../services/geminiService';
+import { chatWithGemini, optimizePrompt, distillMemoryFromChat } from '../services/geminiService';
 import { ChatMessage, OptimizationTelemetry } from '../types';
 import { VoiceAgent } from './VoiceAgent';
 import { NeuralOptimizationWindow } from './NeuralOptimizationWindow';
@@ -20,6 +20,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isVoiceActive, setIsVoiceActive] = useState(false);
   const [isNeuralLinkActive, setIsNeuralLinkActive] = useState(false);
+  const [isOptimizing, setIsOptimizing] = useState(false);
+  const [isLearning, setIsLearning] = useState(false);
   const [agentConfig, setAgentConfig] = useState<{ prompt: string | null, skills: string[] }>({ prompt: null, skills: ['search'] });
   const [activeToolCall, setActiveToolCall] = useState<any>(null);
   
@@ -29,6 +31,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile }) => {
     contextPurity: 0,
     optimizations: []
   });
+
+  const [optimizationResult, setOptimizationResult] = useState<{
+    optimizedPrompt: string;
+    improvements: string[];
+    traceScore: number;
+  } | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -75,28 +83,62 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile }) => {
     }
   };
 
+  const handleOptimizeContext = async () => {
+    if (!input.trim() || isOptimizing) return;
+    setIsOptimizing(true);
+    setIsNeuralLinkActive(true); 
+    try {
+      const result = await optimizePrompt(input, activeAgent);
+      setOptimizationResult(result);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsOptimizing(false);
+    }
+  };
+
+  const applyOptimization = () => {
+    if (optimizationResult) {
+      setInput(optimizationResult.optimizedPrompt);
+      setOptimizationResult(null);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
 
     const userMessage: ChatMessage = { role: 'user', content: input, timestamp: Date.now() };
-    setMessages(prev => [...prev, userMessage]);
+    const updatedMessages = [...messages, userMessage];
+    setMessages(updatedMessages);
     setInput('');
+    setOptimizationResult(null);
     setIsLoading(true);
 
     try {
       const history = messages.map(m => ({ role: m.role, content: m.content }));
-      const response = await chatWithGemini(input, history, activeAgent, agentConfig.prompt || undefined, agentConfig.skills, profile);
+      const response = await chatWithGemini(userMessage.content, history, activeAgent, agentConfig.prompt || undefined, agentConfig.skills, profile);
       
-      setTelemetry({
-        reasoningDepth: Math.floor(Math.random() * 30) + 60,
-        neuralSync: Math.floor(Math.random() * 20) + 80,
-        contextPurity: Math.floor(Math.random() * 10) + 90,
-        optimizations: [
-          `Memory blocks successfully retrieved and integrated.`,
-          `Persistent context hash: ${Math.random().toString(16).substring(2, 8).toUpperCase()}`,
-          `Optimizing response based on ${profile.personality} pattern.`
-        ]
+      const modelMessage: ChatMessage = {
+        role: 'model',
+        content: response.text,
+        timestamp: Date.now(),
+        sources: response.sources
+      };
+      
+      const finalMessages = [...updatedMessages, modelMessage];
+      setMessages(finalMessages);
+
+      // Background Learning (Neural Distillation)
+      setIsLearning(true);
+      distillMemoryFromChat(finalMessages.slice(-4), activeAgent).then(newMemory => {
+        if (newMemory) {
+          setTelemetry(prev => ({
+            ...prev,
+            optimizations: [...prev.optimizations, `Sovereign Link Updated: "${newMemory.title}" archived.`]
+          }));
+        }
+        setIsLearning(false);
       });
 
       if (response.functionCalls && response.functionCalls.length > 0) {
@@ -107,14 +149,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile }) => {
         }
       }
 
-      const modelMessage: ChatMessage = {
-        role: 'model',
-        content: response.text,
-        timestamp: Date.now(),
-        sources: response.sources
-      };
-      
-      setMessages(prev => [...prev, modelMessage]);
     } catch (error) {
       setMessages(prev => [...prev, { role: 'model', content: "Neural bridge unstable. Synchronizing...", timestamp: Date.now() }]);
     } finally {
@@ -180,6 +214,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile }) => {
         onClose={() => setIsNeuralLinkActive(false)} 
         agentName={activeAgent}
         telemetry={telemetry}
+        optimizationResult={optimizationResult}
+        isOptimizing={isOptimizing}
+        onApply={applyOptimization}
       />
 
       <div className="p-5 border-b border-slate-800 bg-slate-900/50 flex items-center justify-between">
@@ -190,8 +227,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile }) => {
           <div>
             <h2 className="font-outfit font-black text-lg leading-tight uppercase tracking-tight">{activeAgent}</h2>
             <div className="flex items-center space-x-2">
-              <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
-              <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-widest">Neural Link: {profile.personality}</span>
+              <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${isLearning ? 'bg-orange-500' : 'bg-emerald-500'}`}></span>
+              <span className={`text-[10px] font-bold uppercase tracking-widest ${isLearning ? 'text-orange-400' : 'text-emerald-400'}`}>
+                {isLearning ? 'Neural Growth Active...' : `Neural Link: ${profile.personality}`}
+              </span>
             </div>
           </div>
         </div>
@@ -233,9 +272,26 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile }) => {
       </div>
 
       <div className={`p-6 border-t border-slate-800 bg-slate-900/30 transition-all duration-500 ${isNeuralLinkActive ? 'lg:mr-[450px]' : ''}`}>
-        <form onSubmit={handleSubmit} className="relative max-w-5xl mx-auto group">
-          <input type="text" value={input} onChange={(e) => setInput(e.target.value)} placeholder={`Instruct ${activeAgent}...`} className="w-full bg-slate-900/80 border-2 border-slate-800 text-white rounded-2xl py-5 pl-8 pr-16 focus:outline-none focus:border-indigo-500 transition-all font-medium" />
-          <button type="submit" disabled={isLoading || !input.trim()} className="absolute right-3 top-3 bottom-3 px-5 bg-indigo-600 hover:bg-indigo-500 rounded-xl transition-all shadow-lg flex items-center justify-center"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg></button>
+        <form onSubmit={handleSubmit} className="relative max-w-5xl mx-auto flex items-center space-x-4">
+          <div className="relative flex-1">
+            <input 
+              type="text" 
+              value={input} 
+              onChange={(e) => setInput(e.target.value)} 
+              placeholder={`Instruct ${activeAgent}...`} 
+              className="w-full bg-slate-900/80 border-2 border-slate-800 text-white rounded-2xl py-5 pl-8 pr-16 focus:outline-none focus:border-indigo-500 transition-all font-medium" 
+            />
+            <button 
+              type="button"
+              onClick={handleOptimizeContext}
+              disabled={!input.trim() || isOptimizing}
+              className={`absolute right-3 top-3 bottom-3 px-3 rounded-xl transition-all flex items-center justify-center ${isOptimizing ? 'animate-pulse bg-emerald-500/20' : 'hover:bg-slate-800 text-emerald-400'}`}
+              title="Optimize Context"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+            </button>
+          </div>
+          <button type="submit" disabled={isLoading || !input.trim()} className="px-10 py-5 bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-800 rounded-2xl transition-all shadow-lg flex items-center justify-center font-black uppercase tracking-widest text-[10px] text-white">Transmit</button>
         </form>
       </div>
     </div>

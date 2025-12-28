@@ -3,17 +3,31 @@ import React, { useEffect, useRef, useState } from 'react';
 import { GoogleGenAI, Modality, LiveServerMessage } from '@google/genai';
 import { NeuralOptimizationWindow } from './NeuralOptimizationWindow';
 import { OptimizationTelemetry, ChatMessage } from '../types';
+import { getSMEContext, distillMemoryFromChat } from '../services/geminiService';
 
 interface VoiceAgentProps {
   agentName: string;
   systemInstruction: string;
   isActive: boolean;
   enabledSkills?: string[];
+  voiceName?: string;
+  inputTranscription?: boolean;
+  outputTranscription?: boolean;
   onClose: () => void;
   profile: { name: string, callsign: string, personality: string };
 }
 
-export const VoiceAgent: React.FC<VoiceAgentProps> = ({ agentName, systemInstruction, isActive, enabledSkills = ['search'], onClose, profile }) => {
+export const VoiceAgent: React.FC<VoiceAgentProps> = ({ 
+  agentName, 
+  systemInstruction, 
+  isActive, 
+  enabledSkills = ['search'], 
+  voiceName = 'Zephyr',
+  inputTranscription = true,
+  outputTranscription = true,
+  onClose, 
+  profile 
+}) => {
   const [isConnecting, setIsConnecting] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isNeuralLinkActive, setIsNeuralLinkActive] = useState(false);
@@ -31,27 +45,8 @@ export const VoiceAgent: React.FC<VoiceAgentProps> = ({ agentName, systemInstruc
   
   const currentInputTranscription = useRef<string>('');
   const currentOutputTranscription = useRef<string>('');
+  const sessionHistory = useRef<ChatMessage[]>([]);
   const storageKey = `quanta_chat_history_${agentName.replace(/\s+/g, '_').toLowerCase()}`;
-
-  const getApiKey = () => {
-    try {
-      if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
-        return process.env.API_KEY;
-      }
-    } catch (e) {}
-    return '';
-  };
-
-  const getRecentHistory = () => {
-    try {
-      const saved = localStorage.getItem(storageKey);
-      if (saved) {
-        const parsed: ChatMessage[] = JSON.parse(saved);
-        return parsed.slice(-5).map(m => `${m.role === 'user' ? 'User' : 'Agent'}: ${m.content}`).join('\n');
-      }
-    } catch (e) {}
-    return '';
-  };
 
   const persistTurn = (input: string, output: string) => {
     if (!input && !output) return;
@@ -61,7 +56,20 @@ export const VoiceAgent: React.FC<VoiceAgentProps> = ({ agentName, systemInstruc
       const newMessages: ChatMessage[] = [];
       if (input) newMessages.push({ role: 'user', content: input.trim(), timestamp: Date.now() });
       if (output) newMessages.push({ role: 'model', content: output.trim(), timestamp: Date.now() });
-      localStorage.setItem(storageKey, JSON.stringify([...history, ...newMessages]));
+      
+      const updatedHistory = [...history, ...newMessages];
+      localStorage.setItem(storageKey, JSON.stringify(updatedHistory));
+      sessionHistory.current = [...sessionHistory.current, ...newMessages];
+
+      // After a turn is complete, attempt Neural Distillation (Background Learning)
+      distillMemoryFromChat(newMessages, agentName).then(newMemory => {
+        if (newMemory) {
+          setTelemetry(prev => ({
+            ...prev,
+            optimizations: [...prev.optimizations, `Learned axiom: "${newMemory.title}" distilled to core.`]
+          }));
+        }
+      });
     } catch (e) {
       console.error("Failed to persist voice turn", e);
     }
@@ -107,34 +115,26 @@ export const VoiceAgent: React.FC<VoiceAgentProps> = ({ agentName, systemInstruc
 
     const startSession = async () => {
       setIsConnecting(true);
-      const ai = new GoogleGenAI({ apiKey: getApiKey() });
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const inputCtx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
       const outputCtx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
       audioContextRef.current = outputCtx;
 
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recentContext = getRecentHistory();
       
-      const personalityMap: Record<string, string> = {
-        'Analytic Prime': 'highly logical, precise, and data-driven',
-        'Aetheris Warmth': 'conversational, warm, and highly supportive',
-        'Minimalist Node': 'ultra-concise',
-        'Cyber-Tactician': 'high-performance, futuristic, and technical',
-        'Zen Architect': 'calm, philosophical, and balanced'
-      };
+      // Pull persistent Sovereign Knowledge for this agent session
+      const ctx = getSMEContext(agentName, profile);
 
-      const fullSystemInstruction = `${systemInstruction} 
-      Address the user as ${profile.callsign}. Adopt a ${personalityMap[profile.personality] || 'professional'} tone.
-      NEURAL MEMORY ACCESS: ${recentContext ? `\n--- RECENT HISTORY ---\n${recentContext}\n------------------` : '\n(No recent history found.)'}`;
+      const fullSystemInstruction = `${systemInstruction}\n\n${ctx.fullHeader}\n\nAdopt a tone consistent with your SME core. Prioritize learned axioms from the knowledge base.`;
 
       const sessionPromise = ai.live.connect({
         model: 'gemini-2.5-flash-native-audio-preview-09-2025',
         config: {
           responseModalities: [Modality.AUDIO],
-          inputAudioTranscription: {},
-          outputAudioTranscription: {},
+          inputAudioTranscription: inputTranscription ? {} : undefined,
+          outputAudioTranscription: outputTranscription ? {} : undefined,
           speechConfig: {
-            voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } },
+            voiceConfig: { prebuiltVoiceConfig: { voiceName: voiceName } },
           },
           systemInstruction: fullSystemInstruction,
         },
@@ -176,7 +176,7 @@ export const VoiceAgent: React.FC<VoiceAgentProps> = ({ agentName, systemInstruc
                 optimizations: [
                   `Personality Core: ${profile.personality} active.`,
                   `User Callsign: ${profile.callsign} verified.`,
-                  "Real-time vocal-to-memory persistence active."
+                  `Persistent Knowledge Sync: PASSED.`
                 ]
               }));
 
@@ -214,7 +214,7 @@ export const VoiceAgent: React.FC<VoiceAgentProps> = ({ agentName, systemInstruc
       if (sessionRef.current) sessionRef.current.close();
       if (audioContextRef.current) audioContextRef.current.close();
     };
-  }, [isActive, agentName, systemInstruction]);
+  }, [isActive, agentName, systemInstruction, voiceName, inputTranscription, outputTranscription]);
 
   if (!isActive) return null;
 
@@ -240,8 +240,8 @@ export const VoiceAgent: React.FC<VoiceAgentProps> = ({ agentName, systemInstruc
           <span className="text-emerald-400 font-bold text-[10px] uppercase tracking-widest">{profile.personality} Active</span>
         </div>
         <div className="space-y-4">
-           <div className="bg-slate-900/50 p-6 rounded-2xl border border-slate-800 text-xs text-slate-400 leading-relaxed italic">
-             "Awaiting instructions, {profile.callsign}."
+           <div className="bg-slate-950/50 p-6 rounded-2xl border border-slate-800 text-xs text-slate-400 leading-relaxed italic">
+             "Synchronized with Sovereign Knowledge. Operator {profile.callsign} linked."
            </div>
            <div className="grid grid-cols-2 gap-3">
              <button onClick={() => setIsNeuralLinkActive(!isNeuralLinkActive)} className={`py-4 rounded-2xl font-bold transition-all uppercase tracking-widest text-[10px] flex items-center justify-center space-x-2 border ${isNeuralLinkActive ? 'bg-indigo-600 border-indigo-400 text-white' : 'bg-slate-800 border-slate-700 text-slate-400'}`}>

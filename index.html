@@ -4,49 +4,72 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>QuantaAI Agents - Quantum Powered Intelligence</title>
+  <title>QuantaAI Agents - SME Neural Council</title>
   <script>
-    // Critical: Establish process.env before ANY other script or module loads
     window.process = { env: { API_KEY: "" } };
   </script>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --quantum-bg: #020617;
-      --quantum-accent: #6366f1;
-      --quantum-purple: #a855f7;
-      --quantum-cyan: #06b6d4;
+      --quanta-blue-deep: #020617;
+      --quanta-green-emerald: #10b981;
+      --quanta-green-lime: #a3e635;
+      --quanta-orange: #f97316;
     }
     body {
       font-family: 'Inter', sans-serif;
-      background-color: var(--quantum-bg);
+      background-color: var(--quanta-blue-deep);
       color: #f9fafb;
       overflow-x: hidden;
       margin: 0;
     }
     .font-outfit { font-family: 'Outfit', sans-serif; }
     .font-mono { font-family: 'JetBrains Mono', monospace; }
+    
     .quantum-gradient-text {
-      background: linear-gradient(135deg, #60a5fa, #818cf8, #a855f7);
+      background: linear-gradient(135deg, #10b981, #a3e635, #f97316);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
+    .quanta-logic-gradient {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(163, 230, 53, 0.05) 50%, rgba(249, 115, 22, 0.05) 100%);
+    }
+    .quanta-btn-primary {
+      background: linear-gradient(to right, #10b981, #059669);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .quanta-btn-primary:hover {
+      box-shadow: 0 0 30px rgba(16, 185, 129, 0.4);
+      transform: translateY(-2px);
+    }
+    .quanta-btn-orange {
+      background: linear-gradient(to right, #f97316, #ea580c);
+    }
+    
     .glass-card {
-      background: rgba(15, 23, 42, 0.4);
-      backdrop-filter: blur(16px);
-      border: 1px solid rgba(51, 65, 85, 0.3);
+      background: rgba(15, 23, 42, 0.7);
+      backdrop-filter: blur(24px);
+      border: 1px solid rgba(16, 185, 129, 0.15);
     }
+    
     @keyframes pulse-glow {
-      0%, 100% { box-shadow: 0 0 15px rgba(99, 102, 241, 0.2); }
-      50% { box-shadow: 0 0 35px rgba(99, 102, 241, 0.5); }
+      0% { box-shadow: 0 0 10px rgba(16, 185, 129, 0.1); }
+      50% { box-shadow: 0 0 40px rgba(249, 115, 22, 0.2); }
+      100% { box-shadow: 0 0 10px rgba(16, 185, 129, 0.1); }
     }
-    .animate-glow { animation: pulse-glow 3s infinite; }
+    .animate-glow { animation: pulse-glow 4s infinite; }
+    
     .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-    .custom-scrollbar::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.4); }
-    .custom-scrollbar::-webkit-scrollbar-thumb { background: #6366f1; border-radius: 10px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #10b981; border-radius: 10px; }
+    
+    .bg-mesh {
+      background-image: radial-gradient(rgba(16, 185, 129, 0.08) 1.5px, transparent 1.5px);
+      background-size: 40px 40px;
+    }
   </style>
   <script type="importmap">
   {
@@ -62,7 +85,7 @@
   }
   </script>
 </head>
-<body>
+<body class="bg-mesh">
   <div id="root"></div>
 </body>
 </html>

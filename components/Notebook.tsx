@@ -155,14 +155,14 @@ const Notebook: React.FC = () => {
     <div className="animate-in fade-in duration-700">
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-12">
         <div>
-          <h1 className="text-4xl font-outfit font-black text-white uppercase tracking-tighter">LM <span className="quantum-gradient-text italic">Notebook</span></h1>
-          <p className="text-slate-500 text-xs font-bold uppercase tracking-[0.2em] mt-2">Sovereign Knowledge Base & Supabase Edge Memory</p>
+          <h1 className="text-4xl font-outfit font-black text-white uppercase tracking-tighter">SME <span className="quantum-gradient-text italic">Notebook</span></h1>
+          <p className="text-slate-500 text-xs font-bold uppercase tracking-[0.2em] mt-2">Sovereign Polymath Knowledge Base</p>
         </div>
         <button 
           onClick={() => setIsAdding(true)}
           className="px-8 py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-2xl shadow-indigo-500/30 transition-all active:scale-95"
         >
-          Forge Memory Block
+          Forge SME Memory Block
         </button>
       </header>
 
@@ -216,7 +216,7 @@ const Notebook: React.FC = () => {
                   <div className="text-center p-6">
                     <svg className="w-10 h-10 text-slate-600 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
                     <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Drop ANY data types here or <span className="text-indigo-400">click to browse</span></p>
-                    <p className="text-[9px] text-slate-600 mt-2">CSV, Logs, MD, Docs, Custom Agent Profiles</p>
+                    <p className="text-[9px] text-slate-600 mt-2">CSV, Logs, MD, Docs, Custom SME Profiles</p>
                   </div>
                 </div>
               </div>
@@ -265,7 +265,7 @@ const Notebook: React.FC = () => {
 
           <div className="flex space-x-6 mt-12 pt-10 border-t border-slate-900">
             <button onClick={() => setIsAdding(false)} className="flex-1 py-5 bg-slate-900 hover:bg-slate-800 rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] text-slate-500 transition-all">Abort Integration</button>
-            <button onClick={saveMemory} className="flex-1 py-5 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] shadow-2xl shadow-indigo-500/20 transition-all">Sync to Supabase Vector Core</button>
+            <button onClick={saveMemory} className="flex-1 py-5 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] shadow-2xl shadow-indigo-500/20 transition-all">Sync to SME Vector Core</button>
           </div>
         </div>
       )}
@@ -335,8 +335,8 @@ const Notebook: React.FC = () => {
             <div className="w-20 h-20 bg-slate-900 border border-slate-800 rounded-full flex items-center justify-center mx-auto mb-8 text-slate-700">
               <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
             </div>
-            <p className="text-slate-500 font-black text-xs uppercase tracking-[0.4em]">Neural knowledge buffer is empty.</p>
-            <p className="text-slate-600 text-[10px] mt-4 uppercase tracking-widest">Forge a memory block to integrate sovereign data with Supabase Persistence.</p>
+            <p className="text-slate-500 font-black text-xs uppercase tracking-[0.4em]">SME knowledge buffer is empty.</p>
+            <p className="text-slate-600 text-[10px] mt-4 uppercase tracking-widest">Forge a memory block to integrate polymath data with SME Persistence.</p>
           </div>
         )}
       </div>

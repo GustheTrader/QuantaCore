@@ -33,6 +33,20 @@ export interface MemoryBlock {
   title: string;
   content: string;
   category: string;
-  assignedAgents: string[]; // List of agent names this memory is associated with
+  assignedAgents: string[]; 
   timestamp: number;
+  source?: 'manual' | 'distilled'; // Distinguish learned from manual
+}
+
+export interface CouncilTurn {
+  agentName: string;
+  role: 'proposer' | 'critic' | 'judge' | 'board';
+  content: string;
+  status: 'pending' | 'processing' | 'complete';
+  sources?: { uri: string; title: string }[];
+  logicAudit?: {
+    deconstruction: string[];
+    axioms: string[];
+    reconstruction: string;
+  };
 }
