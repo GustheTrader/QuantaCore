@@ -1,6 +1,6 @@
 
 import React, { useEffect, useRef, useState } from 'react';
-import { GoogleGenAI, Modality, LiveServerMessage } from '@google/genai';
+import { GoogleGenAI, Modality, LiveServerMessage, FunctionDeclaration, Type } from '@google/genai';
 import { NeuralOptimizationWindow } from './NeuralOptimizationWindow';
 import { OptimizationTelemetry, ChatMessage } from '../types';
 import { getSMEContext, distillMemoryFromChat } from '../services/geminiService';
@@ -16,6 +16,35 @@ interface VoiceAgentProps {
   onClose: () => void;
   profile: { name: string, callsign: string, personality: string };
 }
+
+// Function Declarations for Workspace Tools (Mirroring chat logic)
+const gmailTool: FunctionDeclaration = {
+  name: "interact_with_gmail",
+  parameters: {
+    type: Type.OBJECT,
+    description: "Search, read, or send emails via SME neural bridge.",
+    properties: {
+      action: { type: Type.STRING, enum: ["search", "read", "send"], description: "The action to perform." },
+      query: { type: Type.STRING, description: "Search query or email recipient." },
+      body: { type: Type.STRING, description: "The content of the email to send." }
+    },
+    required: ["action"]
+  }
+};
+
+const calendarTool: FunctionDeclaration = {
+  name: "interact_with_calendar",
+  parameters: {
+    type: Type.OBJECT,
+    description: "Manage schedules and meetings using polymath scheduling logic.",
+    properties: {
+      action: { type: Type.STRING, enum: ["list_events", "create_event", "delete_event"], description: "The action to perform." },
+      title: { type: Type.STRING, description: "Event title." },
+      time: { type: Type.STRING, description: "ISO timestamp or natural language time." }
+    },
+    required: ["action"]
+  }
+};
 
 export const VoiceAgent: React.FC<VoiceAgentProps> = ({ 
   agentName, 
@@ -45,7 +74,6 @@ export const VoiceAgent: React.FC<VoiceAgentProps> = ({
   
   const currentInputTranscription = useRef<string>('');
   const currentOutputTranscription = useRef<string>('');
-  const sessionHistory = useRef<ChatMessage[]>([]);
   const storageKey = `quanta_chat_history_${agentName.replace(/\s+/g, '_').toLowerCase()}`;
 
   const persistTurn = (input: string, output: string) => {
@@ -59,14 +87,12 @@ export const VoiceAgent: React.FC<VoiceAgentProps> = ({
       
       const updatedHistory = [...history, ...newMessages];
       localStorage.setItem(storageKey, JSON.stringify(updatedHistory));
-      sessionHistory.current = [...sessionHistory.current, ...newMessages];
 
-      // After a turn is complete, attempt Neural Distillation (Background Learning)
       distillMemoryFromChat(newMessages, agentName).then(newMemory => {
         if (newMemory) {
           setTelemetry(prev => ({
             ...prev,
-            optimizations: [...prev.optimizations, `Learned axiom: "${newMemory.title}" distilled to core.`]
+            optimizations: [...prev.optimizations, `Neural Growth: "${newMemory.title}" archived.`]
           }));
         }
       });
@@ -121,11 +147,16 @@ export const VoiceAgent: React.FC<VoiceAgentProps> = ({
       audioContextRef.current = outputCtx;
 
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      
-      // Pull persistent Sovereign Knowledge for this agent session
       const ctx = getSMEContext(agentName, profile);
+      const fullSystemInstruction = `${systemInstruction}\n\n${ctx.fullHeader}\n\nGround voice reasoning in Sovereign Knowledge.`;
 
-      const fullSystemInstruction = `${systemInstruction}\n\n${ctx.fullHeader}\n\nAdopt a tone consistent with your SME core. Prioritize learned axioms from the knowledge base.`;
+      // Build tools for Live API
+      const tools: any[] = [];
+      const functionDeclarations: FunctionDeclaration[] = [];
+      if (enabledSkills.includes('search')) tools.push({ googleSearch: {} });
+      if (enabledSkills.includes('gmail')) functionDeclarations.push(gmailTool);
+      if (enabledSkills.includes('calendar')) functionDeclarations.push(calendarTool);
+      if (functionDeclarations.length > 0) tools.push({ functionDeclarations });
 
       const sessionPromise = ai.live.connect({
         model: 'gemini-2.5-flash-native-audio-preview-09-2025',
@@ -137,6 +168,7 @@ export const VoiceAgent: React.FC<VoiceAgentProps> = ({
             voiceConfig: { prebuiltVoiceConfig: { voiceName: voiceName } },
           },
           systemInstruction: fullSystemInstruction,
+          tools: tools.length > 0 ? tools : undefined
         },
         callbacks: {
           onopen: () => {
@@ -154,16 +186,18 @@ export const VoiceAgent: React.FC<VoiceAgentProps> = ({
             scriptProcessor.connect(inputCtx.destination);
           },
           onmessage: async (msg: LiveServerMessage) => {
-            if (msg.serverContent?.inputTranscription) {
-              currentInputTranscription.current += msg.serverContent.inputTranscription.text;
-            }
-            if (msg.serverContent?.outputTranscription) {
-              currentOutputTranscription.current += msg.serverContent.outputTranscription.text;
-            }
+            if (msg.serverContent?.inputTranscription) currentInputTranscription.current += msg.serverContent.inputTranscription.text;
+            if (msg.serverContent?.outputTranscription) currentOutputTranscription.current += msg.serverContent.outputTranscription.text;
             if (msg.serverContent?.turnComplete) {
               persistTurn(currentInputTranscription.current, currentOutputTranscription.current);
               currentInputTranscription.current = '';
               currentOutputTranscription.current = '';
+            }
+
+            if (msg.toolCall) {
+               for (const fc of msg.toolCall.functionCalls) {
+                 sessionPromise.then(s => s.sendToolResponse({ functionResponses: { id: fc.id, name: fc.name, response: { result: "Action archived." } } }));
+               }
             }
 
             const base64Audio = msg.serverContent?.modelTurn?.parts[0]?.inlineData?.data;
@@ -173,11 +207,7 @@ export const VoiceAgent: React.FC<VoiceAgentProps> = ({
                 reasoningDepth: Math.floor(Math.random() * 20) + 75,
                 neuralSync: Math.floor(Math.random() * 10) + 90,
                 contextPurity: Math.floor(Math.random() * 5) + 95,
-                optimizations: [
-                  `Personality Core: ${profile.personality} active.`,
-                  `User Callsign: ${profile.callsign} verified.`,
-                  `Persistent Knowledge Sync: PASSED.`
-                ]
+                optimizations: [`Axiom Link: Stable`, `Voice Core: ${voiceName}`, `Skills: ${enabledSkills.join(', ')}`]
               }));
 
               const audioBuffer = await decodeAudioData(decodeBase64(base64Audio), outputCtx);
@@ -214,7 +244,7 @@ export const VoiceAgent: React.FC<VoiceAgentProps> = ({
       if (sessionRef.current) sessionRef.current.close();
       if (audioContextRef.current) audioContextRef.current.close();
     };
-  }, [isActive, agentName, systemInstruction, voiceName, inputTranscription, outputTranscription]);
+  }, [isActive, agentName, systemInstruction, voiceName, inputTranscription, outputTranscription, enabledSkills]);
 
   if (!isActive) return null;
 
@@ -226,8 +256,8 @@ export const VoiceAgent: React.FC<VoiceAgentProps> = ({
           <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
         </button>
         <div className="mb-10 relative inline-block">
-          <div className={`w-32 h-32 rounded-full border-2 border-indigo-500/50 flex items-center justify-center ${isSpeaking ? 'animate-pulse' : ''}`}>
-             <div className={`w-24 h-24 rounded-full bg-gradient-to-tr from-purple-600 to-blue-600 flex items-center justify-center shadow-2xl shadow-indigo-500/40 transition-transform duration-500 ${isSpeaking ? 'scale-110' : 'scale-100'}`}>
+          <div className={`w-32 h-32 rounded-full border-2 border-indigo-500/50 flex items-center justify-center ${isSpeaking ? 'animate-pulse shadow-[0_0_60px_rgba(99,102,241,0.3)]' : ''}`}>
+             <div className={`w-24 h-24 rounded-full bg-gradient-to-tr from-purple-600 to-blue-600 flex items-center justify-center shadow-2xl transition-transform duration-500 ${isSpeaking ? 'scale-110' : 'scale-100'}`}>
                 <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
              </div>
           </div>
@@ -241,14 +271,14 @@ export const VoiceAgent: React.FC<VoiceAgentProps> = ({
         </div>
         <div className="space-y-4">
            <div className="bg-slate-950/50 p-6 rounded-2xl border border-slate-800 text-xs text-slate-400 leading-relaxed italic">
-             "Synchronized with Sovereign Knowledge. Operator {profile.callsign} linked."
+             "Vocal core operational. Sovereign knowledge buffer linked."
            </div>
            <div className="grid grid-cols-2 gap-3">
-             <button onClick={() => setIsNeuralLinkActive(!isNeuralLinkActive)} className={`py-4 rounded-2xl font-bold transition-all uppercase tracking-widest text-[10px] flex items-center justify-center space-x-2 border ${isNeuralLinkActive ? 'bg-indigo-600 border-indigo-400 text-white' : 'bg-slate-800 border-slate-700 text-slate-400'}`}>
+             <button onClick={() => setIsNeuralLinkActive(!isNeuralLinkActive)} className={`py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center space-x-2 border ${isNeuralLinkActive ? 'bg-indigo-600 border-indigo-400 text-white shadow-lg' : 'bg-slate-800 border-slate-700 text-slate-400'}`}>
                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944" /></svg>
                <span>Neural Link</span>
              </button>
-             <button onClick={onClose} className="py-4 bg-slate-800 hover:bg-red-900/20 hover:text-red-400 hover:border-red-900/50 border border-slate-700 rounded-2xl font-bold transition-all uppercase tracking-widest text-[10px]">
+             <button onClick={onClose} className="py-4 bg-slate-800 hover:bg-red-900/20 hover:text-red-400 hover:border-red-900/50 border border-slate-700 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all">
                Terminate
              </button>
            </div>

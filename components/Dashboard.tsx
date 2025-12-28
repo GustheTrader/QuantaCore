@@ -11,7 +11,12 @@ import {
   ResponsiveContainer, 
   Cell,
   AreaChart,
-  Area
+  Area,
+  Radar,
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis
 } from 'recharts';
 import { VoiceAgent } from './VoiceAgent';
 
@@ -40,6 +45,13 @@ interface DashboardProps {
 }
 
 const VOICE_OPTIONS = ['Puck', 'Charon', 'Kore', 'Fenrir', 'Zephyr'];
+const SKILL_OPTIONS = [
+  { id: 'search', name: 'Google Search', icon: 'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z' },
+  { id: 'gmail', name: 'Gmail Link', icon: 'M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z' },
+  { id: 'calendar', name: 'Calendar Sync', icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z' },
+  { id: 'docs', name: 'Docs Architect', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
+  { id: 'drive', name: 'Drive Vault', icon: 'M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2v10a2 2 0 00-2 2v10a2 2 0 002 2z' }
+];
 
 const VoiceConfigModal: React.FC<{
   agent: AgentProps;
@@ -49,9 +61,16 @@ const VoiceConfigModal: React.FC<{
 }> = ({ agent, settings, onSave, onClose }) => {
   const [localSettings, setLocalSettings] = useState<VoiceSettings>(settings);
 
+  const toggleSkill = (skillId: string) => {
+    const skills = localSettings.enabledSkills.includes(skillId)
+      ? localSettings.enabledSkills.filter(s => s !== skillId)
+      : [...localSettings.enabledSkills, skillId];
+    setLocalSettings({ ...localSettings, enabledSkills: skills });
+  };
+
   return (
     <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/80 backdrop-blur-xl p-6 animate-in fade-in duration-300">
-      <div className="glass-card w-full max-w-2xl rounded-[3rem] border-emerald-500/30 overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+      <div className="glass-card w-full max-w-3xl rounded-[3rem] border-emerald-500/30 overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
         <div className="p-10 border-b border-slate-800 flex items-center justify-between">
           <div>
             <h2 className="text-3xl font-outfit font-black text-white uppercase tracking-tighter italic">Voice <span className="text-emerald-400">Architecture</span></h2>
@@ -62,7 +81,7 @@ const VoiceConfigModal: React.FC<{
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-10 space-y-10 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto p-10 space-y-12 custom-scrollbar">
           <section className="space-y-6">
             <label className="text-emerald-400 text-[10px] font-black uppercase tracking-[0.3em] block">Vocal Profile</label>
             <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
@@ -70,7 +89,7 @@ const VoiceConfigModal: React.FC<{
                 <button
                   key={v}
                   onClick={() => setLocalSettings({ ...localSettings, voiceName: v })}
-                  className={`py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${localSettings.voiceName === v ? 'bg-emerald-500 border-emerald-400 text-white shadow-lg' : 'bg-slate-900 border-slate-800 text-slate-500 hover:border-slate-700'}`}
+                  className={`py-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${localSettings.voiceName === v ? 'bg-emerald-500 border-emerald-400 text-white shadow-lg' : 'bg-slate-900 border-slate-800 text-slate-500 hover:border-slate-700'}`}
                 >
                   {v}
                 </button>
@@ -79,22 +98,38 @@ const VoiceConfigModal: React.FC<{
           </section>
 
           <section className="space-y-6">
+            <label className="text-emerald-400 text-[10px] font-black uppercase tracking-[0.3em] block">Neural Capabilities</label>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {SKILL_OPTIONS.map(skill => (
+                <button
+                  key={skill.id}
+                  onClick={() => toggleSkill(skill.id)}
+                  className={`flex items-center space-x-3 p-4 rounded-2xl border transition-all text-left ${localSettings.enabledSkills.includes(skill.id) ? 'bg-indigo-600/20 border-indigo-500 text-white shadow-lg' : 'bg-slate-900 border-slate-800 text-slate-500 hover:border-slate-700'}`}
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={skill.icon} /></svg>
+                  <span className="text-[10px] font-black uppercase tracking-widest">{skill.name}</span>
+                </button>
+              ))}
+            </div>
+          </section>
+
+          <section className="space-y-6">
             <label className="text-emerald-400 text-[10px] font-black uppercase tracking-[0.3em] block">Telemetry Settings</label>
-            <div className="flex flex-col space-y-4">
-              <label className="flex items-center justify-between p-4 bg-slate-900/50 rounded-2xl border border-slate-800 cursor-pointer hover:bg-slate-800/50 transition-colors">
-                <span className="text-[11px] font-black text-slate-300 uppercase tracking-widest">User Input Transcription</span>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <label className="flex items-center justify-between p-5 bg-slate-900/50 rounded-2xl border border-slate-800 cursor-pointer hover:bg-slate-800/50 transition-colors">
+                <span className="text-[11px] font-black text-slate-300 uppercase tracking-widest">Input Transcription</span>
                 <input 
                   type="checkbox" 
-                  className="w-5 h-5 accent-emerald-500"
+                  className="w-6 h-6 accent-emerald-500"
                   checked={localSettings.inputTranscription}
                   onChange={(e) => setLocalSettings({ ...localSettings, inputTranscription: e.target.checked })}
                 />
               </label>
-              <label className="flex items-center justify-between p-4 bg-slate-900/50 rounded-2xl border border-slate-800 cursor-pointer hover:bg-slate-800/50 transition-colors">
-                <span className="text-[11px] font-black text-slate-300 uppercase tracking-widest">Agent Output Transcription</span>
+              <label className="flex items-center justify-between p-5 bg-slate-900/50 rounded-2xl border border-slate-800 cursor-pointer hover:bg-slate-800/50 transition-colors">
+                <span className="text-[11px] font-black text-slate-300 uppercase tracking-widest">Output Transcription</span>
                 <input 
                   type="checkbox" 
-                  className="w-5 h-5 accent-emerald-500"
+                  className="w-6 h-6 accent-emerald-500"
                   checked={localSettings.outputTranscription}
                   onChange={(e) => setLocalSettings({ ...localSettings, outputTranscription: e.target.checked })}
                 />
@@ -103,20 +138,20 @@ const VoiceConfigModal: React.FC<{
           </section>
 
           <section className="space-y-6">
-            <label className="text-emerald-400 text-[10px] font-black uppercase tracking-[0.3em] block">SME Voice Prompt Override</label>
+            <label className="text-emerald-400 text-[10px] font-black uppercase tracking-[0.3em] block">Vocal System Prompt Override</label>
             <textarea 
               value={localSettings.systemPromptOverride}
               onChange={(e) => setLocalSettings({ ...localSettings, systemPromptOverride: e.target.value })}
               placeholder="Inject custom behavioral logic for voice interactions..."
-              className="w-full bg-slate-950 border border-slate-800 rounded-2xl p-6 text-slate-300 font-medium text-sm focus:border-emerald-500 transition-all min-h-[120px]"
+              className="w-full bg-slate-950 border border-slate-800 rounded-3xl p-8 text-slate-300 font-medium text-sm focus:border-emerald-500 transition-all min-h-[150px] custom-scrollbar"
             />
-            <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest italic">If empty, the agent's default SME logic will be utilized.</p>
+            <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest italic">Grounds voice reasoning in specific SME logic overrides if provided.</p>
           </section>
         </div>
 
-        <div className="p-10 border-t border-slate-800 flex space-x-4">
-          <button onClick={onClose} className="flex-1 py-5 bg-slate-900 text-slate-500 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:text-white transition-all">Cancel</button>
-          <button onClick={() => onSave(localSettings)} className="flex-1 py-5 bg-emerald-600 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-lg shadow-emerald-500/20 hover:bg-emerald-500 transition-all">Synchronize Logic</button>
+        <div className="p-10 border-t border-slate-800 flex space-x-6">
+          <button onClick={onClose} className="flex-1 py-6 bg-slate-900 text-slate-500 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:text-white transition-all">Cancel</button>
+          <button onClick={() => onSave(localSettings)} className="flex-1 py-6 bg-emerald-600 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-2xl shadow-emerald-500/30 hover:bg-emerald-500 transition-all">Save Architecture</button>
         </div>
       </div>
     </div>
@@ -211,6 +246,7 @@ const Dashboard: React.FC<DashboardProps> = ({ track, profile }) => {
   const [customAgents, setCustomAgents] = useState<AgentProps[]>([]);
   const [agentsLoading, setAgentsLoading] = useState(true);
   const [editingVoiceAgent, setEditingVoiceAgent] = useState<AgentProps | null>(null);
+  const [selectedMetricAgent, setSelectedMetricAgent] = useState<string>('');
   
   const [allVoiceSettings, setAllVoiceSettings] = useState<Record<string, VoiceSettings>>({});
 
@@ -236,11 +272,11 @@ const Dashboard: React.FC<DashboardProps> = ({ track, profile }) => {
   };
 
   const performanceData = useMemo(() => [
-    { name: 'SME 1', val: 92, lat: 110 },
-    { name: 'SME 2', val: 88, lat: 140 },
-    { name: 'SME 3', val: 95, lat: 95 },
-    { name: 'SME 4', val: 91, lat: 125 },
-    { name: 'SME 5', val: 89, lat: 130 },
+    { name: 'SME 1', val: 92, lat: 110, sat: 94, comp: 88, learn: 76 },
+    { name: 'SME 2', val: 88, lat: 140, sat: 85, comp: 92, learn: 82 },
+    { name: 'SME 3', val: 95, lat: 95, sat: 98, comp: 96, learn: 90 },
+    { name: 'SME 4', val: 91, lat: 125, sat: 88, comp: 85, learn: 88 },
+    { name: 'SME 5', val: 89, lat: 130, sat: 90, comp: 89, learn: 85 },
   ], []);
 
   const agents: AgentProps[] = useMemo(() => track === 'personal' ? [
@@ -264,6 +300,25 @@ const Dashboard: React.FC<DashboardProps> = ({ track, profile }) => {
     { name: "QProduct", subhead: "Dev", desc: "Product-led growth and technical architecture deconstruction.", systemPrompt: "You are QProduct, a technical product expert.", icon: "M10 20l4-16m4 4l4 4-4 4", iconBg: "bg-orange-600/20", iconColor: "text-orange-400", tags: ["Dev", "Agile"] },
     { name: "QSuccess", subhead: "Retention", desc: "Customer success loops and loyalty deconstruction logic.", systemPrompt: "You are QSuccess, a customer success expert.", icon: "M14 10h2m-2 4h2m7-4H3", iconBg: "bg-lime-600/20", iconColor: "text-lime-400", tags: ["CS", "LTV"] },
   ], [track]);
+
+  const allAgentsList = useMemo(() => [...agents, ...customAgents], [agents, customAgents]);
+
+  useEffect(() => {
+    if (allAgentsList.length > 0 && !selectedMetricAgent) {
+      setSelectedMetricAgent(allAgentsList[0].name);
+    }
+  }, [allAgentsList]);
+
+  const selectedAgentMetrics = useMemo(() => {
+    const base = performanceData[allAgentsList.findIndex(a => a.name === selectedMetricAgent) % performanceData.length];
+    return [
+      { subject: 'Satisfaction', A: base.sat, fullMark: 100 },
+      { subject: 'Completion', A: base.comp, fullMark: 100 },
+      { subject: 'Learning', A: base.learn, fullMark: 100 },
+      { subject: 'Latency', A: Math.max(0, 100 - (base.lat / 2)), fullMark: 100 },
+      { subject: 'Accuracy', A: base.val, fullMark: 100 },
+    ];
+  }, [selectedMetricAgent, allAgentsList, performanceData]);
 
   const handleAddCustom = () => {
     const name = prompt("Enter SME Designation Name:");
@@ -354,43 +409,112 @@ const Dashboard: React.FC<DashboardProps> = ({ track, profile }) => {
         <div className="h-2 w-48 bg-gradient-to-r from-emerald-500 to-orange-500 mx-auto rounded-full"></div>
       </section>
 
-      {/* Flagship Council Prompt */}
-      <section className="mb-24">
-         <div className="glass-card p-12 rounded-[4rem] border-emerald-500/30 quanta-logic-gradient relative overflow-hidden group shadow-[0_0_80px_rgba(16,185,129,0.1)]">
-            <div className="absolute -top-32 -right-32 w-[500px] h-[500px] bg-orange-500/5 rounded-full blur-[120px] pointer-events-none group-hover:bg-orange-500/10 transition-all duration-1000"></div>
-            
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center relative z-10">
-               <div className="space-y-10">
+      <section className="mb-32">
+        <div className="flex items-center justify-between mb-16">
+           <h3 className="text-3xl font-outfit font-black text-white uppercase tracking-tighter italic">Neural Performance <span className="text-emerald-400">Ledger</span></h3>
+           <div className="h-1 flex-1 mx-12 bg-gradient-to-r from-emerald-500/20 to-transparent"></div>
+        </div>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+          <div className="lg:col-span-4 space-y-4 max-h-[600px] overflow-y-auto custom-scrollbar pr-4">
+            {allAgentsList.map((agent, i) => {
+              const metrics = performanceData[i % performanceData.length];
+              const isSelected = selectedMetricAgent === agent.name;
+              return (
+                <button 
+                  key={agent.name}
+                  onClick={() => setSelectedMetricAgent(agent.name)}
+                  className={`w-full text-left p-6 rounded-[2rem] border transition-all duration-300 flex items-center justify-between group ${isSelected ? 'bg-emerald-500/10 border-emerald-500/50 shadow-xl shadow-emerald-500/5' : 'bg-slate-900 border-slate-800 hover:border-slate-700'}`}
+                >
                   <div className="flex items-center space-x-4">
-                    <span className="px-5 py-2 bg-orange-500 rounded-full text-white text-[11px] font-black uppercase tracking-widest shadow-xl">FLAGSHIP</span>
-                    <span className="text-emerald-400 text-[11px] font-black uppercase tracking-widest">FPT-OMEGA PROTOCOL</span>
-                  </div>
-                  <h3 className="text-5xl md:text-6xl font-outfit font-black uppercase tracking-tighter text-white leading-[0.9]">SME Council <span className="italic text-emerald-400">War Room</span></h3>
-                  <p className="text-slate-400 text-lg leading-relaxed max-w-lg font-medium">
-                    Assemble your specialized cores for first-principles debate. Resolve complex strategy via the Neural Judge.
-                  </p>
-                  <button onClick={() => navigate('/council')} className="px-14 py-7 quanta-btn-orange text-white rounded-3xl font-black uppercase tracking-[0.3em] text-[13px] shadow-2xl shadow-orange-500/30 transition-all active:scale-95 flex items-center justify-center space-x-4">
-                    <span>Initialize SME Quorum</span>
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-                  </button>
-               </div>
-               
-               <div className="grid grid-cols-2 gap-6">
-                  {[
-                    { label: 'Reasoning Logic', val: 'AXIOM-1', sub: 'Auditable' },
-                    { label: 'Local Latency', val: '8ms', sub: 'Edge Sync' },
-                    { label: 'Neural Sync', val: '99.8%', sub: 'Stable' },
-                    { label: 'Privacy Core', val: 'AIRGAP', sub: 'Sovereign' }
-                  ].map(stat => (
-                    <div key={stat.label} className="glass-card p-10 rounded-[3.5rem] border-emerald-500/20 text-center hover:border-emerald-500/60 transition-all bg-slate-900/40">
-                       <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3">{stat.label}</p>
-                       <p className="text-4xl font-outfit font-black text-white mb-2">{stat.val}</p>
-                       <p className="text-[10px] font-black text-orange-500 uppercase tracking-widest">{stat.sub}</p>
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center border border-white/5 bg-slate-950 ${isSelected ? 'text-emerald-400' : 'text-slate-500'}`}>
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={agent.icon} /></svg>
                     </div>
-                  ))}
+                    <div>
+                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{agent.subhead}</p>
+                      <h4 className="text-sm font-black text-white uppercase tracking-tighter">{agent.name}</h4>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className={`text-lg font-outfit font-black ${isSelected ? 'text-emerald-400' : 'text-slate-400'}`}>{metrics.val}%</p>
+                    <div className="w-16 h-1 bg-slate-800 rounded-full mt-1 overflow-hidden">
+                      <div className={`h-full ${isSelected ? 'bg-emerald-500' : 'bg-slate-600'} transition-all duration-1000`} style={{ width: `${metrics.val}%` }}></div>
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="lg:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="glass-card p-10 rounded-[4rem] border-emerald-500/10 flex flex-col items-center justify-center relative overflow-hidden group">
+               <div className="absolute top-8 left-10">
+                 <h4 className="text-[10px] font-black text-emerald-400 uppercase tracking-[0.3em]">Axiom Balance</h4>
+                 <p className="text-lg font-outfit font-black text-white uppercase tracking-tighter italic">{selectedMetricAgent}</p>
+               </div>
+               <div className="w-full h-80 mt-12">
+                 <ResponsiveContainer width="100%" height="100%">
+                    <RadarChart cx="50%" cy="50%" outerRadius="80%" data={selectedAgentMetrics}>
+                      <PolarGrid stroke="#1e293b" />
+                      <PolarAngleAxis dataKey="subject" tick={{ fill: '#64748b', fontSize: 10, fontWeight: 900 }} />
+                      <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
+                      <Radar
+                        name={selectedMetricAgent}
+                        dataKey="A"
+                        stroke="#10b981"
+                        fill="#10b981"
+                        fillOpacity={0.3}
+                        animationDuration={1500}
+                      />
+                    </RadarChart>
+                 </ResponsiveContainer>
                </div>
             </div>
-         </div>
+
+            <div className="space-y-8">
+               <div className="glass-card p-10 rounded-[3.5rem] border-orange-500/10 h-1/2 flex flex-col justify-center">
+                  <h4 className="text-[10px] font-black text-orange-500 uppercase tracking-[0.3em] mb-6">Comparative Response Latency</h4>
+                  <div className="h-40 w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={performanceData}>
+                        <XAxis hide dataKey="name" />
+                        <YAxis hide />
+                        <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ backgroundColor: '#020617', border: '1px solid #f97316', borderRadius: '16px' }} />
+                        <Bar dataKey="lat" radius={[8, 8, 8, 8]}>
+                          {performanceData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={allAgentsList[index % allAgentsList.length]?.name === selectedMetricAgent ? '#f97316' : '#1e293b'} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="flex items-center justify-between mt-4">
+                    <p className="text-[9px] font-black text-slate-500 uppercase">Lower is faster (ms)</p>
+                    <p className="text-[10px] font-black text-orange-400 uppercase tracking-widest">Avg: {Math.floor(performanceData.reduce((acc, curr) => acc + curr.lat, 0) / performanceData.length)}ms</p>
+                  </div>
+               </div>
+
+               <div className="glass-card p-10 rounded-[3.5rem] border-blue-500/10 h-1/2 flex flex-col justify-center">
+                  <h4 className="text-[10px] font-black text-blue-400 uppercase tracking-[0.3em] mb-6">User Satisfaction Core</h4>
+                  <div className="flex items-end justify-between">
+                     {performanceData.map((d, i) => (
+                       <div key={i} className="flex flex-col items-center space-y-2">
+                          <div 
+                            className={`w-3 rounded-full transition-all duration-1000 ${allAgentsList[i % allAgentsList.length]?.name === selectedMetricAgent ? 'bg-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.5)]' : 'bg-slate-800'}`} 
+                            style={{ height: `${d.sat * 0.8}px` }}
+                          ></div>
+                          <span className="text-[8px] font-black text-slate-600 uppercase tracking-tighter">{d.name.split(' ')[1]}</span>
+                       </div>
+                     ))}
+                  </div>
+                  <div className="flex items-center justify-between mt-8 pt-4 border-t border-slate-800">
+                    <p className="text-[9px] font-black text-slate-500 uppercase">Global Sentiment</p>
+                    <p className="text-xl font-outfit font-black text-blue-400">91.4%</p>
+                  </div>
+               </div>
+            </div>
+          </div>
+        </div>
       </section>
 
       <section className="mb-32">
@@ -425,7 +549,6 @@ const Dashboard: React.FC<DashboardProps> = ({ track, profile }) => {
         </div>
       </section>
 
-      {/* Analytics Matrix */}
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-12">
         <div className="glass-card p-12 rounded-[4rem] border-emerald-500/10">
           <div className="flex items-center justify-between mb-12">

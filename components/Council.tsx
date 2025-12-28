@@ -69,10 +69,8 @@ const Council: React.FC = () => {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const FPT_OMEGA_PROTOCOL = `You are a high-performance SME agent using First Principles Thinking (FPT-OMEGA). Structure your output into Deconstruction, Axiom Identification, and Reconstruction phases.`;
 
-      // Build shared knowledge context for the council
       const globalCtx = getSMEContext("All Agents", operatorProfile);
 
-      // Sequential generation for SMEs
       for (const agent of selectedAgents) {
         setDebateLog(prev => [...prev, { agentName: agent, role: 'proposer', content: 'Analyzing first principles...', status: 'processing' }]);
         
@@ -151,10 +149,19 @@ const Council: React.FC = () => {
   };
 
   const toggleAgent = (name: string) => {
-    setSelectedAgents(prev => 
-      prev.includes(name) ? prev.filter(a => a !== name) : (prev.length < 3 ? [...prev, name] : prev)
-    );
+    setSelectedAgents(prev => {
+      if (prev.includes(name)) {
+        return prev.filter(a => a !== name);
+      }
+      if (prev.length >= 3) {
+        return prev; // Limit selection to exactly 3
+      }
+      return [...prev, name];
+    });
   };
+
+  const isSelectionFull = selectedAgents.length === 3;
+  const canAssemble = selectedAgents.length >= 2 && prompt.trim().length > 0;
 
   return (
     <div className="animate-in fade-in duration-1000 max-w-7xl mx-auto">
@@ -166,8 +173,13 @@ const Council: React.FC = () => {
       {!sessionActive ? (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-16">
           <div className="lg:col-span-2">
-            <div className="glass-card p-12 rounded-[4rem] border-emerald-500/20 quanta-logic-gradient shadow-2xl">
-              <label className="text-emerald-400 text-[10px] font-black uppercase tracking-[0.4em] mb-6 block">Executive Challenge Input</label>
+            <div className="glass-card p-12 rounded-[4rem] border-emerald-500/20 quanta-logic-gradient shadow-2xl relative overflow-hidden">
+              <div className="flex items-center justify-between mb-6">
+                <label className="text-emerald-400 text-[10px] font-black uppercase tracking-[0.4em] block">Executive Challenge Input</label>
+                <div className={`px-4 py-1.5 rounded-full border text-[9px] font-black uppercase tracking-widest transition-all ${canAssemble ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-400' : 'bg-slate-900 border-slate-800 text-slate-500'}`}>
+                  {canAssemble ? 'Forge Ready' : 'Awaiting Parameters'}
+                </div>
+              </div>
               <textarea 
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
@@ -175,28 +187,54 @@ const Council: React.FC = () => {
                 className="w-full h-64 bg-slate-950/80 border-2 border-slate-800 rounded-[3rem] p-10 text-slate-100 font-mono text-lg focus:border-emerald-500 transition-all resize-none shadow-inner"
               />
               
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-6 mt-12">
-                {availableAgents.map(agent => (
-                  <button 
-                    key={agent.name}
-                    onClick={() => toggleAgent(agent.name)}
-                    className={`p-8 rounded-[2.5rem] border-2 transition-all flex flex-col items-center group ${selectedAgents.includes(agent.name) ? 'bg-emerald-500/10 border-emerald-500 shadow-xl' : 'bg-slate-900 border-slate-800 text-slate-500 hover:border-slate-700'}`}
-                  >
-                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-4 ${selectedAgents.includes(agent.name) ? 'bg-emerald-500 text-white' : 'bg-slate-800 text-slate-600'}`}>
-                      <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d={agent.icon} /></svg>
-                    </div>
-                    <span className="text-[10px] font-black uppercase tracking-widest">{agent.name}</span>
-                  </button>
-                ))}
+              <div className="flex items-center justify-between mt-12 mb-6">
+                <h3 className="text-white text-[10px] font-black uppercase tracking-[0.3em]">Assemble Council Members <span className="text-slate-500 ml-2">(Min 2, Max 3)</span></h3>
+                <div className={`text-[10px] font-black uppercase tracking-widest ${isSelectionFull ? 'text-orange-400' : 'text-emerald-400'}`}>
+                  {selectedAgents.length}/3 Selected
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+                {availableAgents.map(agent => {
+                  const isSelected = selectedAgents.includes(agent.name);
+                  const isDimmed = !isSelected && isSelectionFull;
+                  return (
+                    <button 
+                      key={agent.name}
+                      disabled={isDimmed}
+                      onClick={() => toggleAgent(agent.name)}
+                      className={`p-8 rounded-[2.5rem] border-2 transition-all flex flex-col items-center group relative ${isSelected ? 'bg-emerald-500/10 border-emerald-500 shadow-xl scale-105' : 'bg-slate-900 border-slate-800 text-slate-500 hover:border-slate-700'} ${isDimmed ? 'opacity-40 grayscale cursor-not-allowed' : ''}`}
+                    >
+                      {isSelected && (
+                        <div className="absolute top-4 right-4 w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center animate-in zoom-in">
+                          <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7" /></svg>
+                        </div>
+                      )}
+                      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-4 transition-all ${isSelected ? 'bg-emerald-500 text-white shadow-lg' : 'bg-slate-800 text-slate-600 group-hover:bg-slate-700'}`}>
+                        <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d={agent.icon} /></svg>
+                      </div>
+                      <span className="text-[10px] font-black uppercase tracking-widest">{agent.name}</span>
+                    </button>
+                  );
+                })}
               </div>
 
               <button 
                 onClick={runCouncilProtocol}
-                disabled={selectedAgents.length < 2 || !prompt.trim() || isProcessing}
-                className="w-full mt-16 py-10 quanta-btn-primary text-white rounded-[3rem] font-black uppercase tracking-[0.5em] text-[12px] shadow-2xl flex items-center justify-center space-x-6 active:scale-95"
+                disabled={!canAssemble || isProcessing}
+                className={`w-full mt-16 py-10 rounded-[3rem] font-black uppercase tracking-[0.5em] text-[12px] shadow-2xl flex items-center justify-center space-x-6 transition-all active:scale-95 ${canAssemble ? 'quanta-btn-primary text-white animate-glow' : 'bg-slate-900 border-2 border-slate-800 text-slate-700 cursor-not-allowed'}`}
               >
-                {isProcessing ? 'Council Syncing...' : 'Assemble SME Council'}
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                {isProcessing ? (
+                  <>
+                    <div className="w-5 h-5 border-4 border-white/20 border-t-white rounded-full animate-spin"></div>
+                    <span>Council Syncing...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Assemble SME Council</span>
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                  </>
+                )}
               </button>
             </div>
           </div>
@@ -210,13 +248,30 @@ const Council: React.FC = () => {
                    <p className="flex items-start space-x-4"><span className="w-6 h-6 bg-orange-500 text-white rounded-lg flex items-center justify-center shrink-0">3</span><span>Reconstruct path via dominant logic synthesis.</span></p>
                 </div>
              </div>
+             
+             <div className="glass-card p-10 rounded-[3rem] border-slate-800 bg-slate-900/30">
+                <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-4">Neural Quorum Status</p>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] text-slate-400 font-bold">Min Members:</span>
+                    <span className={`text-[10px] font-black ${selectedAgents.length >= 2 ? 'text-emerald-400' : 'text-rose-400'}`}>{selectedAgents.length >= 2 ? 'OK' : 'MISSING'}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] text-slate-400 font-bold">Challenge Input:</span>
+                    <span className={`text-[10px] font-black ${prompt.trim().length > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{prompt.trim().length > 0 ? 'OK' : 'MISSING'}</span>
+                  </div>
+                </div>
+             </div>
           </div>
         </div>
       ) : (
         <div className="max-w-6xl mx-auto space-y-16 pb-40">
-          <div className="bg-slate-900 border-2 border-emerald-500/30 p-10 rounded-[3rem] sticky top-8 z-[90] shadow-2xl backdrop-blur-3xl">
-             <p className="text-emerald-400 text-[10px] font-black uppercase tracking-[0.5em] mb-2">Council context active</p>
-             <h2 className="text-2xl font-outfit font-black text-white uppercase italic tracking-tighter truncate">"{prompt}"</h2>
+          <div className="bg-slate-900 border-2 border-emerald-500/30 p-10 rounded-[3rem] sticky top-8 z-[90] shadow-2xl backdrop-blur-3xl flex items-center justify-between">
+             <div className="flex-1 overflow-hidden">
+                <p className="text-emerald-400 text-[10px] font-black uppercase tracking-[0.5em] mb-2">Council context active</p>
+                <h2 className="text-2xl font-outfit font-black text-white uppercase italic tracking-tighter truncate">"{prompt}"</h2>
+             </div>
+             <button onClick={() => { setSessionActive(false); setDebateLog([]); }} className="ml-8 px-6 py-3 bg-slate-800 hover:bg-slate-700 text-slate-400 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all">New Forge</button>
           </div>
 
           <div className="space-y-12 relative">
