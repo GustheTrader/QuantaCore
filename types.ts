@@ -28,6 +28,14 @@ export interface OptimizationTelemetry {
   optimizations: string[];
 }
 
+export interface ReflectionResult {
+  score: number;
+  analysis: string;
+  suggestedPrompt: string | null;
+  weaknesses: string[];
+  strengths: string[];
+}
+
 export interface MemoryBlock {
   id: string;
   title: string;

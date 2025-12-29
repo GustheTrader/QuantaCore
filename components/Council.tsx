@@ -47,7 +47,19 @@ const Council: React.FC = () => {
         { name: "QSuccess", icon: "M14 10h2" }
       ];
 
-      const standard = track === 'personal' ? personalAgents : businessAgents;
+      const tradingAgents = [
+        { name: "QTradeAnalyst", icon: "M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18v16H3V4z" },
+        { name: "QNewsSentry", icon: "M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10l4 4v10a2 2 0 01-2 2zM7 8h5m-5 4h5m-5 4h10" },
+        { name: "QSentimentEngine", icon: "M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" },
+        { name: "QRiskQuant", icon: "M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" },
+        { name: "QVolExpert", icon: "M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" },
+        { name: "QOptionStrategist", icon: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" },
+        { name: "QThetaBurn", icon: "M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" },
+        { name: "QYieldHunter", icon: "M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2" },
+        { name: "QMacroEdge", icon: "M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9" }
+      ];
+
+      const standard = track === 'personal' ? personalAgents : track === 'business' ? businessAgents : tradingAgents;
       const savedCustom = localStorage.getItem(`quanta_custom_agents_${track}`);
       const custom = savedCustom ? JSON.parse(savedCustom).map((a: any) => ({ name: a.name, icon: a.icon })) : [];
       
@@ -102,10 +114,9 @@ const Council: React.FC = () => {
 
       setDebateLog(prev => [...prev, { agentName: 'NEURAL JUDGE', role: 'judge', content: 'Synthesizing dominant logic...', status: 'processing' }]);
       
-      const fullDebate = debateLog.map(d => `${d.agentName}: ${d.content}`).join('\n\n');
       const judgeResponse = await ai.models.generateContent({
         model: 'gemini-3-pro-preview',
-        contents: `Full Debate Context:\n${fullDebate}\n\nProblem: ${prompt}\n\nNeural Judge Synthesis: Identify the single most logical dominant strategy. Ground it in the provided deliberation and live web search.`,
+        contents: `Evaluate the deliberation context between ${selectedAgents.join(', ')}.\n\nProblem: ${prompt}\n\nNeural Judge Synthesis: Identify the single most logical dominant strategy. Ground it in the provided deliberation and live web search.`,
         config: { 
           tools: [{ googleSearch: {} }],
           systemInstruction: `You are the Neural Judge. Synthesize SME debate with total logical purity. \n${globalCtx.fullHeader}`
@@ -154,7 +165,7 @@ const Council: React.FC = () => {
         return prev.filter(a => a !== name);
       }
       if (prev.length >= 3) {
-        return prev; // Limit selection to exactly 3
+        return prev; 
       }
       return [...prev, name];
     });

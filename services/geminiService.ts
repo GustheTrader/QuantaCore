@@ -1,7 +1,7 @@
 
 import { GoogleGenAI, Type, FunctionDeclaration } from "@google/genai";
-import { MemoryBlock, ChatMessage } from "../types";
-import { syncMemoryToSupabase } from "./supabaseService";
+import { MemoryBlock, ChatMessage, ReflectionResult } from "../types";
+import { syncMemoryToSupabase, logReflection, archiveAndActivatePrompt } from "./supabaseService";
 
 const getAI = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
 
@@ -55,12 +55,9 @@ export const chatWithGemini = async (
   const ai = getAI();
   
   const tools: any[] = [];
-  const functionDeclarations: FunctionDeclaration[] = [];
-
+  // Fix: When using googleSearch, it must be the only tool provided.
   if (enabledSkills.includes('search')) {
     tools.push({ googleSearch: {} });
-  } else {
-    // Other skills logic...
   }
 
   const ctx = getSMEContext(agentName, profile);
@@ -91,6 +88,83 @@ export const chatWithGemini = async (
     sources,
     functionCalls: response.functionCalls
   };
+};
+
+/**
+ * Blueprint Logic: Judge/Reflective Agent evaluation.
+ * Evaluates the performance of the SME agent and evolves its system prompt.
+ */
+export const reflectAndRefine = async (
+  history: ChatMessage[],
+  currentPrompt: string,
+  agentName: string
+): Promise<ReflectionResult> => {
+  const ai = getAI();
+  const context = history.map(m => `${m.role.toUpperCase()}: ${m.content}`).join('\n---\n');
+
+  // Blueprint: Fast evaluation using Gemini 3 Pro
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-pro-preview',
+    contents: `You are the Quanta Judge (Model: Gemini 3 Pro). Evaluate the SME Agent: ${agentName}.
+    
+    CURRENT SYSTEM PROMPT:
+    "${currentPrompt}"
+    
+    CONVERSATION HISTORY:
+    ${context}
+    
+    RUBRIC EVALUATION (Score 1-5):
+    1. Completeness: Did the agent address all user intents and unspoken context?
+    2. Depth: Was the reasoning deconstructed into atomic truths (FPT) or was it analogical?
+    3. Tone: Did it maintain the precise ${agentName} archetype?
+    4. Scope: Did it stay within its technical boundaries or drift into generic AI patterns?
+    
+    DECISION LOGIC:
+    If Score < 4: Decision = UPDATE. Generate a SUPERIOR system prompt that explicitly patches these weaknesses.
+    If Score >= 4: Decision = MAINTAIN.
+    
+    Return as JSON.`,
+    config: {
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          score: { type: Type.NUMBER, description: "Average score across rubric (1-5)." },
+          analysis: { type: Type.STRING, description: "Detailed breakdown of agent performance." },
+          decision: { type: Type.STRING, enum: ["UPDATE", "MAINTAIN"] },
+          suggestedPrompt: { type: Type.STRING, nullable: true, description: "The revised system prompt if UPDATE is chosen." },
+          weaknesses: { type: Type.ARRAY, items: { type: Type.STRING } },
+          strengths: { type: Type.ARRAY, items: { type: Type.STRING } },
+          reasoningForUpdate: { type: Type.STRING, description: "Why the prompt was updated (for DB versioning)." }
+        },
+        required: ["score", "analysis", "decision", "weaknesses", "strengths", "reasoningForUpdate"]
+      }
+    }
+  });
+
+  try {
+    const result = JSON.parse(response.text || "{}");
+    
+    // Blueprint Persistence
+    await logReflection(agentName, history.slice(-6), result);
+    
+    if (result.decision === 'UPDATE' && result.suggestedPrompt) {
+      // Simulate version incrementing (real implementation would fetch current max version from DB)
+      const newVersion = Math.floor(Date.now() / 100000); 
+      await archiveAndActivatePrompt(agentName, result.suggestedPrompt, result.reasoningForUpdate, newVersion);
+    }
+
+    return result;
+  } catch (e) {
+    console.error("Reflection parsing failed", e);
+    return {
+      score: 5,
+      analysis: "Reflection bypass due to kernel processing error.",
+      suggestedPrompt: null,
+      weaknesses: [],
+      strengths: ["Stability"]
+    };
+  }
 };
 
 export const distillMemoryFromChat = async (recentMessages: ChatMessage[], agentName: string): Promise<MemoryBlock | null> => {

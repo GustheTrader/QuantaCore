@@ -25,7 +25,6 @@ const Notebook: React.FC = () => {
 
   useEffect(() => {
     const loadData = async () => {
-      // Try Supabase first
       const remote = await fetchMemoriesFromSupabase();
       if (remote) {
         setMemories(remote);
@@ -34,23 +33,27 @@ const Notebook: React.FC = () => {
         if (local) setMemories(JSON.parse(local));
       }
 
-      // Load available agents (Standard + Custom)
       const sessionStr = localStorage.getItem('quanta_session');
       if (sessionStr) {
         const { track } = JSON.parse(sessionStr);
         
         const personalAgents = [
-          "QPersonal Assistant", "QWealth Architect", "QSpeculator Pro", 
-          "QHealth Biohacker", "QCreative Engine", "QLegacy Planner",
-          "QMind Fortress", "QTravel Nomad", "QSocial Architect"
+          "QAssistant", "QWealth", "QHealth", 
+          "QCreative", "QLegacy", "QMind",
+          "QNomad", "QSocial", "QSpeculator"
         ];
         const businessAgents = [
-          "QStrategy & CEO", "QGrowth & Marketing", "QFinance & CFO",
-          "QSales & Revenue", "QOps & Efficiency", "QHR & Talent",
-          "QProduct & Dev", "QLegal & Risk", "QCustomer Success"
+          "QStrategy", "QGrowth", "QFinance",
+          "QSales", "QOps", "QLegal",
+          "QTalent", "QProduct", "QSuccess"
+        ];
+        const tradingAgents = [
+          "QTradeAnalyst", "QNewsSentry", "QSentimentEngine",
+          "QRiskQuant", "QVolExpert", "QOptionStrategist",
+          "QThetaBurn", "QYieldHunter", "QMacroEdge"
         ];
         
-        const standard = track === 'personal' ? personalAgents : businessAgents;
+        const standard = track === 'personal' ? personalAgents : track === 'business' ? businessAgents : tradingAgents;
         const customStr = localStorage.getItem(`quanta_custom_agents_${track}`);
         const custom = customStr ? JSON.parse(customStr).map((a: any) => a.name) : [];
         
@@ -71,8 +74,6 @@ const Notebook: React.FC = () => {
     
     const updated = [memory, ...memories];
     setMemories(updated);
-    
-    // Sync to local and Supabase
     localStorage.setItem('quanta_notebook', JSON.stringify(updated));
     await syncMemoryToSupabase(memory);
     
@@ -96,7 +97,6 @@ const Notebook: React.FC = () => {
           : [...m.assignedAgents, agent];
         
         const updatedMemory = { ...m, assignedAgents: newAgents };
-        // Trigger async sync
         syncMemoryToSupabase(updatedMemory);
         return updatedMemory;
       }
@@ -117,11 +117,9 @@ const Notebook: React.FC = () => {
         title: prev.title || file.name.split('.')[0]
       }));
     };
-    // Basic support for any text-based or readable format
     if (file.type.includes('text') || file.name.endsWith('.csv') || file.name.endsWith('.log') || file.name.endsWith('.md')) {
       reader.readAsText(file);
     } else {
-      // For non-text files, we just record the metadata
       setNewMemory(prev => ({
         ...prev,
         content: prev.content + `\nAttached Blob Reference: ${file.name} (${file.size} bytes, ${file.type})`
@@ -144,7 +142,6 @@ const Notebook: React.FC = () => {
     e.stopPropagation();
     setDragActive(false);
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      // Loop through all dropped files
       for (let i = 0; i < e.dataTransfer.files.length; i++) {
         handleFile(e.dataTransfer.files[i]);
       }
@@ -177,7 +174,7 @@ const Notebook: React.FC = () => {
                     type="text" 
                     value={newMemory.title}
                     onChange={(e) => setNewMemory({...newMemory, title: e.target.value})}
-                    placeholder="e.g. Q3 Strategic Objectives"
+                    placeholder="e.g. Portfolio Strategy V1"
                     className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-5 py-4 text-white font-outfit font-bold shadow-inner focus:border-indigo-500 transition-all"
                   />
                 </div>
@@ -199,7 +196,7 @@ const Notebook: React.FC = () => {
               </div>
 
               <div>
-                <label className="text-indigo-400 text-[10px] font-black uppercase tracking-[0.2em] mb-3 block">Data Ingestion (Drop Any Files)</label>
+                <label className="text-indigo-400 text-[10px] font-black uppercase tracking-[0.2em] mb-3 block">Data Ingestion</label>
                 <div 
                   onDragEnter={handleDrag} 
                   onDragLeave={handleDrag} 
@@ -215,8 +212,7 @@ const Notebook: React.FC = () => {
                   }} className="hidden" />
                   <div className="text-center p-6">
                     <svg className="w-10 h-10 text-slate-600 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
-                    <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Drop ANY data types here or <span className="text-indigo-400">click to browse</span></p>
-                    <p className="text-[9px] text-slate-600 mt-2">CSV, Logs, MD, Docs, Custom SME Profiles</p>
+                    <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Drop ANY data here or <span className="text-indigo-400">click to browse</span></p>
                   </div>
                 </div>
               </div>
@@ -234,7 +230,7 @@ const Notebook: React.FC = () => {
             </div>
 
             <div className="space-y-6">
-              <label className="text-indigo-400 text-[10px] font-black uppercase tracking-[0.2em] block">SME Core Initial Assignment</label>
+              <label className="text-indigo-400 text-[10px] font-black uppercase tracking-[0.2em] block">SME Core Assignment</label>
               <div className="bg-slate-950/50 border border-slate-800 rounded-[2rem] p-6 max-h-[600px] overflow-y-auto custom-scrollbar">
                 <div className="space-y-2">
                   {availableAgents.map(agent => (
@@ -248,7 +244,7 @@ const Notebook: React.FC = () => {
                             : [...prev.assignedAgents, agent]
                         }));
                       }}
-                      className={`flex items-center justify-between p-4 rounded-xl cursor-pointer transition-all border ${newMemory.assignedAgents.includes(agent) ? 'bg-indigo-600/10 border-indigo-500 text-white shadow-lg shadow-indigo-500/10' : 'bg-slate-900 border-slate-800 text-slate-500 hover:border-slate-700'}`}
+                      className={`flex items-center justify-between p-4 rounded-xl cursor-pointer transition-all border ${newMemory.assignedAgents.includes(agent) ? 'bg-indigo-600/10 border-indigo-500 text-white shadow-lg' : 'bg-slate-900 border-slate-800 text-slate-500 hover:border-slate-700'}`}
                     >
                       <span className="text-[10px] font-black uppercase tracking-tight truncate">{agent}</span>
                       <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all ${newMemory.assignedAgents.includes(agent) ? 'border-indigo-400 bg-indigo-400' : 'border-slate-700'}`}>
@@ -276,18 +272,15 @@ const Notebook: React.FC = () => {
             <div className="flex items-center justify-between mb-6">
               <span className="text-[9px] font-black uppercase tracking-widest text-indigo-400 bg-indigo-500/10 px-3 py-1.5 rounded-lg border border-indigo-500/10">{m.category}</span>
               <div className="flex items-center space-x-2">
-                 {/* Re-assignment Dropdown */}
                  <div className="relative">
                     <button 
                       onClick={() => setActiveDropdown(activeDropdown === m.id ? null : m.id)}
                       className="text-slate-500 hover:text-indigo-400 transition-colors p-2 rounded-lg bg-slate-900/50 border border-slate-800"
-                      title="Manage SME Assignments"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" /></svg>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4" /></svg>
                     </button>
                     {activeDropdown === m.id && (
                       <div className="absolute right-0 top-full mt-2 w-56 bg-slate-900 border border-indigo-500/30 rounded-xl shadow-2xl z-50 p-2 animate-in zoom-in-95 duration-200">
-                         <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-2 px-2">Assign SME Cores</p>
                          <div className="max-h-48 overflow-y-auto custom-scrollbar space-y-1">
                             {availableAgents.map(agent => (
                               <button 
@@ -304,49 +297,22 @@ const Notebook: React.FC = () => {
                     )}
                  </div>
                  <button onClick={() => deleteMemory(m.id)} className="text-slate-700 hover:text-rose-500 transition-colors p-2">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862" /></svg>
                  </button>
               </div>
             </div>
             <h3 className="text-white font-outfit font-black text-xl mb-4 uppercase tracking-tighter leading-none">{m.title}</h3>
-            
             <div className="flex flex-wrap gap-1.5 mb-4">
               {m.assignedAgents?.map(agent => (
                 <span key={agent} className="text-[8px] font-black text-indigo-400 bg-indigo-500/5 border border-indigo-500/10 px-2 py-0.5 rounded-md uppercase">{agent}</span>
               ))}
-              {(!m.assignedAgents || m.assignedAgents.length === 0) && (
-                <span className="text-[8px] font-black text-slate-600 uppercase">No Core Assigned</span>
-              )}
             </div>
-
             <p className="text-slate-400 text-xs leading-relaxed line-clamp-6 flex-1 opacity-80 group-hover:opacity-100 transition-opacity font-medium">{m.content}</p>
-            
-            <div className="mt-8 pt-6 border-t border-slate-900 flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.5)]"></div>
-                <span className="text-[9px] font-mono text-slate-600 uppercase tracking-tighter">Node: {m.id}</span>
-              </div>
-              <span className="text-[9px] font-mono text-slate-600 uppercase">{new Date(m.timestamp).toLocaleDateString()}</span>
-            </div>
           </div>
         ))}
-        {memories.length === 0 && !isAdding && (
-          <div className="col-span-full py-32 text-center glass-card rounded-[4rem] border-dashed border-slate-800 bg-slate-950/30">
-            <div className="w-20 h-20 bg-slate-900 border border-slate-800 rounded-full flex items-center justify-center mx-auto mb-8 text-slate-700">
-              <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
-            </div>
-            <p className="text-slate-500 font-black text-xs uppercase tracking-[0.4em]">SME knowledge buffer is empty.</p>
-            <p className="text-slate-600 text-[10px] mt-4 uppercase tracking-widest">Forge a memory block to integrate polymath data with SME Persistence.</p>
-          </div>
-        )}
       </div>
-      
-      {/* Global Click Closer for Dropdowns */}
       {activeDropdown && (
-        <div 
-          className="fixed inset-0 z-40 bg-transparent" 
-          onClick={() => setActiveDropdown(null)}
-        />
+        <div className="fixed inset-0 z-40 bg-transparent" onClick={() => setActiveDropdown(null)} />
       )}
     </div>
   );

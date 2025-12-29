@@ -17,7 +17,6 @@ interface VoiceAgentProps {
   profile: { name: string, callsign: string, personality: string };
 }
 
-// Function Declarations for Workspace Tools (Mirroring chat logic)
 const gmailTool: FunctionDeclaration = {
   name: "interact_with_gmail",
   parameters: {
@@ -60,6 +59,7 @@ export const VoiceAgent: React.FC<VoiceAgentProps> = ({
   const [isConnecting, setIsConnecting] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isNeuralLinkActive, setIsNeuralLinkActive] = useState(false);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
   const [telemetry, setTelemetry] = useState<OptimizationTelemetry>({
     reasoningDepth: 0,
     neuralSync: 0,
@@ -71,7 +71,6 @@ export const VoiceAgent: React.FC<VoiceAgentProps> = ({
   const audioContextRef = useRef<AudioContext | null>(null);
   const nextStartTimeRef = useRef<number>(0);
   const sourcesRef = useRef<Set<AudioBufferSourceNode>>(new Set());
-  
   const currentInputTranscription = useRef<string>('');
   const currentOutputTranscription = useRef<string>('');
   const storageKey = `quanta_chat_history_${agentName.replace(/\s+/g, '_').toLowerCase()}`;
@@ -84,16 +83,11 @@ export const VoiceAgent: React.FC<VoiceAgentProps> = ({
       const newMessages: ChatMessage[] = [];
       if (input) newMessages.push({ role: 'user', content: input.trim(), timestamp: Date.now() });
       if (output) newMessages.push({ role: 'model', content: output.trim(), timestamp: Date.now() });
-      
       const updatedHistory = [...history, ...newMessages];
       localStorage.setItem(storageKey, JSON.stringify(updatedHistory));
-
       distillMemoryFromChat(newMessages, agentName).then(newMemory => {
         if (newMemory) {
-          setTelemetry(prev => ({
-            ...prev,
-            optimizations: [...prev.optimizations, `Neural Growth: "${newMemory.title}" archived.`]
-          }));
+          setTelemetry(prev => ({ ...prev, optimizations: [...prev.optimizations, `Neural Growth: "${newMemory.title}" archived.`] }));
         }
       });
     } catch (e) {
@@ -101,148 +95,112 @@ export const VoiceAgent: React.FC<VoiceAgentProps> = ({
     }
   };
 
-  const decodeBase64 = (base64: string) => {
+  const decode = (base64: string) => {
     const binaryString = atob(base64);
     const len = binaryString.length;
     const bytes = new Uint8Array(len);
-    for (let i = 0; i < len; i++) {
-      bytes[i] = binaryString.charCodeAt(i);
-    }
+    for (let i = 0; i < len; i++) { bytes[i] = binaryString.charCodeAt(i); }
     return bytes;
   };
 
-  const decodeAudioData = async (data: Uint8Array, ctx: AudioContext) => {
+  const decodeAudioData = async (data: Uint8Array, ctx: AudioContext, sampleRate: number, numChannels: number): Promise<AudioBuffer> => {
     const dataInt16 = new Int16Array(data.buffer);
-    const frameCount = dataInt16.length;
-    const buffer = ctx.createBuffer(1, frameCount, 24000);
-    const channelData = buffer.getChannelData(0);
-    for (let i = 0; i < frameCount; i++) {
-      channelData[i] = dataInt16[i] / 32768.0;
+    const frameCount = dataInt16.length / numChannels;
+    const buffer = ctx.createBuffer(numChannels, frameCount, sampleRate);
+    for (let channel = 0; channel < numChannels; channel++) {
+      const channelData = buffer.getChannelData(channel);
+      for (let i = 0; i < frameCount; i++) { channelData[i] = dataInt16[i * numChannels + channel] / 32768.0; }
     }
     return buffer;
   };
 
-  const encodePCM = (data: Float32Array) => {
-    const l = data.length;
-    const int16 = new Int16Array(l);
-    for (let i = 0; i < l; i++) {
-      int16[i] = data[i] * 32768;
-    }
-    const bytes = new Uint8Array(int16.buffer);
+  const encode = (bytes: Uint8Array) => {
     let binary = '';
-    for (let i = 0; i < bytes.byteLength; i++) {
-      binary += String.fromCharCode(bytes[i]);
-    }
+    const len = bytes.byteLength;
+    for (let i = 0; i < len; i++) { binary += String.fromCharCode(bytes[i]); }
     return btoa(binary);
   };
 
   useEffect(() => {
     if (!isActive) return;
-
     const startSession = async () => {
+      setConnectionError(null);
       setIsConnecting(true);
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      const inputCtx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
-      const outputCtx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
-      audioContextRef.current = outputCtx;
-
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const ctx = getSMEContext(agentName, profile);
-      const fullSystemInstruction = `${systemInstruction}\n\n${ctx.fullHeader}\n\nGround voice reasoning in Sovereign Knowledge.`;
-
-      // Build tools for Live API
-      const tools: any[] = [];
-      const functionDeclarations: FunctionDeclaration[] = [];
-      if (enabledSkills.includes('search')) tools.push({ googleSearch: {} });
-      if (enabledSkills.includes('gmail')) functionDeclarations.push(gmailTool);
-      if (enabledSkills.includes('calendar')) functionDeclarations.push(calendarTool);
-      if (functionDeclarations.length > 0) tools.push({ functionDeclarations });
-
-      const sessionPromise = ai.live.connect({
-        model: 'gemini-2.5-flash-native-audio-preview-09-2025',
-        config: {
-          responseModalities: [Modality.AUDIO],
-          inputAudioTranscription: inputTranscription ? {} : undefined,
-          outputAudioTranscription: outputTranscription ? {} : undefined,
-          speechConfig: {
-            voiceConfig: { prebuiltVoiceConfig: { voiceName: voiceName } },
-          },
-          systemInstruction: fullSystemInstruction,
-          tools: tools.length > 0 ? tools : undefined
-        },
-        callbacks: {
-          onopen: () => {
-            setIsConnecting(false);
-            const source = inputCtx.createMediaStreamSource(stream);
-            const scriptProcessor = inputCtx.createScriptProcessor(4096, 1, 1);
-            scriptProcessor.onaudioprocess = (e) => {
-              const inputData = e.inputBuffer.getChannelData(0);
-              const base64Data = encodePCM(inputData);
-              sessionPromise.then(session => {
-                session.sendRealtimeInput({ media: { data: base64Data, mimeType: 'audio/pcm;rate=16000' } });
-              });
-            };
-            source.connect(scriptProcessor);
-            scriptProcessor.connect(inputCtx.destination);
-          },
-          onmessage: async (msg: LiveServerMessage) => {
-            if (msg.serverContent?.inputTranscription) currentInputTranscription.current += msg.serverContent.inputTranscription.text;
-            if (msg.serverContent?.outputTranscription) currentOutputTranscription.current += msg.serverContent.outputTranscription.text;
-            if (msg.serverContent?.turnComplete) {
-              persistTurn(currentInputTranscription.current, currentOutputTranscription.current);
-              currentInputTranscription.current = '';
-              currentOutputTranscription.current = '';
-            }
-
-            if (msg.toolCall) {
-               for (const fc of msg.toolCall.functionCalls) {
-                 sessionPromise.then(s => s.sendToolResponse({ functionResponses: { id: fc.id, name: fc.name, response: { result: "Action archived." } } }));
-               }
-            }
-
-            const base64Audio = msg.serverContent?.modelTurn?.parts[0]?.inlineData?.data;
-            if (base64Audio) {
-              setIsSpeaking(true);
-              setTelemetry(prev => ({
-                reasoningDepth: Math.floor(Math.random() * 20) + 75,
-                neuralSync: Math.floor(Math.random() * 10) + 90,
-                contextPurity: Math.floor(Math.random() * 5) + 95,
-                optimizations: [`Axiom Link: Stable`, `Voice Core: ${voiceName}`, `Skills: ${enabledSkills.join(', ')}`]
-              }));
-
-              const audioBuffer = await decodeAudioData(decodeBase64(base64Audio), outputCtx);
-              const source = outputCtx.createBufferSource();
-              source.buffer = audioBuffer;
-              source.connect(outputCtx.destination);
-              nextStartTimeRef.current = Math.max(nextStartTimeRef.current, outputCtx.currentTime);
-              source.start(nextStartTimeRef.current);
-              nextStartTimeRef.current += audioBuffer.duration;
-              sourcesRef.current.add(source);
-              source.onended = () => {
-                sourcesRef.current.delete(source);
-                if (sourcesRef.current.size === 0) setIsSpeaking(false);
-              };
-            }
-            if (msg.serverContent?.interrupted) {
-              sourcesRef.current.forEach(s => s.stop());
-              sourcesRef.current.clear();
-              nextStartTimeRef.current = 0;
-              setIsSpeaking(false);
-            }
-          },
-          onclose: () => onClose(),
-          onerror: (e) => console.error('Voice error:', e),
+      try {
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        const inputCtx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
+        const outputCtx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
+        audioContextRef.current = outputCtx;
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const ctx = getSMEContext(agentName, profile);
+        const fullSystemInstruction = `${systemInstruction}\n\n${ctx.fullHeader}\n\nGround voice reasoning in Sovereign Knowledge.`;
+        const tools: any[] = [];
+        const functionDeclarations: FunctionDeclaration[] = [];
+        if (enabledSkills.includes('search')) {
+          tools.push({ googleSearch: {} });
+        } else {
+          if (enabledSkills.includes('gmail')) functionDeclarations.push(gmailTool);
+          if (enabledSkills.includes('calendar')) functionDeclarations.push(calendarTool);
+          if (functionDeclarations.length > 0) tools.push({ functionDeclarations });
         }
-      });
-
-      sessionRef.current = await sessionPromise;
+        const sessionPromise = ai.live.connect({
+          model: 'gemini-2.5-flash-native-audio-preview-09-2025',
+          config: { responseModalities: [Modality.AUDIO], inputAudioTranscription: inputTranscription ? {} : undefined, outputAudioTranscription: outputTranscription ? {} : undefined, speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voiceName } } }, systemInstruction: fullSystemInstruction, tools: tools.length > 0 ? tools : undefined },
+          callbacks: {
+            onopen: () => {
+              setIsConnecting(false);
+              const source = inputCtx.createMediaStreamSource(stream);
+              const scriptProcessor = inputCtx.createScriptProcessor(4096, 1, 1);
+              scriptProcessor.onaudioprocess = (e) => {
+                const inputData = e.inputBuffer.getChannelData(0);
+                const l = inputData.length;
+                const int16 = new Int16Array(l);
+                for (let i = 0; i < l; i++) { int16[i] = inputData[i] * 32768; }
+                const pcmBlob = { data: encode(new Uint8Array(int16.buffer)), mimeType: 'audio/pcm;rate=16000' };
+                sessionPromise.then(session => { session.sendRealtimeInput({ media: pcmBlob }); });
+              };
+              source.connect(scriptProcessor);
+              scriptProcessor.connect(inputCtx.destination);
+            },
+            onmessage: async (msg: LiveServerMessage) => {
+              if (msg.serverContent?.inputTranscription) currentInputTranscription.current += msg.serverContent.inputTranscription.text;
+              if (msg.serverContent?.outputTranscription) currentOutputTranscription.current += msg.serverContent.outputTranscription.text;
+              if (msg.serverContent?.turnComplete) { persistTurn(currentInputTranscription.current, currentOutputTranscription.current); currentInputTranscription.current = ''; currentOutputTranscription.current = ''; }
+              if (msg.toolCall) { for (const fc of msg.toolCall.functionCalls) { sessionPromise.then(s => s.sendToolResponse({ functionResponses: { id: fc.id, name: fc.name, response: { result: "Action archived." } } })); } }
+              const base64Audio = msg.serverContent?.modelTurn?.parts[0]?.inlineData?.data;
+              if (base64Audio) {
+                setIsSpeaking(true);
+                const audioBuffer = await decodeAudioData(decode(base64Audio), outputCtx, 24000, 1);
+                const source = outputCtx.createBufferSource();
+                source.buffer = audioBuffer;
+                source.connect(outputCtx.destination);
+                nextStartTimeRef.current = Math.max(nextStartTimeRef.current, outputCtx.currentTime);
+                source.start(nextStartTimeRef.current);
+                nextStartTimeRef.current += audioBuffer.duration;
+                sourcesRef.current.add(source);
+                source.onended = () => { sourcesRef.current.delete(source); if (sourcesRef.current.size === 0) setIsSpeaking(false); };
+              }
+              if (msg.serverContent?.interrupted) { sourcesRef.current.forEach(s => s.stop()); sourcesRef.current.clear(); nextStartTimeRef.current = 0; setIsSpeaking(false); }
+            },
+            onclose: () => onClose(),
+            onerror: (e) => {
+              console.error('Voice error:', e);
+              setConnectionError("Neural bridge synchronization failed. Check API configuration.");
+              setIsConnecting(false);
+            },
+          }
+        });
+        sessionRef.current = await sessionPromise;
+      } catch (e) {
+        console.error("Initialization error:", e);
+        setConnectionError("Access to neural bridge denied. Verify microphone permissions.");
+        setIsConnecting(false);
+      }
     };
-
     startSession();
-
     return () => {
-      if (sessionRef.current) sessionRef.current.close();
-      if (audioContextRef.current) audioContextRef.current.close();
+      if (sessionRef.current) { try { sessionRef.current.close(); } catch (e) {} }
+      if (audioContextRef.current) { try { audioContextRef.current.close(); } catch (e) {} }
     };
   }, [isActive, agentName, systemInstruction, voiceName, inputTranscription, outputTranscription, enabledSkills]);
 
@@ -263,22 +221,26 @@ export const VoiceAgent: React.FC<VoiceAgentProps> = ({
           </div>
         </div>
         <h2 className="text-3xl font-outfit font-black mb-2 uppercase tracking-tighter">
-          {isConnecting ? 'Quantum Syncing...' : `${agentName}`}
+          {isConnecting ? 'Quantum Syncing...' : connectionError ? 'Sync Failed' : `${agentName}`}
         </h2>
-        <div className="flex items-center justify-center space-x-2 mb-8">
-          <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-          <span className="text-emerald-400 font-bold text-[10px] uppercase tracking-widest">{profile.personality} Active</span>
-        </div>
+        {connectionError ? (
+           <p className="text-rose-400 font-bold text-[10px] uppercase tracking-widest mb-8 px-4">{connectionError}</p>
+        ) : (
+          <div className="flex items-center justify-center space-x-2 mb-8">
+            <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+            <span className="text-emerald-400 font-bold text-[10px] uppercase tracking-widest">{profile.personality} Active</span>
+          </div>
+        )}
         <div className="space-y-4">
            <div className="bg-slate-950/50 p-6 rounded-2xl border border-slate-800 text-xs text-slate-400 leading-relaxed italic">
-             "Vocal core operational. Sovereign knowledge buffer linked."
+             {connectionError ? "Bridge integrity compromised. Retrying sequence required." : "Vocal core operational. Sovereign knowledge buffer linked."}
            </div>
            <div className="grid grid-cols-2 gap-3">
-             <button onClick={() => setIsNeuralLinkActive(!isNeuralLinkActive)} className={`py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center space-x-2 border ${isNeuralLinkActive ? 'bg-indigo-600 border-indigo-400 text-white shadow-lg' : 'bg-slate-800 border-slate-700 text-slate-400'}`}>
+             <button disabled={!!connectionError} onClick={() => setIsNeuralLinkActive(!isNeuralLinkActive)} className={`py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center space-x-2 border ${isNeuralLinkActive ? 'bg-indigo-600 border-indigo-400 text-white shadow-lg' : 'bg-slate-800 border-slate-700 text-slate-400'}`}>
                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944" /></svg>
                <span>Neural Link</span>
              </button>
-             <button onClick={onClose} className="py-4 bg-slate-800 hover:bg-red-900/20 hover:text-red-400 hover:border-red-900/50 border border-slate-700 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all">
+             <button onClick={onClose} className="py-4 bg-slate-800 hover:bg-rose-900/20 hover:text-rose-400 hover:border-rose-900/50 border border-slate-700 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all">
                Terminate
              </button>
            </div>

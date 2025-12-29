@@ -21,11 +21,12 @@ interface ErrorBoundaryState {
   error: Error | null;
 }
 
-// Fixed: Explicitly using React.Component to ensure 'this.state' and 'this.props' are correctly typed and inherited within the class scope.
-class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+// Fix: Use Component directly and ensure proper generic application to resolve property access issues.
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  public state: ErrorBoundaryState = { hasError: false, error: null };
+
   constructor(props: ErrorBoundaryProps) {
     super(props);
-    this.state = { hasError: false, error: null };
   }
 
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {
@@ -37,7 +38,6 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
   }
 
   render() {
-    // Fixed: Properly accessing 'this.state' which is inherited from React.Component.
     if (this.state.hasError) {
       return (
         <div className="h-screen bg-[#020617] flex flex-col items-center justify-center p-10 text-center">
@@ -55,14 +55,13 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
         </div>
       );
     }
-    // Fixed: Properly accessing 'this.props' which is inherited from React.Component.
     return this.props.children;
   }
 }
 
 const App: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [session, setSession] = useState<{ email: string, track: 'personal' | 'business' } | null>(null);
+  const [session, setSession] = useState<{ email: string, track: 'personal' | 'business' | 'trading' } | null>(null);
   const [profile, setProfile] = useState<{ name: string, callsign: string, personality: string } | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -82,7 +81,6 @@ const App: React.FC = () => {
       } catch (err) {
         console.error('Session restoration failed:', err);
       } finally {
-        // Minimum visible branding duration
         setTimeout(() => setLoading(false), 1200);
       }
     };
@@ -90,11 +88,9 @@ const App: React.FC = () => {
     initApp();
   }, []);
 
-  const handleLogin = (userData: { email: string, track: 'personal' | 'business' }) => {
+  const handleLogin = (userData: { email: string, track: 'personal' | 'business' | 'trading' }) => {
     localStorage.setItem('quanta_session', JSON.stringify(userData));
     setSession(userData);
-    
-    // Check for existing profile for this email
     const savedProfile = localStorage.getItem(`quanta_profile_${userData.email}`);
     if (savedProfile) {
       setProfile(JSON.parse(savedProfile));
@@ -108,7 +104,6 @@ const App: React.FC = () => {
     try {
       await signOut();
     } catch (e) {}
-    // Reset to base route
     window.location.hash = '/';
   };
 
@@ -153,7 +148,6 @@ const App: React.FC = () => {
               track={session.track} 
               profile={profile} 
             />
-
             <main className={`flex-1 flex flex-col h-full transition-all duration-500 ease-in-out ${isSidebarOpen ? 'lg:ml-64' : 'lg:ml-20'}`}>
               <div className="lg:hidden h-20 bg-[#020617]/95 backdrop-blur-xl border-b border-slate-800 flex items-center px-8 z-50">
                 <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 text-slate-400">
@@ -163,7 +157,6 @@ const App: React.FC = () => {
                 </button>
                 <span className="ml-4 font-outfit font-black text-2xl tracking-tighter quantum-gradient-text uppercase italic">QUANTA AGENTS</span>
               </div>
-
               <div className="flex-1 overflow-y-auto p-6 lg:p-14 custom-scrollbar">
                 <div className="max-w-7xl mx-auto w-full h-full relative">
                   <Routes>

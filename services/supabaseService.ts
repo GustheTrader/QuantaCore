@@ -1,6 +1,6 @@
 
 import { createClient } from '@supabase/supabase-js';
-import { MemoryBlock } from '../types';
+import { MemoryBlock, ReflectionResult } from '../types';
 
 const SUPABASE_URL = 'https://ovugynuxvtvfkwjkyxby.supabase.co';
 
@@ -13,7 +13,6 @@ const getSupabaseKey = () => {
       return (window as any).process.env.SUPABASE_KEY;
     }
   } catch (e) {}
-  // Return a syntactically valid anonymous key to prevent SDK constructor crash
   return 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92dWd5bnV4dnR2Zmt3amt5eGJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MDcwMDAwMDAsImV4cCI6MjA0NTYwMDAwMH0.placeholder';
 };
 
@@ -31,14 +30,64 @@ try {
       signOut: async () => ({ error: null })
     },
     from: () => ({
-      select: () => ({ order: () => Promise.resolve({ data: [], error: null }) }),
+      select: () => ({ order: () => Promise.resolve({ data: [], error: null }), eq: () => Promise.resolve({ data: [], error: null }) }),
       upsert: () => Promise.resolve({ data: null, error: null }),
+      insert: () => Promise.resolve({ data: null, error: null }),
       delete: () => ({ eq: () => Promise.resolve({ error: null }) })
     })
   };
 }
 
 export const supabase = supabaseInstance;
+
+// Blueprint: System Prompt Versioning
+export const getActiveSystemPrompt = async (agentName: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('system_prompts')
+      .select('*')
+      .eq('agent_name', agentName)
+      .eq('is_active', true)
+      .single();
+    if (error) return null;
+    return data;
+  } catch (e) {
+    return null;
+  }
+};
+
+export const archiveAndActivatePrompt = async (agentName: string, promptText: string, reasoning: string, version: number) => {
+  try {
+    // 1. Deactivate old prompts
+    await supabase.from('system_prompts').upsert({ agent_name: agentName, is_active: false });
+    
+    // 2. Insert new prompt
+    const { data, error } = await supabase.from('system_prompts').insert({
+      agent_name: agentName,
+      prompt_text: promptText,
+      reasoning,
+      version,
+      is_active: true,
+      created_at: new Date().toISOString()
+    });
+    return data;
+  } catch (e) {}
+};
+
+// Blueprint: Reflection Logs
+export const logReflection = async (agentName: string, messages: any[], result: ReflectionResult) => {
+  try {
+    const { data, error } = await supabase.from('reflection_logs').insert({
+      agent_name: agentName,
+      evaluated_messages: JSON.stringify(messages),
+      analysis: result.analysis,
+      decision: result.score < 4 ? 'update' : 'maintain',
+      score: result.score,
+      timestamp: new Date().toISOString()
+    });
+    return data;
+  } catch (e) {}
+};
 
 export const signInWithMagicLink = async (email: string, track?: 'personal' | 'business') => {
   try {

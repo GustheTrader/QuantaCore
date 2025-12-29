@@ -2,12 +2,12 @@
 import React, { useState, useRef } from 'react';
 
 interface AuthPageProps {
-  onLogin: (data: { email: string, track: 'personal' | 'business' }) => void;
+  onLogin: (data: { email: string, track: 'personal' | 'business' | 'trading' }) => void;
 }
 
 const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
   const [email, setEmail] = useState('');
-  const [track, setTrack] = useState<'personal' | 'business'>('personal');
+  const [track, setTrack] = useState<'personal' | 'business' | 'trading'>('personal');
   const [loading, setLoading] = useState(false);
   const authFormRef = useRef<HTMLDivElement>(null);
 
@@ -107,7 +107,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
 
       {/* Auth Form Section */}
       <div ref={authFormRef} className="min-h-screen flex items-center justify-center p-6 relative bg-slate-950/90 border-t border-emerald-500/20">
-        <div className="max-w-2xl w-full z-10 text-center">
+        <div className="max-w-3xl w-full z-10 text-center">
           <div className="w-32 h-32 quanta-btn-primary rounded-[3rem] mx-auto mb-10 shadow-[0_0_60px_rgba(16,185,129,0.5)] flex items-center justify-center animate-glow">
             <svg className="w-16 h-16 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
           </div>
@@ -118,8 +118,9 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
             <form onSubmit={handleAuth} className="space-y-12">
               <div className="flex justify-center">
                 <div className="bg-slate-900 p-2 rounded-2xl border border-slate-800 inline-flex shadow-inner">
-                  <button type="button" onClick={() => setTrack('personal')} className={`px-12 py-4 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${track === 'personal' ? 'bg-emerald-500 text-white shadow-lg' : 'text-slate-500'}`}>Personal</button>
-                  <button type="button" onClick={() => setTrack('business')} className={`px-12 py-4 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${track === 'business' ? 'bg-emerald-500 text-white shadow-lg' : 'text-slate-500'}`}>Business</button>
+                  <button type="button" onClick={() => setTrack('personal')} className={`px-8 py-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${track === 'personal' ? 'bg-emerald-500 text-white shadow-lg' : 'text-slate-500'}`}>Personal</button>
+                  <button type="button" onClick={() => setTrack('business')} className={`px-8 py-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${track === 'business' ? 'bg-emerald-500 text-white shadow-lg' : 'text-slate-500'}`}>Business</button>
+                  <button type="button" onClick={() => setTrack('trading')} className={`px-8 py-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${track === 'trading' ? 'bg-indigo-500 text-white shadow-lg' : 'text-slate-500'}`}>Trading</button>
                 </div>
               </div>
 

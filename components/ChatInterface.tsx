@@ -1,8 +1,8 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { chatWithGemini, optimizePrompt, distillMemoryFromChat } from '../services/geminiService';
-import { ChatMessage, OptimizationTelemetry } from '../types';
+import { chatWithGemini, optimizePrompt, distillMemoryFromChat, reflectAndRefine } from '../services/geminiService';
+import { ChatMessage, OptimizationTelemetry, ReflectionResult } from '../types';
 import { VoiceAgent } from './VoiceAgent';
 import { NeuralOptimizationWindow } from './NeuralOptimizationWindow';
 
@@ -22,6 +22,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile }) => {
   const [isNeuralLinkActive, setIsNeuralLinkActive] = useState(false);
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [isLearning, setIsLearning] = useState(false);
+  const [isReflecting, setIsReflecting] = useState(false);
+  const [isReflectionEnabled, setIsReflectionEnabled] = useState(true);
+  const [lastReflection, setLastReflection] = useState<ReflectionResult | null>(null);
+  
   const [agentConfig, setAgentConfig] = useState<{ prompt: string | null, skills: string[] }>({ prompt: null, skills: ['search'] });
   const [activeToolCall, setActiveToolCall] = useState<any>(null);
   
@@ -74,7 +78,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile }) => {
   };
 
   const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  useEffect(scrollToBottom, [messages, activeToolCall]);
+  useEffect(scrollToBottom, [messages, activeToolCall, isReflecting, lastReflection]);
 
   const handleReset = () => {
     if (window.confirm(`Reset neural buffer for ${activeAgent}?`)) {
@@ -129,24 +133,22 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile }) => {
       const finalMessages = [...updatedMessages, modelMessage];
       setMessages(finalMessages);
 
-      // Background Learning (Neural Distillation)
+      // Blueprint Logic: Background Learning
       setIsLearning(true);
       distillMemoryFromChat(finalMessages.slice(-4), activeAgent).then(newMemory => {
         if (newMemory) {
           setTelemetry(prev => ({
             ...prev,
-            optimizations: [...prev.optimizations, `Sovereign Link Updated: "${newMemory.title}" archived.`]
+            optimizations: [...prev.optimizations, `Neural Growth: "${newMemory.title}" archived.`]
           }));
         }
         setIsLearning(false);
       });
 
-      if (response.functionCalls && response.functionCalls.length > 0) {
-        for (const fc of response.functionCalls) {
-          setActiveToolCall(fc);
-          await new Promise(r => setTimeout(r, 2000)); 
-          setActiveToolCall(null);
-        }
+      // Blueprint Logic: Reflection Loop (The "Judge" Agent)
+      // Triggered every 7 exchanges (14 messages total) as per blueprint, or manually
+      if (isReflectionEnabled && finalMessages.length > 0 && finalMessages.length % 14 === 0) {
+        await triggerJudgeLoop(finalMessages);
       }
 
     } catch (error) {
@@ -156,53 +158,31 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile }) => {
     }
   };
 
-  const getToolUI = (fc: any) => {
-    const name = fc.name;
-    const args = fc.args || {};
-    let explanation = "Accessing neural bridge...";
-    let toolIcon = "M13 10V3L4 14h7v7l9-11h-7z";
-    let toolColor = "bg-indigo-500";
-    let toolText = "Neural Bridge";
+  const triggerJudgeLoop = async (currentMessages: ChatMessage[]) => {
+    setIsReflecting(true);
+    try {
+      const reflection = await reflectAndRefine(currentMessages.slice(-10), agentConfig.prompt || "Default SME Logic", activeAgent);
+      setLastReflection(reflection);
+      
+      if (reflection.suggestedPrompt && reflection.score < 4) {
+        const updatedPrompt = reflection.suggestedPrompt;
+        setAgentConfig(prev => ({ ...prev, prompt: updatedPrompt }));
+        
+        // Persist local copy
+        const savedConfigs = JSON.parse(localStorage.getItem('quanta_agent_configs') || '{}');
+        savedConfigs[activeAgent] = { ...savedConfigs[activeAgent], prompt: updatedPrompt };
+        localStorage.setItem('quanta_agent_configs', JSON.stringify(savedConfigs));
 
-    if (name.includes('gmail')) {
-      toolText = "Gmail Link";
-      toolColor = "bg-red-500";
-      toolIcon = "M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z";
-      if (args.action === 'search') explanation = `Searching your Gmail for "${args.query}"...`;
-      if (args.action === 'read') explanation = `Opening specific email context...`;
-      if (args.action === 'send') explanation = `Drafting and transmitting email to recipient...`;
-    } else if (name.includes('calendar')) {
-      toolText = "Calendar Sync";
-      toolColor = "bg-blue-500";
-      toolIcon = "M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z";
-      if (args.action === 'list_events') explanation = `Synchronizing upcoming schedule and availability...`;
-      if (args.action === 'create_event') explanation = `Scheduling "${args.title}" to your calendar...`;
-    } else if (name.includes('docs')) {
-      toolText = "Docs Architect";
-      toolColor = "bg-green-500";
-      toolIcon = "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z";
-      if (args.action === 'create') explanation = `Forging a new document: "${args.fileName}"...`;
-      if (args.action === 'summarize') explanation = `Analyzing document content for neural summary...`;
-    } else if (name.includes('drive')) {
-      toolText = "Drive Vault";
-      toolColor = "bg-amber-500";
-      toolIcon = "M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2v10a2 2 0 00-2 2v10a2 2 0 002 2z";
-      if (args.action === 'search') explanation = `Scanning Drive vault for files matching "${args.fileName || args.query}"...`;
+        setTelemetry(prev => ({
+          ...prev,
+          optimizations: [...prev.optimizations, `Evolved Protocol: Judge updated logic core to version ${Math.floor(Date.now()/100000)}.`]
+        }));
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsReflecting(false);
     }
-
-    return (
-      <div className="flex justify-center my-6 animate-in fade-in slide-in-from-bottom-4">
-        <div className="bg-slate-900/60 border border-slate-800 px-8 py-4 rounded-[2rem] flex items-center space-x-6 shadow-2xl backdrop-blur-md">
-          <div className={`w-12 h-12 rounded-2xl ${toolColor} flex items-center justify-center animate-pulse shadow-lg`}>
-            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d={toolIcon} /></svg>
-          </div>
-          <div>
-            <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">{toolText}</p>
-            <p className="text-sm font-bold text-white uppercase tracking-tight">{explanation}</p>
-          </div>
-        </div>
-      </div>
-    );
   };
 
   return (
@@ -227,14 +207,30 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile }) => {
           <div>
             <h2 className="font-outfit font-black text-lg leading-tight uppercase tracking-tight">{activeAgent}</h2>
             <div className="flex items-center space-x-2">
-              <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${isLearning ? 'bg-orange-500' : 'bg-emerald-500'}`}></span>
-              <span className={`text-[10px] font-bold uppercase tracking-widest ${isLearning ? 'text-orange-400' : 'text-emerald-400'}`}>
-                {isLearning ? 'Neural Growth Active...' : `Neural Link: ${profile.personality}`}
+              <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${isReflecting ? 'bg-orange-500' : isLearning ? 'bg-indigo-500' : 'bg-emerald-500'}`}></span>
+              <span className={`text-[10px] font-bold uppercase tracking-widest ${isReflecting ? 'text-orange-400' : isLearning ? 'text-indigo-400' : 'text-emerald-400'}`}>
+                {isReflecting ? 'Judge Reflection Loop...' : isLearning ? 'Learning Pulse...' : `Neural Secure: ${profile.personality}`}
               </span>
             </div>
           </div>
         </div>
-        <div className="flex space-x-3">
+        <div className="flex space-x-3 items-center">
+          <button 
+            onClick={() => setIsReflectionEnabled(!isReflectionEnabled)}
+            className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest border transition-all flex items-center space-x-2 ${isReflectionEnabled ? 'bg-orange-500/10 border-orange-500/30 text-orange-400 shadow-[0_0_15px_rgba(249,115,22,0.1)]' : 'bg-slate-900 border-slate-800 text-slate-600'}`}
+            title="Toggle Meta-Cognitive Reflection Loop"
+          >
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944" /></svg>
+            <span>Judge Loop</span>
+          </button>
+          <button 
+            onClick={() => triggerJudgeLoop(messages)}
+            className="p-2 text-slate-500 hover:text-white transition-colors"
+            title="Manual Reflection Trigger"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+          </button>
+          <div className="w-px h-6 bg-slate-800 mx-1"></div>
           <button 
             onClick={() => setIsNeuralLinkActive(!isNeuralLinkActive)}
             className={`px-4 py-2 border rounded-xl transition-all text-[10px] font-black uppercase tracking-widest flex items-center space-x-2 ${
@@ -243,11 +239,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile }) => {
               : 'bg-indigo-600/10 border-indigo-500/30 text-indigo-400 hover:bg-indigo-600 hover:text-white'
             }`}
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944" /></svg>
             <span>Neural Link</span>
           </button>
           <button onClick={() => setIsVoiceActive(true)} className="px-4 py-2 bg-indigo-600/20 border border-indigo-500/30 rounded-xl text-indigo-400 hover:bg-indigo-600 hover:text-white transition-all text-[10px] font-black uppercase tracking-widest">Live Voice</button>
-          <button onClick={handleReset} className="text-slate-600 hover:text-red-400 text-[10px] font-black uppercase tracking-widest flex items-center space-x-2"><svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg><span>Reset</span></button>
         </div>
       </div>
 
@@ -264,9 +259,73 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile }) => {
             </div>
           </div>
         ))}
-        {activeToolCall && getToolUI(activeToolCall)}
-        {isLoading && !activeToolCall && (
-          <div className="flex justify-start"><div className="glass-card p-6 rounded-2xl rounded-tl-none flex space-x-3 items-center"><div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce" /><div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce [animation-delay:0.2s]" /><div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce [animation-delay:0.4s]" /><span className="text-[10px] font-black text-slate-500 uppercase tracking-tighter ml-2">Neural Link Active...</span></div></div>
+        
+        {isReflecting && (
+          <div className="flex justify-start">
+            <div className="glass-card p-8 rounded-[2.5rem] rounded-tl-none border-orange-500/30 bg-orange-500/5 flex items-center space-x-6 animate-pulse shadow-2xl">
+              <div className="w-14 h-14 bg-orange-600 border-2 border-orange-400 rounded-2xl flex items-center justify-center text-white shadow-lg">
+                <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944" /></svg>
+              </div>
+              <div className="flex-1">
+                <p className="text-[10px] font-black text-orange-400 uppercase tracking-[0.3em] mb-1">Judge Meta-Cognition Loop</p>
+                <p className="text-sm font-bold text-white uppercase tracking-tight">Applying Rubric: Completeness, Depth, Tone, Scope...</p>
+                <div className="w-full h-1 bg-slate-800 rounded-full mt-3 overflow-hidden">
+                   <div className="h-full bg-orange-500 animate-[loading_2s_infinite]"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {lastReflection && !isReflecting && (
+          <div className="flex justify-center my-10 px-4">
+             <div className="w-full max-w-2xl glass-card p-10 rounded-[3rem] border-emerald-500/20 relative overflow-hidden group hover:border-emerald-500/50 transition-all duration-700">
+                <div className="absolute top-0 left-0 w-full h-1 bg-emerald-500/20 group-hover:bg-emerald-500 transition-all"></div>
+                <div className="flex items-center justify-between mb-8">
+                   <div>
+                     <h4 className="text-[10px] font-black text-emerald-400 uppercase tracking-[0.4em]">Judge Evaluation Trace</h4>
+                     <p className="text-2xl font-outfit font-black text-white uppercase italic tracking-tighter">Neural Integrity: {lastReflection.score}/5</p>
+                   </div>
+                   <div className={`px-4 py-1.5 rounded-full border text-[9px] font-black uppercase tracking-widest ${lastReflection.score >= 4 ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-400' : 'bg-orange-500/10 border-orange-500/50 text-orange-400'}`}>
+                      {lastReflection.score >= 4 ? 'Optimal Protocol' : 'Evolving Logic'}
+                   </div>
+                </div>
+                
+                <p className="text-slate-400 text-xs leading-relaxed italic mb-8 border-l-2 border-slate-800 pl-6 group-hover:border-emerald-500 transition-all">"{lastReflection.analysis}"</p>
+                
+                <div className="grid grid-cols-2 gap-6">
+                   <div className="space-y-3">
+                      <p className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">Strengths</p>
+                      {lastReflection.strengths.map((s, i) => (
+                        <div key={i} className="flex items-center space-x-2 text-[10px] text-slate-300 font-bold uppercase tracking-tight">
+                          <span className="w-1 h-1 bg-emerald-400 rounded-full"></span>
+                          <span>{s}</span>
+                        </div>
+                      ))}
+                   </div>
+                   <div className="space-y-3">
+                      <p className="text-[9px] font-black text-orange-400 uppercase tracking-widest">Neural Weaknesses</p>
+                      {lastReflection.weaknesses.map((w, i) => (
+                        <div key={i} className="flex items-center space-x-2 text-[10px] text-slate-500 font-bold uppercase tracking-tight">
+                          <span className="w-1 h-1 bg-orange-400 rounded-full"></span>
+                          <span>{w}</span>
+                        </div>
+                      ))}
+                   </div>
+                </div>
+                
+                <button 
+                  onClick={() => setLastReflection(null)}
+                  className="absolute bottom-6 right-8 text-[9px] font-black text-slate-600 uppercase hover:text-white transition-colors"
+                >
+                  Dismiss Trace
+                </button>
+             </div>
+          </div>
+        )}
+
+        {isLoading && !activeToolCall && !isReflecting && (
+          <div className="flex justify-start"><div className="glass-card p-6 rounded-2xl rounded-tl-none flex space-x-3 items-center"><div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce" /><div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce [animation-delay:0.2s]" /><div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce [animation-delay:0.4s]" /><span className="text-[10px] font-black text-slate-500 uppercase tracking-tighter ml-2">Neural Ingesting...</span></div></div>
         )}
         <div ref={messagesEndRef} />
       </div>
@@ -286,7 +345,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile }) => {
               onClick={handleOptimizeContext}
               disabled={!input.trim() || isOptimizing}
               className={`absolute right-3 top-3 bottom-3 px-3 rounded-xl transition-all flex items-center justify-center ${isOptimizing ? 'animate-pulse bg-emerald-500/20' : 'hover:bg-slate-800 text-emerald-400'}`}
-              title="Optimize Context"
+              title="Optimize Context (FPT)"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
             </button>
