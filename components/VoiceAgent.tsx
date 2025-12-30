@@ -45,6 +45,33 @@ const calendarTool: FunctionDeclaration = {
   }
 };
 
+const docsTool: FunctionDeclaration = {
+  name: "interact_with_docs",
+  parameters: {
+    type: Type.OBJECT,
+    description: "Create or read Google Docs for structured knowledge architecting.",
+    properties: {
+      action: { type: Type.STRING, enum: ["read", "create", "append"], description: "The action to perform." },
+      title: { type: Type.STRING, description: "The title of the document." },
+      content: { type: Type.STRING, description: "The content to write or append." }
+    },
+    required: ["action"]
+  }
+};
+
+const driveTool: FunctionDeclaration = {
+  name: "interact_with_drive",
+  parameters: {
+    type: Type.OBJECT,
+    description: "Manage files and directory structure in the Drive vault.",
+    properties: {
+      action: { type: Type.STRING, enum: ["list", "search", "delete"], description: "The action to perform." },
+      query: { type: Type.STRING, description: "Filename or search parameters." }
+    },
+    required: ["action"]
+  }
+};
+
 export const VoiceAgent: React.FC<VoiceAgentProps> = ({ 
   agentName, 
   systemInstruction, 
@@ -60,6 +87,10 @@ export const VoiceAgent: React.FC<VoiceAgentProps> = ({
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isNeuralLinkActive, setIsNeuralLinkActive] = useState(false);
   const [connectionError, setConnectionError] = useState<string | null>(null);
+  const [sessionLog, setSessionLog] = useState<{role: 'user' | 'model', text: string}[]>([]);
+  const [currentInput, setCurrentInput] = useState('');
+  const [currentOutput, setCurrentOutput] = useState('');
+  
   const [telemetry, setTelemetry] = useState<OptimizationTelemetry>({
     reasoningDepth: 0,
     neuralSync: 0,
@@ -71,9 +102,12 @@ export const VoiceAgent: React.FC<VoiceAgentProps> = ({
   const audioContextRef = useRef<AudioContext | null>(null);
   const nextStartTimeRef = useRef<number>(0);
   const sourcesRef = useRef<Set<AudioBufferSourceNode>>(new Set());
-  const currentInputTranscription = useRef<string>('');
-  const currentOutputTranscription = useRef<string>('');
+  const logEndRef = useRef<HTMLDivElement>(null);
   const storageKey = `quanta_chat_history_${agentName.replace(/\s+/g, '_').toLowerCase()}`;
+
+  useEffect(() => {
+    logEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [sessionLog, currentInput, currentOutput]);
 
   const persistTurn = (input: string, output: string) => {
     if (!input && !output) return;
@@ -81,10 +115,21 @@ export const VoiceAgent: React.FC<VoiceAgentProps> = ({
       const saved = localStorage.getItem(storageKey);
       const history: ChatMessage[] = saved ? JSON.parse(saved) : [];
       const newMessages: ChatMessage[] = [];
+      
       if (input) newMessages.push({ role: 'user', content: input.trim(), timestamp: Date.now() });
       if (output) newMessages.push({ role: 'model', content: output.trim(), timestamp: Date.now() });
+      
       const updatedHistory = [...history, ...newMessages];
       localStorage.setItem(storageKey, JSON.stringify(updatedHistory));
+      
+      setSessionLog(prev => [
+        ...prev, 
+        ...(input ? [{role: 'user', text: input}] as const : []),
+        ...(output ? [{role: 'model', text: output}] as const : [])
+      ]);
+
+      window.dispatchEvent(new Event('storage'));
+
       distillMemoryFromChat(newMessages, agentName).then(newMemory => {
         if (newMemory) {
           setTelemetry(prev => ({ ...prev, optimizations: [...prev.optimizations, `Neural Growth: "${newMemory.title}" archived.`] }));
@@ -126,26 +171,45 @@ export const VoiceAgent: React.FC<VoiceAgentProps> = ({
     const startSession = async () => {
       setConnectionError(null);
       setIsConnecting(true);
+      setSessionLog([]);
+      setCurrentInput('');
+      setCurrentOutput('');
+      
       try {
         const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
         const inputCtx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
         const outputCtx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
         audioContextRef.current = outputCtx;
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        const ctx = getSMEContext(agentName, profile);
-        const fullSystemInstruction = `${systemInstruction}\n\n${ctx.fullHeader}\n\nGround voice reasoning in Sovereign Knowledge.`;
+        
+        const ctx = await getSMEContext(agentName, profile);
+        const fullSystemInstruction = `${systemInstruction}\n\n${ctx.fullHeader}\n\nMaintain conversational flow. Prioritize clear, concise, and logical SME advice. Use available tools to assist the operator.`;
+        
         const tools: any[] = [];
         const functionDeclarations: FunctionDeclaration[] = [];
         if (enabledSkills.includes('search')) {
           tools.push({ googleSearch: {} });
-        } else {
-          if (enabledSkills.includes('gmail')) functionDeclarations.push(gmailTool);
-          if (enabledSkills.includes('calendar')) functionDeclarations.push(calendarTool);
-          if (functionDeclarations.length > 0) tools.push({ functionDeclarations });
         }
+        
+        if (enabledSkills.includes('gmail')) functionDeclarations.push(gmailTool);
+        if (enabledSkills.includes('calendar')) functionDeclarations.push(calendarTool);
+        if (enabledSkills.includes('docs')) functionDeclarations.push(docsTool);
+        if (enabledSkills.includes('drive')) functionDeclarations.push(driveTool);
+        
+        if (functionDeclarations.length > 0) {
+          tools.push({ functionDeclarations });
+        }
+
         const sessionPromise = ai.live.connect({
           model: 'gemini-2.5-flash-native-audio-preview-09-2025',
-          config: { responseModalities: [Modality.AUDIO], inputAudioTranscription: inputTranscription ? {} : undefined, outputAudioTranscription: outputTranscription ? {} : undefined, speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voiceName } } }, systemInstruction: fullSystemInstruction, tools: tools.length > 0 ? tools : undefined },
+          config: { 
+            responseModalities: [Modality.AUDIO], 
+            inputAudioTranscription: inputTranscription ? {} : undefined, 
+            outputAudioTranscription: outputTranscription ? {} : undefined, 
+            speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voiceName } } }, 
+            systemInstruction: fullSystemInstruction, 
+            tools: tools.length > 0 ? tools : undefined 
+          },
           callbacks: {
             onopen: () => {
               setIsConnecting(false);
@@ -163,10 +227,36 @@ export const VoiceAgent: React.FC<VoiceAgentProps> = ({
               scriptProcessor.connect(inputCtx.destination);
             },
             onmessage: async (msg: LiveServerMessage) => {
-              if (msg.serverContent?.inputTranscription) currentInputTranscription.current += msg.serverContent.inputTranscription.text;
-              if (msg.serverContent?.outputTranscription) currentOutputTranscription.current += msg.serverContent.outputTranscription.text;
-              if (msg.serverContent?.turnComplete) { persistTurn(currentInputTranscription.current, currentOutputTranscription.current); currentInputTranscription.current = ''; currentOutputTranscription.current = ''; }
-              if (msg.toolCall) { for (const fc of msg.toolCall.functionCalls) { sessionPromise.then(s => s.sendToolResponse({ functionResponses: { id: fc.id, name: fc.name, response: { result: "Action archived." } } })); } }
+              if (msg.serverContent?.inputTranscription) {
+                const text = msg.serverContent.inputTranscription.text;
+                setCurrentInput(prev => prev + text);
+              }
+              if (msg.serverContent?.outputTranscription) {
+                const text = msg.serverContent.outputTranscription.text;
+                setCurrentOutput(prev => prev + text);
+              }
+              if (msg.serverContent?.turnComplete) { 
+                persistTurn(currentInput, currentOutput); 
+                setCurrentInput(''); 
+                setCurrentOutput(''); 
+              }
+
+              if (msg.toolCall) {
+                for (const fc of msg.toolCall.functionCalls) {
+                  console.debug('SME Tool Call:', fc);
+                  const result = "Task acknowledged. Processing logic...";
+                  sessionPromise.then((session) => {
+                    session.sendToolResponse({
+                      functionResponses: {
+                        id : fc.id,
+                        name: fc.name,
+                        response: { result: result },
+                      }
+                    })
+                  });
+                }
+              }
+              
               const base64Audio = msg.serverContent?.modelTurn?.parts[0]?.inlineData?.data;
               if (base64Audio) {
                 setIsSpeaking(true);
@@ -178,22 +268,23 @@ export const VoiceAgent: React.FC<VoiceAgentProps> = ({
                 source.start(nextStartTimeRef.current);
                 nextStartTimeRef.current += audioBuffer.duration;
                 sourcesRef.current.add(source);
-                source.onended = () => { sourcesRef.current.delete(source); if (sourcesRef.current.size === 0) setIsSpeaking(false); };
+                source.onended = () => { 
+                  sourcesRef.current.delete(source); 
+                  if (sourcesRef.current.size === 0) setIsSpeaking(false); 
+                };
               }
-              if (msg.serverContent?.interrupted) { sourcesRef.current.forEach(s => s.stop()); sourcesRef.current.clear(); nextStartTimeRef.current = 0; setIsSpeaking(false); }
             },
             onclose: () => onClose(),
             onerror: (e) => {
               console.error('Voice error:', e);
-              setConnectionError("Neural bridge synchronization failed. Check API configuration.");
+              setConnectionError("Neural bridge synchronization failed.");
               setIsConnecting(false);
             },
           }
         });
         sessionRef.current = await sessionPromise;
       } catch (e) {
-        console.error("Initialization error:", e);
-        setConnectionError("Access to neural bridge denied. Verify microphone permissions.");
+        setConnectionError("Microphone access denied.");
         setIsConnecting(false);
       }
     };
@@ -202,48 +293,80 @@ export const VoiceAgent: React.FC<VoiceAgentProps> = ({
       if (sessionRef.current) { try { sessionRef.current.close(); } catch (e) {} }
       if (audioContextRef.current) { try { audioContextRef.current.close(); } catch (e) {} }
     };
-  }, [isActive, agentName, systemInstruction, voiceName, inputTranscription, outputTranscription, enabledSkills]);
+  }, [isActive]);
 
   if (!isActive) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#020617]/95 backdrop-blur-3xl animate-in fade-in duration-300">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#020617]/98 backdrop-blur-3xl animate-in fade-in duration-300">
       <NeuralOptimizationWindow isOpen={isNeuralLinkActive} onClose={() => setIsNeuralLinkActive(false)} agentName={agentName} telemetry={telemetry} />
-      <div className={`glass-card p-12 rounded-[3rem] w-full max-w-lg text-center relative border-indigo-500/30 transition-all duration-500 ${isNeuralLinkActive ? 'lg:-translate-x-48 scale-90 opacity-60' : 'scale-100'}`}>
-        <button onClick={onClose} className="absolute top-8 right-8 text-slate-500 hover:text-white transition-colors">
-          <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+      
+      <div className={`w-full max-w-4xl h-[85vh] flex flex-col items-center p-12 relative transition-all duration-500 ${isNeuralLinkActive ? 'lg:-translate-x-48 scale-90 opacity-60' : 'scale-100'}`}>
+        <button onClick={onClose} className="absolute top-8 right-8 text-slate-500 hover:text-white transition-colors z-[110]">
+          <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
         </button>
-        <div className="mb-10 relative inline-block">
-          <div className={`w-32 h-32 rounded-full border-2 border-indigo-500/50 flex items-center justify-center ${isSpeaking ? 'animate-pulse shadow-[0_0_60px_rgba(99,102,241,0.3)]' : ''}`}>
-             <div className={`w-24 h-24 rounded-full bg-gradient-to-tr from-purple-600 to-blue-600 flex items-center justify-center shadow-2xl transition-transform duration-500 ${isSpeaking ? 'scale-110' : 'scale-100'}`}>
-                <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
+        
+        <div className="mb-10 relative flex flex-col items-center shrink-0">
+          <div className={`w-32 h-32 rounded-full border-2 border-indigo-500/50 flex items-center justify-center transition-all duration-500 ${isSpeaking ? 'animate-glow shadow-[0_0_80px_rgba(99,102,241,0.5)] border-indigo-400' : 'border-slate-800'}`}>
+             <div className={`w-24 h-24 rounded-full bg-gradient-to-tr from-indigo-600 via-purple-600 to-orange-500 flex items-center justify-center shadow-2xl transition-transform duration-500 ${isSpeaking ? 'scale-110 rotate-180' : 'scale-100'}`}>
+                <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
              </div>
           </div>
-        </div>
-        <h2 className="text-3xl font-outfit font-black mb-2 uppercase tracking-tighter">
-          {isConnecting ? 'Quantum Syncing...' : connectionError ? 'Sync Failed' : `${agentName}`}
-        </h2>
-        {connectionError ? (
-           <p className="text-rose-400 font-bold text-[10px] uppercase tracking-widest mb-8 px-4">{connectionError}</p>
-        ) : (
-          <div className="flex items-center justify-center space-x-2 mb-8">
-            <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-            <span className="text-emerald-400 font-bold text-[10px] uppercase tracking-widest">{profile.personality} Active</span>
+          <h2 className="text-4xl font-outfit font-black mt-8 uppercase tracking-tighter text-white italic">
+            {isConnecting ? 'Syncing...' : connectionError ? 'Sync Failed' : `${agentName}`}
+          </h2>
+          <div className="flex items-center space-x-2 mt-2">
+            <div className={`w-2 h-2 rounded-full ${isConnecting ? 'bg-orange-500 animate-pulse' : 'bg-emerald-500 shadow-[0_0_10px_#10b981]'}`}></div>
+            <span className="text-emerald-400 font-black text-[10px] uppercase tracking-[0.4em]">{profile.personality} Active</span>
           </div>
-        )}
-        <div className="space-y-4">
-           <div className="bg-slate-950/50 p-6 rounded-2xl border border-slate-800 text-xs text-slate-400 leading-relaxed italic">
-             {connectionError ? "Bridge integrity compromised. Retrying sequence required." : "Vocal core operational. Sovereign knowledge buffer linked."}
-           </div>
-           <div className="grid grid-cols-2 gap-3">
-             <button disabled={!!connectionError} onClick={() => setIsNeuralLinkActive(!isNeuralLinkActive)} className={`py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center space-x-2 border ${isNeuralLinkActive ? 'bg-indigo-600 border-indigo-400 text-white shadow-lg' : 'bg-slate-800 border-slate-700 text-slate-400'}`}>
-               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944" /></svg>
-               <span>Neural Link</span>
-             </button>
-             <button onClick={onClose} className="py-4 bg-slate-800 hover:bg-rose-900/20 hover:text-rose-400 hover:border-rose-900/50 border border-slate-700 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all">
-               Terminate
-             </button>
-           </div>
+        </div>
+
+        <div className="flex-1 w-full max-w-2xl overflow-y-auto custom-scrollbar space-y-6 my-10 px-6 py-4 bg-slate-900/20 rounded-[2.5rem] border border-slate-800/50 shadow-inner">
+           {sessionLog.map((entry, idx) => (
+             <div key={idx} className={`flex flex-col ${entry.role === 'user' ? 'items-end' : 'items-start'} animate-in slide-in-from-bottom-2`}>
+               <p className={`text-[9px] font-black uppercase tracking-widest mb-1 ${entry.role === 'user' ? 'text-indigo-400' : 'text-emerald-400'}`}>
+                 {entry.role === 'user' ? 'You' : agentName}
+               </p>
+               <div className={`p-5 rounded-2xl max-w-[90%] text-sm font-medium leading-relaxed ${entry.role === 'user' ? 'bg-indigo-600/20 text-indigo-100 rounded-tr-none' : 'bg-emerald-600/10 text-emerald-50 rounded-tl-none'}`}>
+                 {entry.text}
+               </div>
+             </div>
+           ))}
+           
+           {currentInput && (
+             <div className="flex flex-col items-end animate-in fade-in">
+               <p className="text-[9px] font-black uppercase tracking-widest mb-1 text-indigo-400/50 italic">Speaking...</p>
+               <div className="p-5 rounded-2xl max-w-[90%] text-sm font-medium italic bg-indigo-600/10 text-indigo-200/70 border border-indigo-500/20 rounded-tr-none">
+                 {currentInput}
+               </div>
+             </div>
+           )}
+           
+           {currentOutput && (
+             <div className="flex flex-col items-start animate-in fade-in">
+               <p className="text-[9px] font-black uppercase tracking-widest mb-1 text-emerald-400/50 italic">Transmitting...</p>
+               <div className="p-5 rounded-2xl max-w-[90%] text-sm font-medium bg-emerald-600/5 text-emerald-100/70 border border-emerald-500/10 rounded-tl-none">
+                 {currentOutput}
+               </div>
+             </div>
+           )}
+           <div ref={logEndRef} />
+        </div>
+
+        <div className="w-full max-w-2xl grid grid-cols-2 gap-6 shrink-0">
+          <button 
+            onClick={() => setIsNeuralLinkActive(!isNeuralLinkActive)} 
+            className={`py-6 rounded-[2rem] font-black uppercase tracking-[0.3em] text-[11px] flex items-center justify-center space-x-3 transition-all border ${isNeuralLinkActive ? 'bg-indigo-600 border-indigo-400 text-white shadow-2xl' : 'bg-slate-900 border-slate-800 text-slate-500 hover:text-indigo-400'}`}
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944" /></svg>
+            <span>Neural Telemetry</span>
+          </button>
+          <button 
+            onClick={onClose} 
+            className="py-6 bg-rose-600/10 hover:bg-rose-600 text-rose-500 hover:text-white border border-rose-500/30 rounded-[2rem] font-black uppercase tracking-[0.3em] text-[11px] transition-all shadow-xl hover:shadow-rose-500/30"
+          >
+            Terminate Bridge
+          </button>
         </div>
       </div>
     </div>

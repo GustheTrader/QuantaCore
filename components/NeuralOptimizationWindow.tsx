@@ -12,6 +12,8 @@ interface NeuralOptimizationWindowProps {
     optimizedPrompt: string;
     improvements: string[];
     traceScore: number;
+    compressionRatio: number;
+    intelligenceDensity: number;
   } | null;
   isOptimizing?: boolean;
   onApply?: () => void;
@@ -42,7 +44,7 @@ export const NeuralOptimizationWindow: React.FC<NeuralOptimizationWindowProps> =
         <div>
           <h2 className="text-xl font-outfit font-black uppercase tracking-tighter text-white">Neural Management</h2>
           <div className="flex items-center mt-1">
-            <span className="text-[8px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded uppercase font-black mr-2">Langfuse Connected</span>
+            <span className="text-[8px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded uppercase font-black mr-2">Budget Optimized</span>
             <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Trace: {Math.random().toString(36).substring(7).toUpperCase()}</p>
           </div>
         </div>
@@ -57,12 +59,12 @@ export const NeuralOptimizationWindow: React.FC<NeuralOptimizationWindowProps> =
         {/* Context Optimizer Section */}
         <section className="space-y-6">
           <div className="flex items-center justify-between">
-            <h3 className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em]">Context Optimizer</h3>
+            <h3 className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em]">Budget & Context</h3>
             {optimizationResult && (
               <div className="flex items-center space-x-2">
-                <span className="text-[9px] font-bold text-slate-500 uppercase tracking-tighter">Score:</span>
-                <span className={`text-xs font-black ${(optimizationResult.traceScore > 0.8) ? 'text-emerald-400' : 'text-orange-400'}`}>
-                  {(optimizationResult.traceScore * 100).toFixed(0)}%
+                <span className="text-[9px] font-bold text-slate-500 uppercase tracking-tighter">Density:</span>
+                <span className={`text-xs font-black text-emerald-400`}>
+                  {Math.round(optimizationResult.intelligenceDensity * 100)}%
                 </span>
               </div>
             )}
@@ -71,22 +73,31 @@ export const NeuralOptimizationWindow: React.FC<NeuralOptimizationWindowProps> =
           {isOptimizing ? (
             <div className="p-10 bg-slate-900/40 border border-indigo-500/20 rounded-[2.5rem] flex flex-col items-center justify-center space-y-4">
               <div className="w-10 h-10 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin"></div>
-              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Refining Logic Context...</p>
+              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Optimizing Token Budget...</p>
             </div>
           ) : optimizationResult ? (
             <div className="space-y-6 animate-in fade-in zoom-in-95 duration-500">
               <div className="p-6 bg-slate-900/80 border border-indigo-500/30 rounded-3xl relative">
                 <p className="text-white text-sm leading-relaxed italic mb-4">"{optimizationResult.optimizedPrompt}"</p>
+                <div className="flex items-center space-x-3 mb-4">
+                  <div className="flex-1 h-1 bg-slate-800 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-emerald-500" 
+                      style={{ width: `${optimizationResult.compressionRatio * 100}%` }}
+                    ></div>
+                  </div>
+                  <span className="text-[9px] font-black text-slate-500 uppercase">Size: {Math.round(optimizationResult.compressionRatio * 100)}%</span>
+                </div>
                 <button 
                   onClick={onApply}
                   className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-emerald-500/20 transition-all"
                 >
-                  Apply Optimized Context
+                  Load to Local Bridge
                 </button>
               </div>
               
               <div className="space-y-3">
-                <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Logic Improvements</p>
+                <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Logic Enhancements</p>
                 {optimizationResult.improvements.map((imp, idx) => (
                   <div key={idx} className="flex items-start space-x-3 p-3 bg-slate-900/30 border border-slate-800 rounded-xl">
                     <div className="w-4 h-4 mt-0.5 rounded bg-emerald-500/20 flex items-center justify-center shrink-0">
@@ -100,7 +111,7 @@ export const NeuralOptimizationWindow: React.FC<NeuralOptimizationWindowProps> =
           ) : (
             <div className="p-10 border-2 border-dashed border-slate-800 rounded-[2.5rem] text-center">
               <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest leading-relaxed">
-                Awaiting input in Neural Link buffer for optimization...
+                Neural link awaiting operator input to perform budget calculation...
               </p>
             </div>
           )}
@@ -108,7 +119,7 @@ export const NeuralOptimizationWindow: React.FC<NeuralOptimizationWindowProps> =
 
         {/* Telemetry Charts */}
         <section className="space-y-4 pt-4 border-t border-slate-800">
-          <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">SME Performance Metrics</h3>
+          <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Context Sustainability</h3>
           <div className="h-40 w-full bg-slate-950/50 rounded-2xl border border-slate-800 p-4">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData}>
@@ -128,14 +139,14 @@ export const NeuralOptimizationWindow: React.FC<NeuralOptimizationWindowProps> =
         {/* Live Metrics Grid */}
         <div className="grid grid-cols-2 gap-4">
           <div className="glass-card p-5 rounded-3xl border-slate-800">
-            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Sync Depth</p>
+            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Energy Level</p>
             <p className="text-3xl font-outfit font-black text-white">{telemetry.reasoningDepth}%</p>
             <div className="w-full h-1.5 bg-slate-800 rounded-full mt-3 overflow-hidden">
-              <div className="h-full bg-emerald-500 transition-all duration-1000" style={{ width: `${telemetry.reasoningDepth}%` }}></div>
+              <div className="h-full bg-indigo-500 transition-all duration-1000" style={{ width: `${telemetry.reasoningDepth}%` }}></div>
             </div>
           </div>
           <div className="glass-card p-5 rounded-3xl border-slate-800">
-            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Axiom Purity</p>
+            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Token Efficiency</p>
             <p className="text-3xl font-outfit font-black text-white">{telemetry.contextPurity}%</p>
             <div className="w-full h-1.5 bg-slate-800 rounded-full mt-3 overflow-hidden">
               <div className="h-full bg-orange-500 transition-all duration-1000" style={{ width: `${telemetry.contextPurity}%` }}></div>
@@ -146,8 +157,8 @@ export const NeuralOptimizationWindow: React.FC<NeuralOptimizationWindowProps> =
         {/* Self-Improvement Log */}
         <section className="space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Inference Telemetry</h3>
-            <span className="text-[8px] bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-0.5 rounded uppercase font-black">Active Trace</span>
+            <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Efficiency Trace</h3>
+            <span className="text-[8px] bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-0.5 rounded uppercase font-black">Active Monitor</span>
           </div>
           <div className="space-y-3">
             {telemetry.optimizations.map((opt, i) => (

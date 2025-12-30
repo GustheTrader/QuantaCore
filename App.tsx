@@ -4,12 +4,17 @@ import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
 import ChatInterface from './components/ChatInterface';
+import DeepAgent from './components/DeepAgent';
+import DeepDiverAgent from './components/DeepDiverAgent';
 import ImageGenerator from './components/ImageGenerator';
 import TaskBoard from './components/TaskBoard';
 import AuthPage from './components/AuthPage';
 import ProfileSetup from './components/ProfileSetup';
 import Notebook from './components/Notebook';
 import Council from './components/Council';
+import Projects from './components/Projects';
+import Settings from './components/Settings';
+import MCPConnectors from './components/MCPConnectors';
 import { supabase, signOut } from './services/supabaseService';
 
 interface ErrorBoundaryProps {
@@ -21,8 +26,7 @@ interface ErrorBoundaryState {
   error: Error | null;
 }
 
-// Fix: Use Component directly and ensure proper generic application to resolve property access issues.
-class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
   public state: ErrorBoundaryState = { hasError: false, error: null };
 
   constructor(props: ErrorBoundaryProps) {
@@ -55,7 +59,8 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
         </div>
       );
     }
-    return this.props.children;
+    const { children } = this.props;
+    return children;
   }
 }
 
@@ -162,10 +167,15 @@ const App: React.FC = () => {
                   <Routes>
                     <Route path="/" element={<Dashboard track={session.track} profile={profile} />} />
                     <Route path="/chat" element={<ChatInterface profile={profile} />} />
+                    <Route path="/deep-agent" element={<DeepAgent />} />
+                    <Route path="/deep-diver" element={<DeepDiverAgent />} />
                     <Route path="/council" element={<Council />} />
+                    <Route path="/projects" element={<Projects />} />
+                    <Route path="/mcp" element={<MCPConnectors />} />
                     <Route path="/images" element={<ImageGenerator />} />
                     <Route path="/tasks" element={<TaskBoard />} />
                     <Route path="/notebook" element={<Notebook />} />
+                    <Route path="/settings" element={<Settings />} />
                     <Route path="*" element={<Navigate to="/" />} />
                   </Routes>
                 </div>

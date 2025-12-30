@@ -1,8 +1,11 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { GoogleGenAI, Type } from "@google/genai";
-import { CouncilTurn } from '../types';
-import { getSMEContext } from '../services/geminiService';
+import { CouncilTurn, MemoryBlock } from '../types';
+import { getSMEContext, optimizePrompt } from '../services/geminiService';
+import { ActionHub } from './ActionHub';
+import { ContextOptimizerBar } from './ContextOptimizerBar';
+import { exportToBrowser } from '../services/utils';
 
 const Council: React.FC = () => {
   const [sessionActive, setSessionActive] = useState(false);
@@ -10,8 +13,19 @@ const Council: React.FC = () => {
   const [selectedAgents, setSelectedAgents] = useState<string[]>([]);
   const [debateLog, setDebateLog] = useState<CouncilTurn[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isOptimizing, setIsOptimizing] = useState(false);
   const [availableAgents, setAvailableAgents] = useState<any[]>([]);
-  const [showAudit, setShowAudit] = useState<string | null>(null);
+  const [expandedAudits, setExpandedAudits] = useState<Record<string, boolean>>({});
+  const [activeContextCount, setActiveContextCount] = useState(0);
+  
+  const [optimizationResult, setOptimizationResult] = useState<{
+    optimizedPrompt: string;
+    improvements: string[];
+    traceScore: number;
+    compressionRatio: number;
+    intelligenceDensity: number;
+  } | null>(null);
+  
   const logEndRef = useRef<HTMLDivElement>(null);
   const [operatorProfile, setOperatorProfile] = useState<any>(null);
 
@@ -64,12 +78,66 @@ const Council: React.FC = () => {
       const custom = savedCustom ? JSON.parse(savedCustom).map((a: any) => ({ name: a.name, icon: a.icon })) : [];
       
       setAvailableAgents([...standard, ...custom]);
+
+      const savedMemories = localStorage.getItem('quanta_notebook');
+      if (savedMemories) {
+        const memories: MemoryBlock[] = JSON.parse(savedMemories);
+        setActiveContextCount(memories.length);
+      }
     }
   }, []);
 
   useEffect(() => {
     logEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [debateLog]);
+
+  const handleOptimizeContext = async () => {
+    if (!prompt.trim() || isOptimizing) return;
+    setIsOptimizing(true);
+    try {
+      const result = await optimizePrompt(prompt, "SME Council");
+      setOptimizationResult(result);
+    } catch (e) { console.error(e); } finally { setIsOptimizing(false); }
+  };
+
+  const handleApplyOptimization = () => {
+    if (optimizationResult) {
+      setPrompt(optimizationResult.optimizedPrompt);
+      setOptimizationResult(null);
+    }
+  };
+
+  const handleExportCouncilReport = () => {
+    if (!debateLog.length) return;
+    
+    let mdReport = `# SME Council Deliberation Report\n\n`;
+    mdReport += `**Operator:** ${operatorProfile?.callsign || 'Unknown'}\n`;
+    mdReport += `**Core Challenge:** ${prompt}\n`;
+    mdReport += `**Timestamp:** ${new Date().toLocaleString()}\n\n`;
+    mdReport += `--- \n\n`;
+
+    debateLog.forEach((turn, idx) => {
+      mdReport += `## turn ${idx + 1}: ${turn.agentName} (${turn.role.toUpperCase()})\n\n`;
+      mdReport += `${turn.content}\n\n`;
+      
+      if (turn.logicAudit) {
+        mdReport += `### Neural Audit Trace\n`;
+        mdReport += `**Deconstruction:**\n- ${turn.logicAudit.deconstruction.join('\n- ')}\n\n`;
+        mdReport += `**Axioms:**\n- ${turn.logicAudit.axioms.join('\n- ')}\n\n`;
+        mdReport += `**Reconstruction:** \n> ${turn.logicAudit.reconstruction}\n\n`;
+      }
+
+      if (turn.sources?.length) {
+        mdReport += `#### Grounding References:\n`;
+        turn.sources.forEach(s => mdReport += `- [${s.title}](${s.uri})\n`);
+        mdReport += `\n`;
+      }
+      
+      mdReport += `--- \n\n`;
+    });
+
+    exportToBrowser(`Council_Deliberation_${Date.now()}`, mdReport, 'md');
+  };
 
   const runCouncilProtocol = async () => {
     if (selectedAgents.length < 2 || !prompt.trim()) return;
@@ -79,81 +147,111 @@ const Council: React.FC = () => {
 
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      const FPT_OMEGA_PROTOCOL = `You are a high-performance SME agent using First Principles Thinking (FPT-OMEGA). Structure your output into Deconstruction, Axiom Identification, and Reconstruction phases.`;
+      const FPT_OMEGA_PROTOCOL = `You are a high-performance SME agent using First Principles Thinking (FPT-OMEGA). You MUST structure your output using deconstruction (analogies removed), atomic axioms (fundamental truths), and reconstruction (advice).`;
 
-      const globalCtx = getSMEContext("All Agents", operatorProfile);
+      const globalCtx = await getSMEContext("All Agents", operatorProfile);
 
       for (const agent of selectedAgents) {
         setDebateLog(prev => [...prev, { agentName: agent, role: 'proposer', content: 'Analyzing first principles...', status: 'processing' }]);
         
-        const agentCtx = getSMEContext(agent, operatorProfile);
+        const agentCtx = await getSMEContext(agent, operatorProfile);
         const combinedKnowledge = `${globalCtx.knowledgeContext}\n\n${agentCtx.knowledgeContext}`;
 
         const response = await ai.models.generateContent({
           model: 'gemini-3-flash-preview',
-          contents: `SME Prompt: ${prompt}\n\nYou are ${agent}. 
-          ${combinedKnowledge ? `RELEVANT KNOWLEDGE:\n${combinedKnowledge}` : ''}
-          
-          Apply FPT-OMEGA to provide strategic advice. Ground your axioms in the provided knowledge base if applicable.`,
-          config: { systemInstruction: FPT_OMEGA_PROTOCOL }
+          contents: `SME Challenge: ${prompt}\n\nYou are ${agent}.\n${combinedKnowledge ? `RELEVANT KNOWLEDGE:\n${combinedKnowledge}` : ''}\n\nProvide strategic advice as JSON with deconstruction, axioms, and reconstruction.`,
+          config: { 
+            systemInstruction: FPT_OMEGA_PROTOCOL,
+            responseMimeType: "application/json",
+            responseSchema: {
+              type: Type.OBJECT,
+              properties: {
+                content: { type: Type.STRING, description: "The full strategic advice text." },
+                deconstruction: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Analogies and assumptions removed." },
+                axioms: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Atomic logic units identified." },
+                reconstruction: { type: Type.STRING, description: "Synthesis summary." }
+              },
+              required: ["content", "deconstruction", "axioms", "reconstruction"]
+            }
+          }
         });
 
-        const text = response.text || '';
-        
-        setDebateLog(prev => prev.map(t => t.agentName === agent ? { 
-          ...t, 
-          content: text, 
-          status: 'complete', 
-          logicAudit: { 
-            deconstruction: ["Analogy check performed", "Knowledge base assumptions verified"], 
-            axioms: ["First principles identified", "Learned patterns integrated"], 
-            reconstruction: "Rebuilt from atomic truths and sovereign context." 
-          } 
-        } : t));
+        try {
+          const data = JSON.parse(response.text || '{}');
+          setDebateLog(prev => prev.map(t => t.agentName === agent ? { 
+            ...t, 
+            content: data.content || 'Reasoning failed.', 
+            status: 'complete', 
+            logicAudit: { 
+              deconstruction: data.deconstruction || ["Removing analogical noise"], 
+              axioms: data.axioms || ["Physics-based truths isolated"], 
+              reconstruction: data.reconstruction || "Logic path reconstructed from first principles." 
+            } 
+          } : t));
+        } catch (e) {
+          setDebateLog(prev => prev.map(t => t.agentName === agent ? { ...t, content: response.text || 'Error parsing response.', status: 'complete' } : t));
+        }
       }
 
       setDebateLog(prev => [...prev, { agentName: 'NEURAL JUDGE', role: 'judge', content: 'Synthesizing dominant logic...', status: 'processing' }]);
       
       const judgeResponse = await ai.models.generateContent({
         model: 'gemini-3-pro-preview',
-        contents: `Evaluate the deliberation context between ${selectedAgents.join(', ')}.\n\nProblem: ${prompt}\n\nNeural Judge Synthesis: Identify the single most logical dominant strategy. Ground it in the provided deliberation and live web search.`,
+        contents: `Strategic Debate Context between ${selectedAgents.join(', ')}.\nProblem: ${prompt}\n\nSynthesize the most logical path forward based on deliberation and search data. Return JSON with audit trail.`,
         config: { 
           tools: [{ googleSearch: {} }],
-          systemInstruction: `You are the Neural Judge. Synthesize SME debate with total logical purity. \n${globalCtx.fullHeader}`
+          systemInstruction: `You are the Neural Judge. Synthesize SME input with total logical purity.\n${globalCtx.fullHeader}`,
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              synthesis: { type: Type.STRING },
+              audit_deconstruction: { type: Type.ARRAY, items: { type: Type.STRING } },
+              audit_axioms: { type: Type.ARRAY, items: { type: Type.STRING } },
+              audit_reconstruction: { type: Type.STRING }
+            },
+            required: ["synthesis", "audit_deconstruction", "audit_axioms", "audit_reconstruction"]
+          }
         }
       });
 
-      const judgeText = judgeResponse.text || '';
-      const sources = judgeResponse.candidates?.[0]?.groundingMetadata?.groundingChunks
-        ?.filter(chunk => chunk.web)
-        ?.map(chunk => ({
-          uri: chunk.web?.uri || '',
-          title: chunk.web?.title || 'Source'
-        })) || [];
+      try {
+        const judgeData = JSON.parse(judgeResponse.text || '{}');
+        const sources = judgeResponse.candidates?.[0]?.groundingMetadata?.groundingChunks
+          ?.filter(chunk => chunk.web)
+          ?.map(chunk => ({
+            uri: chunk.web?.uri || '',
+            title: chunk.web?.title || 'Source'
+          })) || [];
 
-      setDebateLog(prev => prev.map(t => t.role === 'judge' ? { 
-        ...t, 
-        content: judgeText, 
-        status: 'complete', 
-        sources,
-        logicAudit: { 
-          deconstruction: ["Inconsistent SME paths discarded"], 
-          axioms: ["Logical coherence check: PASSED"], 
-          reconstruction: "Unified path found across multiple SME inputs." 
-        } 
-      } : t));
+        setDebateLog(prev => prev.map(t => t.role === 'judge' ? { 
+          ...t, 
+          content: judgeData.synthesis || 'Synthesis error.', 
+          status: 'complete', 
+          sources,
+          logicAudit: { 
+            deconstruction: judgeData.audit_deconstruction || ["Filtering agent discrepancies"], 
+            axioms: judgeData.audit_axioms || ["Synthesizing verified atomic nodes"], 
+            reconstruction: judgeData.audit_reconstruction || "Global dominant strategy synthesized." 
+          } 
+        } : t));
+      } catch (e) {
+        setDebateLog(prev => prev.map(t => t.role === 'judge' ? { ...t, content: judgeResponse.text || 'Judge logic failed.', status: 'complete' } : t));
+      }
 
       setDebateLog(prev => [...prev, { agentName: 'BOARD OF DIRECTORS', role: 'board', content: 'Issuing directive...', status: 'processing' }]);
       
+      const lastJudge = debateLog.find(t => t.role === 'judge')?.content || '';
       const boardResponse = await ai.models.generateContent({
         model: 'gemini-3-pro-preview',
-        contents: `Judge Synthesis: ${judgeText}\n\nDirective: Give 3 high-impact immediate action items for the operator ${operatorProfile?.callsign || 'Prime'}.`
+        contents: `Judge Synthesis: ${lastJudge}\n\nIssue exactly 3 immediate action items for ${operatorProfile?.callsign || 'Prime'}.`
       });
 
       setDebateLog(prev => prev.map(t => t.role === 'board' ? { ...t, content: boardResponse.text || '', status: 'complete' } : t));
 
     } catch (e) {
       console.error(e);
+      setIsProcessing(false);
     } finally {
       setIsProcessing(false);
     }
@@ -161,21 +259,21 @@ const Council: React.FC = () => {
 
   const toggleAgent = (name: string) => {
     setSelectedAgents(prev => {
-      if (prev.includes(name)) {
-        return prev.filter(a => a !== name);
-      }
-      if (prev.length >= 3) {
-        return prev; 
-      }
+      if (prev.includes(name)) return prev.filter(a => a !== name);
+      if (prev.length >= 3) return prev; 
       return [...prev, name];
     });
+  };
+
+  const toggleAudit = (turnId: string) => {
+    setExpandedAudits(prev => ({ ...prev, [turnId]: !prev[turnId] }));
   };
 
   const isSelectionFull = selectedAgents.length === 3;
   const canAssemble = selectedAgents.length >= 2 && prompt.trim().length > 0;
 
   return (
-    <div className="animate-in fade-in duration-1000 max-w-7xl mx-auto">
+    <div className="animate-in fade-in duration-1000 max-w-7xl mx-auto group/council">
       <header className="mb-16">
         <p className="text-orange-500 font-black uppercase tracking-[0.5em] text-[10px] mb-4">SME Council Activation</p>
         <h1 className="text-6xl md:text-9xl font-outfit font-black text-white uppercase tracking-tighter leading-none">Deliberation <span className="quantum-gradient-text italic">Forge</span></h1>
@@ -191,6 +289,15 @@ const Council: React.FC = () => {
                   {canAssemble ? 'Forge Ready' : 'Awaiting Parameters'}
                 </div>
               </div>
+
+              <ContextOptimizerBar 
+                onOptimize={handleOptimizeContext}
+                isOptimizing={isOptimizing}
+                activeContextCount={activeContextCount}
+                optimizationResult={optimizationResult}
+                onApply={handleApplyOptimization}
+              />
+
               <textarea 
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
@@ -259,20 +366,6 @@ const Council: React.FC = () => {
                    <p className="flex items-start space-x-4"><span className="w-6 h-6 bg-orange-500 text-white rounded-lg flex items-center justify-center shrink-0">3</span><span>Reconstruct path via dominant logic synthesis.</span></p>
                 </div>
              </div>
-             
-             <div className="glass-card p-10 rounded-[3rem] border-slate-800 bg-slate-900/30">
-                <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-4">Neural Quorum Status</p>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] text-slate-400 font-bold">Min Members:</span>
-                    <span className={`text-[10px] font-black ${selectedAgents.length >= 2 ? 'text-emerald-400' : 'text-rose-400'}`}>{selectedAgents.length >= 2 ? 'OK' : 'MISSING'}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] text-slate-400 font-bold">Challenge Input:</span>
-                    <span className={`text-[10px] font-black ${prompt.trim().length > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{prompt.trim().length > 0 ? 'OK' : 'MISSING'}</span>
-                  </div>
-                </div>
-             </div>
           </div>
         </div>
       ) : (
@@ -288,62 +381,107 @@ const Council: React.FC = () => {
           <div className="space-y-12 relative">
             <div className="absolute left-[39px] top-0 bottom-0 w-1 bg-gradient-to-b from-emerald-500/30 via-orange-500/30 to-transparent"></div>
             
-            {debateLog.map((turn, i) => (
-              <div key={i} className={`relative flex items-start space-x-10 animate-in slide-in-from-left-8 duration-700`}>
-                <div className={`w-20 h-20 rounded-[1.5rem] flex items-center justify-center shrink-0 z-10 shadow-2xl border-2 ${
-                  turn.role === 'judge' ? 'bg-emerald-600 border-emerald-400 text-white animate-orbit' : 
-                  turn.role === 'board' ? 'bg-orange-600 border-orange-400 text-white' : 
-                  'bg-slate-900 border-slate-700 text-slate-500'
-                }`}>
-                   <span className="text-xs font-black uppercase">{turn.agentName.substring(0, 2)}</span>
-                </div>
-                
-                <div className={`flex-1 glass-card p-12 rounded-[3.5rem] border-2 transition-all duration-700 ${
-                  turn.role === 'judge' ? 'border-emerald-500/50 quanta-logic-gradient scale-[1.03]' : 
-                  turn.role === 'board' ? 'border-orange-500/50 bg-orange-500/5' : 
-                  'border-slate-800'
-                }`}>
-                  <div className="flex items-center justify-between mb-8">
-                    <div>
-                      <h4 className="text-white font-outfit font-black uppercase tracking-tighter text-3xl">{turn.agentName}</h4>
-                      <p className={`text-[10px] font-black uppercase tracking-[0.4em] mt-1 ${
-                        turn.role === 'judge' ? 'text-emerald-400' : 
-                        turn.role === 'board' ? 'text-orange-400' : 
-                        'text-slate-500'
-                      }`}>{turn.role} Link</p>
-                    </div>
-                    {turn.logicAudit && (
-                      <button 
-                        onClick={() => setShowAudit(showAudit === `${turn.agentName}-${i}` ? null : `${turn.agentName}-${i}`)}
-                        className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${showAudit === `${turn.agentName}-${i}` ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/20' : 'bg-slate-900 text-slate-500 border border-slate-800 hover:text-emerald-400'}`}
-                      >
-                        {showAudit === `${turn.agentName}-${i}` ? 'Close Trace' : 'Neural Audit'}
-                      </button>
-                    )}
+            {debateLog.map((turn, i) => {
+              const turnId = `${turn.agentName}-${i}`;
+              const isAuditExpanded = expandedAudits[turnId];
+              return (
+                <div key={i} className={`relative flex items-start space-x-10 animate-in slide-in-from-left-8 duration-700 group`}>
+                  <div className={`w-20 h-20 rounded-[1.5rem] flex items-center justify-center shrink-0 z-10 shadow-2xl border-2 ${
+                    turn.role === 'judge' ? 'bg-emerald-600 border-emerald-400 text-white animate-orbit' : 
+                    turn.role === 'board' ? 'bg-orange-600 border-orange-400 text-white' : 
+                    'bg-slate-900 border-slate-700 text-slate-500'
+                  }`}>
+                    <span className="text-xs font-black uppercase">{turn.agentName.substring(0, 2)}</span>
                   </div>
                   
-                  <div className="text-slate-200 text-xl leading-relaxed font-medium">
-                    {showAudit === `${turn.agentName}-${i}` ? (
-                      <div className="space-y-8 animate-in fade-in duration-300">
-                        <div className="p-6 bg-slate-950/50 rounded-2xl border border-emerald-500/10">
-                          <p className="text-emerald-400 text-[9px] font-black uppercase tracking-[0.3em] mb-4">Atomic Axioms</p>
-                          <ul className="space-y-3">
-                            {turn.logicAudit?.axioms.map((a, idx) => <li key={idx} className="text-sm font-mono text-slate-400 flex items-center space-x-3"><span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span><span>{a}</span></li>)}
-                          </ul>
-                        </div>
-                        <div>
-                          <p className="text-orange-500 text-[9px] font-black uppercase tracking-[0.3em] mb-2">Reconstruction Logic</p>
-                          <p className="text-base text-slate-400 italic font-mono leading-relaxed">"{turn.logicAudit?.reconstruction}"</p>
-                        </div>
+                  <div className={`flex-1 glass-card p-12 rounded-[3.5rem] border-2 transition-all duration-700 ${
+                    turn.role === 'judge' ? 'border-emerald-500/50 quanta-logic-gradient scale-[1.03]' : 
+                    turn.role === 'board' ? 'border-orange-500/50 bg-orange-500/5' : 
+                    'border-slate-800'
+                  }`}>
+                    <div className="flex items-center justify-between mb-8">
+                      <div>
+                        <h4 className="text-white font-outfit font-black uppercase tracking-tighter text-3xl">{turn.agentName}</h4>
+                        <p className={`text-[10px] font-black uppercase tracking-[0.4em] mt-1 ${
+                          turn.role === 'judge' ? 'text-emerald-400' : 
+                          turn.role === 'board' ? 'text-orange-400' : 
+                          'text-slate-500'
+                        }`}>{turn.role} Link</p>
                       </div>
-                    ) : (
+                      {turn.logicAudit && (
+                        <button 
+                          onClick={() => toggleAudit(turnId)}
+                          className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${isAuditExpanded ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/20' : 'bg-slate-900 text-slate-500 border border-slate-800 hover:text-emerald-400'}`}
+                        >
+                          {isAuditExpanded ? 'Close Neural Trace' : 'Audit Logic Trail'}
+                        </button>
+                      )}
+                    </div>
+                    
+                    <div className="text-slate-200 text-xl leading-relaxed font-medium">
                       <div className="whitespace-pre-wrap">{turn.content || 'Reasoning...'}</div>
+
+                      {turn.logicAudit && isAuditExpanded && (
+                        <div className="mt-12 space-y-8 animate-in slide-in-from-top-4 duration-500 py-10 border-t border-slate-800/50 bg-slate-950/20 rounded-3xl">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 px-6">
+                            <div className="p-6 bg-slate-950/50 rounded-2xl border border-rose-500/20 shadow-inner">
+                              <div className="flex items-center space-x-2 mb-4">
+                                <div className="w-2 h-2 bg-rose-500 rounded-full animate-pulse"></div>
+                                <p className="text-rose-400 text-[10px] font-black uppercase tracking-[0.3em]">Deconstruction: Noise Removed</p>
+                              </div>
+                              <ul className="space-y-4">
+                                {turn.logicAudit.deconstruction.map((d, idx) => (
+                                  <li key={idx} className="text-xs font-mono text-slate-400 flex items-start space-x-3">
+                                    <span className="text-rose-500 font-black mt-0.5">»</span>
+                                    <span>{d}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                            <div className="p-6 bg-slate-950/50 rounded-2xl border border-emerald-500/20 shadow-inner">
+                              <div className="flex items-center space-x-2 mb-4">
+                                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                                <p className="text-emerald-400 text-[10px] font-black uppercase tracking-[0.3em]">Phase 2: Atomic Axioms</p>
+                              </div>
+                              <ul className="space-y-4">
+                                {turn.logicAudit.axioms.map((a, idx) => (
+                                  <li key={idx} className="text-xs font-mono text-slate-400 flex items-start space-x-3">
+                                    <span className="text-emerald-500 font-black mt-0.5">✓</span>
+                                    <span>{a}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          </div>
+                          <div className="mx-6 p-8 bg-indigo-500/5 rounded-[2rem] border border-indigo-500/30 relative overflow-hidden group/reconstruction">
+                            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover/reconstruction:opacity-30 transition-opacity">
+                              <svg className="w-12 h-12 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 v2M7 7h10" /></svg>
+                            </div>
+                            <p className="text-indigo-400 text-[10px] font-black uppercase tracking-[0.3em] mb-3">Reconstruction Synthesis</p>
+                            <p className="text-lg text-slate-100 italic font-outfit leading-relaxed">"{turn.logicAudit.reconstruction}"</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {turn.status === 'complete' && turn.content && (
+                      <ActionHub content={turn.content} agentName={turn.agentName} title={prompt.substring(0, 30)} />
                     )}
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
             <div ref={logEndRef} />
+          </div>
+          
+          <div className="flex justify-center mt-12 pb-20">
+             <button 
+               onClick={handleExportCouncilReport}
+               className="px-12 py-5 quanta-btn-primary text-white rounded-full font-black uppercase tracking-[0.3em] text-[12px] shadow-2xl flex items-center space-x-4 transition-all hover:scale-105"
+             >
+               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+               <span>Export Full Neural Data (.md)</span>
+             </button>
           </div>
         </div>
       )}

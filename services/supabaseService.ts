@@ -1,6 +1,6 @@
 
 import { createClient } from '@supabase/supabase-js';
-import { MemoryBlock, ReflectionResult } from '../types';
+import { MemoryBlock, ReflectionResult, ChatMessage, NeuralProject } from '../types';
 
 const SUPABASE_URL = 'https://ovugynuxvtvfkwjkyxby.supabase.co';
 
@@ -30,7 +30,7 @@ try {
       signOut: async () => ({ error: null })
     },
     from: () => ({
-      select: () => ({ order: () => Promise.resolve({ data: [], error: null }), eq: () => Promise.resolve({ data: [], error: null }) }),
+      select: () => ({ order: () => ({ eq: () => Promise.resolve({ data: [], error: null }), ilike: () => Promise.resolve({ data: [], error: null }) }), eq: () => ({ single: () => Promise.resolve({ data: null, error: null }), order: () => Promise.resolve({ data: [], error: null }) }), single: () => Promise.resolve({ data: null, error: null }) }),
       upsert: () => Promise.resolve({ data: null, error: null }),
       insert: () => Promise.resolve({ data: null, error: null }),
       delete: () => ({ eq: () => Promise.resolve({ error: null }) })
@@ -40,7 +40,7 @@ try {
 
 export const supabase = supabaseInstance;
 
-// Blueprint: System Prompt Versioning
+// System Prompt Versioning
 export const getActiveSystemPrompt = async (agentName: string) => {
   try {
     const { data, error } = await supabase
@@ -58,10 +58,7 @@ export const getActiveSystemPrompt = async (agentName: string) => {
 
 export const archiveAndActivatePrompt = async (agentName: string, promptText: string, reasoning: string, version: number) => {
   try {
-    // 1. Deactivate old prompts
     await supabase.from('system_prompts').upsert({ agent_name: agentName, is_active: false });
-    
-    // 2. Insert new prompt
     const { data, error } = await supabase.from('system_prompts').insert({
       agent_name: agentName,
       prompt_text: promptText,
@@ -74,7 +71,7 @@ export const archiveAndActivatePrompt = async (agentName: string, promptText: st
   } catch (e) {}
 };
 
-// Blueprint: Reflection Logs
+// Reflection Logs
 export const logReflection = async (agentName: string, messages: any[], result: ReflectionResult) => {
   try {
     const { data, error } = await supabase.from('reflection_logs').insert({
@@ -89,6 +86,7 @@ export const logReflection = async (agentName: string, messages: any[], result: 
   } catch (e) {}
 };
 
+// Authentication
 export const signInWithMagicLink = async (email: string, track?: 'personal' | 'business') => {
   try {
     const { data, error } = await supabase.auth.signInWithOtp({
@@ -112,15 +110,7 @@ export const signOut = async () => {
   } catch (e) {}
 };
 
-export const getCurrentUser = async () => {
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    return user;
-  } catch (e) {
-    return null;
-  }
-};
-
+// Memory Management (Long Term Memory)
 export const syncMemoryToSupabase = async (memory: MemoryBlock) => {
   try {
     const { data, error } = await supabase
@@ -131,7 +121,8 @@ export const syncMemoryToSupabase = async (memory: MemoryBlock) => {
         content: memory.content,
         category: memory.category,
         assigned_agents: memory.assignedAgents,
-        timestamp: new Date(memory.timestamp).toISOString()
+        timestamp: new Date(memory.timestamp).toISOString(),
+        is_ltm: true // Identifying as Long Term Memory
       });
     if (error) throw error;
     return data;
@@ -141,16 +132,22 @@ export const syncMemoryToSupabase = async (memory: MemoryBlock) => {
   }
 };
 
-export const fetchMemoriesFromSupabase = async (): Promise<MemoryBlock[] | null> => {
+export const fetchMemoriesFromSupabase = async (filter?: { query?: string, agentName?: string }): Promise<MemoryBlock[] | null> => {
   try {
-    const { data, error } = await supabase
+    let query = supabase
       .from('memories')
-      .select('*')
-      .order('timestamp', { ascending: false });
+      .select('*');
+    
+    if (filter?.agentName) {
+      // In a real app, you'd use contains or a junction table
+      // Here we filter locally or via simple eq if possible
+    }
+
+    const { data, error } = await query.order('timestamp', { ascending: false });
     
     if (error || !data) return null;
 
-    return data.map((item: any) => ({
+    let result = data.map((item: any) => ({
       id: item.id,
       title: item.title,
       content: item.content,
@@ -158,6 +155,14 @@ export const fetchMemoriesFromSupabase = async (): Promise<MemoryBlock[] | null>
       assignedAgents: item.assigned_agents || [],
       timestamp: new Date(item.timestamp).getTime()
     }));
+
+    if (filter?.agentName) {
+      result = result.filter((m: MemoryBlock) => 
+        m.assignedAgents.includes(filter.agentName!) || m.assignedAgents.includes("All Agents")
+      );
+    }
+
+    return result;
   } catch (e) {
     return null;
   }
@@ -168,3 +173,65 @@ export const deleteMemoryFromSupabase = async (id: string) => {
     await supabase.from('memories').delete().eq('id', id);
   } catch (e) {}
 };
+
+// Chat History Sync
+export const syncChatHistoryToSupabase = async (agentName: string, messages: ChatMessage[]) => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    await supabase.from('chat_history').upsert({
+      user_id: user.id,
+      agent_name: agentName,
+      messages: JSON.stringify(messages),
+      updated_at: new Date().toISOString()
+    });
+  } catch (e) {
+    console.error("Chat sync error:", e);
+  }
+};
+
+export const fetchChatHistoryFromSupabase = async (agentName: string): Promise<ChatMessage[] | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('chat_history')
+      .select('messages')
+      .eq('agent_name', agentName)
+      .single();
+    
+    if (error || !data) return null;
+    return JSON.parse(data.messages);
+  } catch (e) {
+    return null;
+  }
+};
+
+// Project Sync
+export const syncProjectsToSupabase = async (projects: NeuralProject[]) => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    await supabase.from('neural_projects').upsert({
+      user_id: user.id,
+      data: JSON.stringify(projects),
+      updated_at: new Date().toISOString()
+    });
+  } catch (e) {
+    console.error("Project sync error:", e);
+  }
+};
+
+export const fetchProjectsFromSupabase = async (): Promise<NeuralProject[] | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('neural_projects')
+      .select('data')
+      .single();
+    
+    if (error || !data) return null;
+    return JSON.parse(data.data);
+  } catch (e) {
+    return null;
+  }
+}

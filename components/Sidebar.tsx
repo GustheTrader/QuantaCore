@@ -1,25 +1,36 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 
 interface SidebarProps {
   isOpen: boolean;
   setIsOpen: (open: boolean) => void;
   onLogout: () => void;
-  track: 'personal' | 'business';
+  track: 'personal' | 'business' | 'trading';
   profile: { name: string, callsign: string, personality: string };
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, onLogout, track, profile }) => {
   const location = useLocation();
+  const [provider, setProvider] = useState('Gemini');
+
+  useEffect(() => {
+    const saved = localStorage.getItem('quanta_preferred_provider');
+    if (saved) setProvider(saved.charAt(0).toUpperCase() + saved.slice(1));
+  }, [location.pathname]);
 
   const navItems = [
     { name: 'Quanta Core', icon: 'M13 10V3L4 14h7v7l9-11h-7z', path: '/' },
     { name: 'Neural Chat', icon: 'M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z', path: '/chat' },
+    { name: 'Deep Agent', icon: 'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z', path: '/deep-agent' },
+    { name: 'Deep Diver', icon: 'M19 14l-7 7m0 0l-7-7m7 7V3', path: '/deep-diver' },
     { name: 'SME Council', icon: 'M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2', path: '/council' },
+    { name: 'Projects', icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 v2M7 7h10', path: '/projects' },
+    { name: 'MCP Connectors', icon: 'M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z', path: '/mcp' },
     { name: 'Sovereign Memory', icon: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5', path: '/notebook' },
     { name: 'Visual Forge', icon: 'M4 16l4.586-4.586a2 2 0 012.828 0L16 16', path: '/images' },
     { name: 'Process Flow', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2', path: '/tasks' },
+    { name: 'Neural Settings', icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z', path: '/settings' },
   ];
 
   return (
@@ -45,38 +56,41 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, onLogout, track, p
         <nav className="flex-1 px-4 py-4 space-y-3 overflow-y-auto custom-scrollbar">
           {navItems.map((item) => {
             const isActive = location.pathname === item.path;
-            const isCouncil = item.name === 'SME Council';
+            const isOrange = ['SME Council', 'Projects', 'Deep Agent', 'Deep Diver', 'Neural Settings', 'MCP Connectors'].includes(item.name);
+            const isCyan = item.name === 'Deep Diver';
+            
             return (
               <Link
                 key={item.name}
                 to={item.path}
                 className={`flex items-center p-3 rounded-xl transition-all group relative border ${
                   isActive 
-                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.1)]' 
-                    : isCouncil 
-                      ? 'text-orange-400/70 hover:text-orange-400 border-orange-500/10 bg-orange-500/5'
-                      : 'text-slate-500 hover:bg-slate-800/50 hover:text-slate-200 border-transparent'
+                    ? (isCyan ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30 shadow-[0_0_20px_rgba(6,182,212,0.1)]' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.1)]')
+                    : isCyan
+                      ? 'text-cyan-400/70 hover:text-cyan-400 border-cyan-500/10 bg-cyan-500/5'
+                      : isOrange
+                        ? 'text-orange-400/70 hover:text-orange-400 border-orange-500/10 bg-orange-500/5'
+                        : 'text-slate-500 hover:bg-slate-800/50 hover:text-slate-200 border-transparent'
                 }`}
               >
-                <svg className={`w-6 h-6 min-w-[24px] ${isActive ? 'text-emerald-400' : isCouncil ? 'text-orange-400' : 'text-slate-600 group-hover:text-emerald-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className={`w-6 h-6 min-w-[24px] ${isActive ? (isCyan ? 'text-cyan-400' : 'text-emerald-400') : isCyan ? 'text-cyan-400' : isOrange ? 'text-orange-400' : 'text-slate-600 group-hover:text-emerald-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d={item.icon} />
                 </svg>
-                {isOpen && <span className={`ml-4 font-bold text-sm tracking-wide uppercase transition-all whitespace-nowrap ${isCouncil ? 'text-orange-100' : ''}`}>{item.name}</span>}
-                {isActive && isOpen && <div className="absolute right-3 w-1.5 h-1.5 bg-emerald-400 rounded-full shadow-[0_0_10px_#10b981]"></div>}
+                {isOpen && <span className={`ml-4 font-bold text-sm tracking-wide uppercase transition-all whitespace-nowrap ${isCyan ? 'text-cyan-100' : isOrange ? 'text-orange-100' : ''}`}>{item.name}</span>}
+                {isActive && isOpen && <div className={`absolute right-3 w-1.5 h-1.5 rounded-full shadow-[0_0_10px_currentColor] ${isCyan ? 'bg-cyan-400' : 'bg-emerald-400'}`}></div>}
               </Link>
             );
           })}
         </nav>
 
-        {/* Neural Protocol Highlight */}
         <div className={`mx-4 mb-4 p-4 rounded-2xl bg-mesh border border-emerald-500/20 transition-all ${!isOpen ? 'opacity-0 scale-90' : 'opacity-100 scale-100'}`}>
           <div className="flex items-center space-x-2 mb-2">
             <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse shadow-[0_0_8px_#10b981]"></div>
-            <span className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">Logic Active</span>
+            <span className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">{provider} Active</span>
           </div>
-          <p className="text-[10px] font-black text-white uppercase tracking-tighter">FPT-Omega Engine</p>
+          <p className="text-[10px] font-black text-white uppercase tracking-tighter">Inference Source</p>
           <div className="h-1 w-full bg-slate-800 rounded-full mt-2 overflow-hidden">
-            <div className="h-full bg-gradient-to-r from-emerald-500 to-orange-500 w-3/4"></div>
+            <div className={`h-full bg-gradient-to-r from-emerald-500 to-orange-500 ${provider === 'Gemini' ? 'w-full' : 'w-1/2'}`}></div>
           </div>
         </div>
 
@@ -86,7 +100,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, onLogout, track, p
             {isOpen && (
               <div className="overflow-hidden">
                 <p className="text-xs font-bold text-white truncate uppercase">{profile.callsign}</p>
-                <p className="text-[9px] text-emerald-400 uppercase tracking-tighter font-black">Operator Prime</p>
+                <p className="text-[9px] text-emerald-400 uppercase tracking-tighter font-black">{track.toUpperCase()} LINK</p>
               </div>
             )}
           </div>

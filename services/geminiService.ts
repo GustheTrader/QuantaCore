@@ -1,28 +1,118 @@
 
 import { GoogleGenAI, Type, FunctionDeclaration } from "@google/genai";
-import { MemoryBlock, ChatMessage, ReflectionResult } from "../types";
-import { syncMemoryToSupabase, logReflection, archiveAndActivatePrompt } from "./supabaseService";
+import { MemoryBlock, ChatMessage, ReflectionResult, ComputeProvider } from "../types";
+import { syncMemoryToSupabase, logReflection, archiveAndActivatePrompt, fetchMemoriesFromSupabase } from "./supabaseService";
+import { chatWithOpenAICompatible } from "./groqService";
 
 const getAI = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
 
-// Reusable context builder that pulls from the Sovereign Knowledge Base (LocalStorage + Supabase)
-export const getSMEContext = (agentName: string, profile?: { name: string, callsign: string, personality: string }) => {
-  let knowledgeContext = "";
+const gmailTool: FunctionDeclaration = {
+  name: "interact_with_gmail",
+  parameters: {
+    type: Type.OBJECT,
+    description: "Search, read, or send emails via SME neural bridge.",
+    properties: {
+      action: { type: Type.STRING, enum: ["search", "read", "send"], description: "The action to perform." },
+      query: { type: Type.STRING, description: "Search query or email recipient." },
+      body: { type: Type.STRING, description: "The content of the email to send." }
+    },
+    required: ["action"]
+  }
+};
+
+const calendarTool: FunctionDeclaration = {
+  name: "interact_with_calendar",
+  parameters: {
+    type: Type.OBJECT,
+    description: "Manage schedules and meetings using polymath scheduling logic.",
+    properties: {
+      action: { type: Type.STRING, enum: ["list_events", "create_event", "delete_event"], description: "The action to perform." },
+      title: { type: Type.STRING, description: "Event title." },
+      time: { type: Type.STRING, description: "ISO timestamp or natural language time." }
+    },
+    required: ["action"]
+  }
+};
+
+const docsTool: FunctionDeclaration = {
+  name: "interact_with_docs",
+  parameters: {
+    type: Type.OBJECT,
+    description: "Create or read Google Docs for structured knowledge architecting.",
+    properties: {
+      action: { type: Type.STRING, enum: ["read", "create", "append"], description: "The action to perform." },
+      title: { type: Type.STRING, description: "The title of the document." },
+      content: { type: Type.STRING, description: "The content to write or append." }
+    },
+    required: ["action"]
+  }
+};
+
+const driveTool: FunctionDeclaration = {
+  name: "interact_with_drive",
+  parameters: {
+    type: Type.OBJECT,
+    description: "Manage files and directory structure in the Drive vault.",
+    properties: {
+      action: { type: Type.STRING, enum: ["list", "search", "delete"], description: "The action to perform." },
+      query: { type: Type.STRING, description: "Filename or search parameters." }
+    },
+    required: ["action"]
+  }
+};
+
+/**
+ * RECALL SERVICE: Queries LTM for relevant SME blocks
+ */
+export const recallRelevantMemories = async (query: string, agentName: string): Promise<string> => {
   try {
-    const savedMemories = localStorage.getItem('quanta_notebook');
-    if (savedMemories) {
-      const memories: MemoryBlock[] = JSON.parse(savedMemories);
-      // Retrieve memories assigned to this specific agent OR "All Agents" (cross-pollination)
-      const relevantMemories = memories.filter(m => 
-        !m.assignedAgents || 
-        m.assignedAgents.length === 0 || 
-        m.assignedAgents.includes(agentName) || 
-        m.assignedAgents.includes("All Agents")
-      );
-      knowledgeContext = relevantMemories.map(m => `[SME KNOWLEDGE: ${m.title} (${m.source || 'manual'})] ${m.content}`).join('\n\n');
-    }
+    const memories = await fetchMemoriesFromSupabase({ agentName });
+    if (!memories || memories.length === 0) return "";
+
+    const ai = getAI();
+    const prompt = `You are a Cognitive Retrieval Engine. Given the user query and a list of memories, return ONLY the content of the top 3 most relevant memories that provide critical context or past lessons.
+    
+    USER QUERY: "${query}"
+    
+    MEMORY LIST:
+    ${memories.map((m, i) => `[ID ${i}]: ${m.title} - ${m.content}`).join('\n')}
+    
+    Return the relevant content blocks separated by dashes. If none are relevant, return "NO_RELEVANT_MEMORY".`;
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: prompt
+    });
+
+    const result = response.text || "";
+    return result.includes("NO_RELEVANT_MEMORY") ? "" : result;
   } catch (e) {
-    console.error("Memory retrieval error:", e);
+    console.error("LTM Recall Error:", e);
+    return "";
+  }
+};
+
+export const getSMEContext = async (agentName: string, profile?: { name: string, callsign: string, personality: string }, query?: string) => {
+  let knowledgeContext = "";
+  
+  if (query) {
+    knowledgeContext = await recallRelevantMemories(query, agentName);
+  }
+
+  if (!knowledgeContext) {
+    try {
+      const savedMemories = localStorage.getItem('quanta_notebook');
+      if (savedMemories) {
+        const memories: MemoryBlock[] = JSON.parse(savedMemories);
+        const relevantMemories = memories.filter(m => 
+          !m.assignedAgents || 
+          m.assignedAgents.length === 0 || 
+          m.assignedAgents.includes(agentName) || 
+          m.assignedAgents.includes("All Agents")
+        );
+        knowledgeContext = relevantMemories.map(m => `[SME KNOWLEDGE: ${m.title} (${m.source || 'manual'})] ${m.content}`).join('\n\n');
+      }
+    } catch (e) {}
   }
 
   const personalityMap: Record<string, string> = {
@@ -40,30 +130,71 @@ export const getSMEContext = (agentName: string, profile?: { name: string, calls
   return {
     knowledgeContext: knowledgeContext || "(No prior sovereign memories synced yet.)",
     identityContext: `${userIdentity} ${personalityInstruction}`,
-    fullHeader: `--- SOVEREIGN KNOWLEDGE BASE ---\n${knowledgeContext || "(Knowledge buffer empty.)"}\n\n--- OPERATOR PROFILE ---\n${userIdentity}`
+    fullHeader: `--- LONG TERM MEMORY / SOVEREIGN KNOWLEDGE ---\n${knowledgeContext || "(Knowledge buffer empty.)"}\n\n--- OPERATOR PROFILE ---\n${userIdentity}`
   };
 };
 
-export const chatWithGemini = async (
+export const chatWithSME = async (
   message: string, 
   history: {role: string, content: string}[], 
   agentName: string = "Aetheris",
   customPrompt?: string,
   enabledSkills: string[] = ['search'],
-  profile?: { name: string, callsign: string, personality: string }
+  profile?: { name: string, callsign: string, personality: string },
+  provider: ComputeProvider = 'gemini'
 ) => {
-  const ai = getAI();
+  const ctx = await getSMEContext(agentName, profile, message);
+  const systemBase = customPrompt || `You are ${agentName}, a Subject Matter Expert (SME) core. You prioritize polymath reasoning and first-principles analysis. ${ctx.identityContext}`;
   
+  let groundingText = "";
+  let groundingSources: {uri: string, title: string}[] = [];
+
+  if (enabledSkills.includes('search') && provider !== 'gemini') {
+    try {
+      const ai = getAI();
+      const groundingResponse = await ai.models.generateContent({
+        model: 'gemini-3-flash-preview',
+        contents: [{ role: 'user', parts: [{ text: `Retrieve current information and search grounding for: ${message}` }] }],
+        config: { tools: [{ googleSearch: {} }] }
+      });
+      
+      groundingSources = groundingResponse.candidates?.[0]?.groundingMetadata?.groundingChunks
+        ?.filter(chunk => chunk.web)
+        ?.map(chunk => ({
+          uri: chunk.web?.uri || '',
+          title: chunk.web?.title || 'Source'
+        })) || [];
+        
+      if (groundingSources.length > 0) {
+        groundingText = `\n\n--- LIVE SEARCH GROUNDING ---\nThe following real-time data was retrieved to assist your reasoning:\n${groundingResponse.text}`;
+      }
+    } catch (e) {}
+  }
+
+  const fullSystemInstruction = `${systemBase}\n\n${ctx.fullHeader}${groundingText}`;
+
+  if (provider === 'groq' || provider === 'local') {
+    const response = await chatWithOpenAICompatible(message, history, fullSystemInstruction, provider);
+    return { ...response, sources: groundingSources };
+  }
+
+  const ai = getAI();
   const tools: any[] = [];
-  // Fix: When using googleSearch, it must be the only tool provided.
+  const functionDeclarations: FunctionDeclaration[] = [];
+  
   if (enabledSkills.includes('search')) {
     tools.push({ googleSearch: {} });
   }
 
-  const ctx = getSMEContext(agentName, profile);
-  const systemBase = customPrompt || `You are ${agentName}, a Subject Matter Expert (SME) core. You prioritize polymath reasoning and first-principles analysis. ${ctx.identityContext}`;
-  const fullSystemInstruction = `${systemBase}\n\n${ctx.fullHeader}`;
-  
+  if (enabledSkills.includes('gmail')) functionDeclarations.push(gmailTool);
+  if (enabledSkills.includes('calendar')) functionDeclarations.push(calendarTool);
+  if (enabledSkills.includes('docs')) functionDeclarations.push(docsTool);
+  if (enabledSkills.includes('drive')) functionDeclarations.push(driveTool);
+
+  if (functionDeclarations.length > 0) {
+    tools.push({ functionDeclarations });
+  }
+
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
     contents: [
@@ -86,14 +217,10 @@ export const chatWithGemini = async (
   return {
     text: response.text || "",
     sources,
-    functionCalls: response.functionCalls
+    usage: response.candidates?.[0]?.content 
   };
 };
 
-/**
- * Blueprint Logic: Judge/Reflective Agent evaluation.
- * Evaluates the performance of the SME agent and evolves its system prompt.
- */
 export const reflectAndRefine = async (
   history: ChatMessage[],
   currentPrompt: string,
@@ -102,7 +229,6 @@ export const reflectAndRefine = async (
   const ai = getAI();
   const context = history.map(m => `${m.role.toUpperCase()}: ${m.content}`).join('\n---\n');
 
-  // Blueprint: Fast evaluation using Gemini 3 Pro
   const response = await ai.models.generateContent({
     model: 'gemini-3-pro-preview',
     contents: `You are the Quanta Judge (Model: Gemini 3 Pro). Evaluate the SME Agent: ${agentName}.
@@ -113,29 +239,19 @@ export const reflectAndRefine = async (
     CONVERSATION HISTORY:
     ${context}
     
-    RUBRIC EVALUATION (Score 1-5):
-    1. Completeness: Did the agent address all user intents and unspoken context?
-    2. Depth: Was the reasoning deconstructed into atomic truths (FPT) or was it analogical?
-    3. Tone: Did it maintain the precise ${agentName} archetype?
-    4. Scope: Did it stay within its technical boundaries or drift into generic AI patterns?
-    
-    DECISION LOGIC:
-    If Score < 4: Decision = UPDATE. Generate a SUPERIOR system prompt that explicitly patches these weaknesses.
-    If Score >= 4: Decision = MAINTAIN.
-    
     Return as JSON.`,
     config: {
       responseMimeType: "application/json",
       responseSchema: {
         type: Type.OBJECT,
         properties: {
-          score: { type: Type.NUMBER, description: "Average score across rubric (1-5)." },
-          analysis: { type: Type.STRING, description: "Detailed breakdown of agent performance." },
+          score: { type: Type.NUMBER },
+          analysis: { type: Type.STRING },
           decision: { type: Type.STRING, enum: ["UPDATE", "MAINTAIN"] },
-          suggestedPrompt: { type: Type.STRING, nullable: true, description: "The revised system prompt if UPDATE is chosen." },
+          suggestedPrompt: { type: Type.STRING, nullable: true },
           weaknesses: { type: Type.ARRAY, items: { type: Type.STRING } },
           strengths: { type: Type.ARRAY, items: { type: Type.STRING } },
-          reasoningForUpdate: { type: Type.STRING, description: "Why the prompt was updated (for DB versioning)." }
+          reasoningForUpdate: { type: Type.STRING }
         },
         required: ["score", "analysis", "decision", "weaknesses", "strengths", "reasoningForUpdate"]
       }
@@ -144,26 +260,14 @@ export const reflectAndRefine = async (
 
   try {
     const result = JSON.parse(response.text || "{}");
-    
-    // Blueprint Persistence
     await logReflection(agentName, history.slice(-6), result);
-    
     if (result.decision === 'UPDATE' && result.suggestedPrompt) {
-      // Simulate version incrementing (real implementation would fetch current max version from DB)
       const newVersion = Math.floor(Date.now() / 100000); 
       await archiveAndActivatePrompt(agentName, result.suggestedPrompt, result.reasoningForUpdate, newVersion);
     }
-
     return result;
   } catch (e) {
-    console.error("Reflection parsing failed", e);
-    return {
-      score: 5,
-      analysis: "Reflection bypass due to kernel processing error.",
-      suggestedPrompt: null,
-      weaknesses: [],
-      strengths: ["Stability"]
-    };
+    return { score: 5, analysis: "Bypassed", suggestedPrompt: null, weaknesses: [], strengths: ["Stability"] };
   }
 };
 
@@ -173,14 +277,7 @@ export const distillMemoryFromChat = async (recentMessages: ChatMessage[], agent
   
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
-    contents: `Analyze this conversation snippet between a user and the SME ${agentName}. 
-    Identify if there is any permanent knowledge, user preference, first-principles logic, or project detail that should be remembered for future sessions across ALL agents.
-    
-    CONVERSATION:
-    ${chatContext}
-    
-    If nothing significant is found, return empty JSON with hasKnowledge: false. 
-    If something is found, provide a JSON Memory Block with hasKnowledge: true.`,
+    contents: `Identify permanent knowledge or critical lessons in this conversation: \n${chatContext}`,
     config: {
       responseMimeType: 'application/json',
       responseSchema: {
@@ -204,20 +301,16 @@ export const distillMemoryFromChat = async (recentMessages: ChatMessage[], agent
         title: data.title,
         content: data.content,
         category: data.category,
-        assignedAgents: ["All Agents"], 
+        assignedAgents: [agentName, "All Agents"], 
         timestamp: Date.now(),
         source: 'distilled'
       };
-      
       const existing = JSON.parse(localStorage.getItem('quanta_notebook') || "[]");
-      const updated = [memory, ...existing];
-      localStorage.setItem('quanta_notebook', JSON.stringify(updated));
+      localStorage.setItem('quanta_notebook', JSON.stringify([memory, ...existing]));
       await syncMemoryToSupabase(memory);
       return memory;
     }
-  } catch (e) {
-    console.error("Distillation failure:", e);
-  }
+  } catch (e) {}
   return null;
 };
 
@@ -225,11 +318,7 @@ export const optimizePrompt = async (rawInput: string, agentName: string) => {
   const ai = getAI();
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
-    contents: `You are an expert Context Optimizer. Your goal is to transform the user's raw input into a high-performance "First Principles" prompt for an AI agent named ${agentName}.
-    
-    User Input: "${rawInput}"
-    
-    Provide the optimized prompt and 3 specific reasons why it's better.`,
+    contents: `You are a Context Budget Optimizer. Rewrite: "${rawInput}" for ${agentName}.`,
     config: {
       responseMimeType: 'application/json',
       responseSchema: {
@@ -237,39 +326,27 @@ export const optimizePrompt = async (rawInput: string, agentName: string) => {
         properties: {
           optimizedPrompt: { type: Type.STRING },
           improvements: { type: Type.ARRAY, items: { type: Type.STRING } },
-          traceScore: { type: Type.NUMBER, description: "A simulated Langfuse-style score from 0-1" }
+          traceScore: { type: Type.NUMBER },
+          compressionRatio: { type: Type.NUMBER },
+          intelligenceDensity: { type: Type.NUMBER }
         },
-        required: ['optimizedPrompt', 'improvements', 'traceScore']
+        required: ['optimizedPrompt', 'improvements', 'traceScore', 'compressionRatio', 'intelligenceDensity']
       }
     }
   });
-  
-  try {
-    return JSON.parse(response.text || "{}");
-  } catch (e) {
-    return { 
-      optimizedPrompt: rawInput, 
-      improvements: ["Failed to generate improvements"],
-      traceScore: 0.5 
-    };
-  }
+  try { return JSON.parse(response.text || "{}"); } catch (e) { return { optimizedPrompt: rawInput, improvements: [], traceScore: 0.5, compressionRatio: 1, intelligenceDensity: 0.5 }; }
 };
 
 export const generateImage = async (prompt: string) => {
   const ai = getAI();
   const response = await ai.models.generateContent({
     model: 'gemini-2.5-flash-image',
-    contents: { parts: [{ text: prompt }] },
-    config: { imageConfig: { aspectRatio: "1:1" } }
+    contents: { parts: [{ text: prompt }] }
   });
-
   let imageUrl = '';
   if (response.candidates?.[0]?.content?.parts) {
     for (const part of response.candidates[0].content.parts) {
-      if (part.inlineData) {
-        imageUrl = `data:image/png;base64,${part.inlineData.data}`;
-        break;
-      }
+      if (part.inlineData) { imageUrl = `data:image/png;base64,${part.inlineData.data}`; break; }
     }
   }
   return imageUrl;
@@ -279,22 +356,15 @@ export const optimizeTasks = async (tasks: string[]) => {
   const ai = getAI();
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
-    contents: `Use first-principles analysis to optimize these SME tasks for maximum polymath efficiency: ${tasks.join(', ')}`,
+    contents: `Optimize these tasks: ${tasks.join(', ')}`,
     config: {
-      responseMimeType: 'application/json',
+      responseMimeType: "application/json",
       responseSchema: {
         type: Type.OBJECT,
-        properties: {
-          suggestions: { type: Type.ARRAY, items: { type: Type.STRING } }
-        },
+        properties: { suggestions: { type: Type.ARRAY, items: { type: Type.STRING } } },
         required: ['suggestions']
       }
     }
   });
-  try {
-    const data = JSON.parse(response.text || '{"suggestions":[]}');
-    return data.suggestions as string[];
-  } catch (e) {
-    return ["Optimize your SME activities using first principles."];
-  }
+  try { return JSON.parse(response.text || '{"suggestions":[]}').suggestions; } catch (e) { return []; }
 };
