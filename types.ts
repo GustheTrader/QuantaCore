@@ -7,7 +7,7 @@ export interface Task {
   category: string;
 }
 
-export type ComputeProvider = 'gemini' | 'groq' | 'local' | 'abacus';
+export type ComputeProvider = 'gemini' | 'groq' | 'local' | 'abacus' | 'novita';
 
 export interface ChatMessage {
   role: 'user' | 'model' | 'assistant' | 'system';
@@ -156,6 +156,8 @@ export interface ApiSettings {
   computeMode: 'credits' | 'sovereign';
   geminiKey: string;
   groqKey: string;
+  novitaKey: string;
+  novitaModel: string;
   localEndpoint: string;
   preferredModel: string;
   storage: StorageSettings;

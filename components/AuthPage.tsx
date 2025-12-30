@@ -110,7 +110,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-8 mb-32">
             <button 
               onClick={() => authFormRef.current?.scrollIntoView({ behavior: 'smooth' })}
-              className="px-14 py-7 quanta-btn-orange text-white rounded-[2.5rem] font-black uppercase tracking-[0.3em] text-sm shadow-[0_0_50px_rgba(249,115,22,0.3)] active:scale-95 flex items-center space-x-4 transition-all"
+              className="px-14 py-7 quanta-btn-orange text-white rounded-[2.5rem] font-black uppercase tracking-[0.3em] text-sm shadow-[0_0_50px_rgba(249,115,22,0.3)] active:scale-95 flex items-center space-x-4 transition-all animate-glow-orange"
             >
               <span>Initialize Neural Link</span>
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>

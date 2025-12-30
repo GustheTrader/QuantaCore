@@ -369,7 +369,7 @@ const Council: React.FC = () => {
           </div>
         </div>
       ) : (
-        <div className="max-w-6xl mx-auto space-y-16 pb-40">
+        <div className="max-w-6xl mx-auto space-y-12 pb-40">
           <div className="bg-slate-900 border-2 border-emerald-500/30 p-10 rounded-[3rem] sticky top-8 z-[90] shadow-2xl backdrop-blur-3xl flex items-center justify-between">
              <div className="flex-1 overflow-hidden">
                 <p className="text-emerald-400 text-[10px] font-black uppercase tracking-[0.5em] mb-2">Council context active</p>
@@ -378,7 +378,7 @@ const Council: React.FC = () => {
              <button onClick={() => { setSessionActive(false); setDebateLog([]); }} className="ml-8 px-6 py-3 bg-slate-800 hover:bg-slate-700 text-slate-400 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all">New Forge</button>
           </div>
 
-          <div className="space-y-12 relative">
+          <div className="space-y-10 relative">
             <div className="absolute left-[39px] top-0 bottom-0 w-1 bg-gradient-to-b from-emerald-500/30 via-orange-500/30 to-transparent"></div>
             
             {debateLog.map((turn, i) => {
@@ -394,71 +394,64 @@ const Council: React.FC = () => {
                     <span className="text-xs font-black uppercase">{turn.agentName.substring(0, 2)}</span>
                   </div>
                   
-                  <div className={`flex-1 glass-card p-12 rounded-[3.5rem] border-2 transition-all duration-700 ${
-                    turn.role === 'judge' ? 'border-emerald-500/50 quanta-logic-gradient scale-[1.03]' : 
+                  <div className={`flex-1 glass-card p-10 rounded-[3rem] border-2 transition-all duration-700 ${
+                    turn.role === 'judge' ? 'border-emerald-500/50 quanta-logic-gradient scale-[1.02]' : 
                     turn.role === 'board' ? 'border-orange-500/50 bg-orange-500/5' : 
                     'border-slate-800'
                   }`}>
                     <div className="flex items-center justify-between mb-8">
                       <div>
-                        <h4 className="text-white font-outfit font-black uppercase tracking-tighter text-3xl">{turn.agentName}</h4>
-                        <p className={`text-[10px] font-black uppercase tracking-[0.4em] mt-1 ${
+                        <h4 className="text-white font-outfit font-black uppercase tracking-tighter text-3xl italic">{turn.agentName}</h4>
+                        <p className={`text-[9px] font-black uppercase tracking-[0.4em] mt-1 ${
                           turn.role === 'judge' ? 'text-emerald-400' : 
                           turn.role === 'board' ? 'text-orange-400' : 
                           'text-slate-500'
-                        }`}>{turn.role} Link</p>
+                        }`}>{turn.role} Substrate Active</p>
                       </div>
                       {turn.logicAudit && (
                         <button 
                           onClick={() => toggleAudit(turnId)}
-                          className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${isAuditExpanded ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/20' : 'bg-slate-900 text-slate-500 border border-slate-800 hover:text-emerald-400'}`}
+                          className={`flex items-center space-x-3 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${isAuditExpanded ? 'bg-orange-600 border-orange-400 text-white shadow-lg' : 'bg-slate-900 border-slate-800 text-slate-500 hover:text-white hover:border-orange-500/50'}`}
                         >
-                          {isAuditExpanded ? 'Close Neural Trace' : 'Audit Logic Trail'}
+                          <svg className={`w-4 h-4 transition-transform duration-500 ${isAuditExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" /></svg>
+                          <span>{isAuditExpanded ? 'Collapse Trace' : 'Audit Logic Trace'}</span>
                         </button>
                       )}
                     </div>
                     
                     <div className="text-slate-200 text-xl leading-relaxed font-medium">
-                      <div className="whitespace-pre-wrap">{turn.content || 'Reasoning...'}</div>
+                      <div className="whitespace-pre-wrap font-outfit">"{turn.content || 'Synthesizing axioms...'}"</div>
 
+                      {/* Logic Audit Display */}
                       {turn.logicAudit && isAuditExpanded && (
-                        <div className="mt-12 space-y-8 animate-in slide-in-from-top-4 duration-500 py-10 border-t border-slate-800/50 bg-slate-950/20 rounded-3xl">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 px-6">
-                            <div className="p-6 bg-slate-950/50 rounded-2xl border border-rose-500/20 shadow-inner">
-                              <div className="flex items-center space-x-2 mb-4">
-                                <div className="w-2 h-2 bg-rose-500 rounded-full animate-pulse"></div>
-                                <p className="text-rose-400 text-[10px] font-black uppercase tracking-[0.3em]">Deconstruction: Noise Removed</p>
-                              </div>
-                              <ul className="space-y-4">
-                                {turn.logicAudit.deconstruction.map((d, idx) => (
-                                  <li key={idx} className="text-xs font-mono text-slate-400 flex items-start space-x-3">
-                                    <span className="text-rose-500 font-black mt-0.5">»</span>
-                                    <span>{d}</span>
-                                  </li>
-                                ))}
-                              </ul>
+                        <div className="mt-8 pt-8 border-t border-slate-800/50 space-y-6 animate-in slide-in-from-top-2 duration-500">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="p-6 bg-slate-950/50 border border-rose-500/20 rounded-2xl">
+                               <h5 className="text-rose-400 text-[9px] font-black uppercase tracking-[0.3em] mb-4">Phase 1: Logic Deconstruction</h5>
+                               <ul className="space-y-2">
+                                 {turn.logicAudit.deconstruction.map((d, idx) => (
+                                   <li key={idx} className="text-[11px] font-mono text-slate-400 flex items-start space-x-2">
+                                     <span className="text-rose-500 mt-0.5">»</span>
+                                     <span>{d}</span>
+                                   </li>
+                                 ))}
+                               </ul>
                             </div>
-                            <div className="p-6 bg-slate-950/50 rounded-2xl border border-emerald-500/20 shadow-inner">
-                              <div className="flex items-center space-x-2 mb-4">
-                                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-                                <p className="text-emerald-400 text-[10px] font-black uppercase tracking-[0.3em]">Phase 2: Atomic Axioms</p>
-                              </div>
-                              <ul className="space-y-4">
-                                {turn.logicAudit.axioms.map((a, idx) => (
-                                  <li key={idx} className="text-xs font-mono text-slate-400 flex items-start space-x-3">
-                                    <span className="text-emerald-500 font-black mt-0.5">✓</span>
-                                    <span>{a}</span>
-                                  </li>
-                                ))}
-                              </ul>
+                            <div className="p-6 bg-slate-950/50 border border-emerald-500/20 rounded-2xl">
+                               <h5 className="text-emerald-400 text-[9px] font-black uppercase tracking-[0.3em] mb-4">Phase 2: Atomic Axioms</h5>
+                               <ul className="space-y-2">
+                                 {turn.logicAudit.axioms.map((a, idx) => (
+                                   <li key={idx} className="text-[11px] font-mono text-slate-400 flex items-start space-x-2">
+                                     <span className="text-emerald-500 mt-0.5">✓</span>
+                                     <span>{a}</span>
+                                   </li>
+                                 ))}
+                               </ul>
                             </div>
                           </div>
-                          <div className="mx-6 p-8 bg-indigo-500/5 rounded-[2rem] border border-indigo-500/30 relative overflow-hidden group/reconstruction">
-                            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover/reconstruction:opacity-30 transition-opacity">
-                              <svg className="w-12 h-12 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 v2M7 7h10" /></svg>
-                            </div>
-                            <p className="text-indigo-400 text-[10px] font-black uppercase tracking-[0.3em] mb-3">Reconstruction Synthesis</p>
-                            <p className="text-lg text-slate-100 italic font-outfit leading-relaxed">"{turn.logicAudit.reconstruction}"</p>
+                          <div className="p-6 bg-emerald-500/5 border border-emerald-500/30 rounded-2xl">
+                             <h5 className="text-indigo-400 text-[9px] font-black uppercase tracking-[0.3em] mb-3">Phase 3: Logic Reconstruction</h5>
+                             <p className="text-sm italic text-slate-300 leading-relaxed font-outfit">"{turn.logicAudit.reconstruction}"</p>
                           </div>
                         </div>
                       )}

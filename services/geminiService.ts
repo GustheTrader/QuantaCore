@@ -3,6 +3,7 @@ import { GoogleGenAI, Type, FunctionDeclaration } from "@google/genai";
 import { MemoryBlock, ChatMessage, ReflectionResult, ComputeProvider } from "../types";
 import { syncMemoryToSupabase, logReflection, archiveAndActivatePrompt, fetchMemoriesFromSupabase } from "./supabaseService";
 import { chatWithOpenAICompatible } from "./groqService";
+import { deductCloudCredits, checkHasCredits } from "./creditService";
 
 const getAI = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
 
@@ -143,6 +144,10 @@ export const chatWithSME = async (
   profile?: { name: string, callsign: string, personality: string },
   provider: ComputeProvider = 'gemini'
 ) => {
+  if (!checkHasCredits('cloud')) {
+    throw new Error("Neural Energy Depleted: Refill Cloud Intelligence tokens to continue.");
+  }
+
   const ctx = await getSMEContext(agentName, profile, message);
   const systemBase = customPrompt || `You are ${agentName}, a Subject Matter Expert (SME) core. You prioritize polymath reasoning and first-principles analysis. ${ctx.identityContext}`;
   
@@ -175,6 +180,7 @@ export const chatWithSME = async (
 
   if (provider === 'groq' || provider === 'local') {
     const response = await chatWithOpenAICompatible(message, history, fullSystemInstruction, provider);
+    deductCloudCredits(12); // Slightly more expensive for mixed providers
     return { ...response, sources: groundingSources };
   }
 
@@ -213,6 +219,8 @@ export const chatWithSME = async (
       uri: chunk.web?.uri || '',
       title: chunk.web?.title || 'Source'
     })) || [];
+
+  deductCloudCredits(10);
 
   return {
     text: response.text || "",

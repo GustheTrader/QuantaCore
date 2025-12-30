@@ -1,9 +1,10 @@
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { streamAbacusAgent } from '../services/abacusService';
-import { DeepStep, DeepAgentSession, AbacusStreamChunk } from '../types';
+import { streamNovitaDeepDive } from '../services/novitaService';
+import { DeepStep, DeepAgentSession } from '../types';
 import { exportToBrowser } from '../services/utils';
 import { NeuralVoiceArchitect } from './NeuralVoiceArchitect';
+import { ActionHub } from './ActionHub';
 
 const DEPTH_ZONES = [
   { depth: 0, name: 'Epipelagic Zone', color: 'text-blue-400' },
@@ -20,11 +21,20 @@ const DeepDiverAgent: React.FC = () => {
   const [depth, setDepth] = useState(0);
   const [sonarActive, setSonarActive] = useState(false);
   const [isVoiceArchitectOpen, setIsVoiceArchitectOpen] = useState(false);
+  const [activeModel, setActiveModel] = useState('moonshotai/kimi-k2-thinking');
   const logEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     logEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [session]);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('quanta_api_settings');
+    if (saved) {
+      const settings = JSON.parse(saved);
+      if (settings.novitaModel) setActiveModel(settings.novitaModel);
+    }
+  }, []);
 
   const currentZone = useMemo(() => {
     return [...DEPTH_ZONES].reverse().find(z => depth >= z.depth) || DEPTH_ZONES[0];
@@ -53,11 +63,9 @@ const DeepDiverAgent: React.FC = () => {
     }, 150);
 
     try {
-      // PROD NOTE: Replace with your actual Abacus AI Agent ID for the demo
-      const AGENT_ID = 'abacus_deep_diver_core_v4'; 
       let accumulatedText = '';
 
-      await streamAbacusAgent(AGENT_ID, input, (chunk: AbacusStreamChunk) => {
+      await streamNovitaDeepDive(input, (chunk) => {
         setSonarActive(true);
         setTimeout(() => setSonarActive(false), 100);
         
@@ -68,16 +76,19 @@ const DeepDiverAgent: React.FC = () => {
             finalResult: accumulatedText,
             steps: prev.steps.map(s => s.id === 'descent' ? { 
               ...s, 
-              status: 'complete', 
-              label: `Layer Data Decrypted at ${Math.round(depth)}m` 
+              status: chunk.done ? 'complete' : 'running' as any, 
+              label: chunk.done ? 'Retrieval Terminated' : `Layer Data Decrypted at ${Math.round(depth)}m` 
             } : s)
           } : null);
         }
-      }, sessionId);
 
-      clearInterval(depthInterval);
-      setSession(prev => prev ? { ...prev, endTime: Date.now() } : null);
-      setIsProcessing(false);
+        if (chunk.done) {
+          clearInterval(depthInterval);
+          setIsProcessing(false);
+          setSession(prev => prev ? { ...prev, endTime: Date.now() } : null);
+        }
+      });
+
     } catch (error: any) {
       clearInterval(depthInterval);
       setIsProcessing(false);
@@ -89,36 +100,10 @@ const DeepDiverAgent: React.FC = () => {
           status: 'error', 
           label: 'Pressure Hull Breach',
           content: error.message || 'Signal lost in the abyss.'
-        }]
+        }],
+        endTime: Date.now()
       } : null);
     }
-  };
-
-  const handleExport = () => {
-    if (!session || !session.finalResult) return;
-    
-    const md = `
-# 🌌 DEEP DIVER NEURAL REPORT
-**Session ID:** ${session.id}
-**Inquiry Vector:** ${session.query}
-**Maximum Depth Reached:** ${Math.round(depth)}m
-**Termination Zone:** ${currentZone.name}
-**Timestamp:** ${new Date().toLocaleString()}
-
----
-
-## 🛰️ RECOVERED DATA PACKET
-${session.finalResult}
-
----
-
-## 🌀 AXIOM DESCENT LOGS
-${session.steps.map(s => `- [${s.status.toUpperCase()}] ${s.label} (${s.type})`).join('\n')}
-
-**Note:** This data was retrieved via Abacus.AI Deep Agent Protocol.
-    `;
-    
-    exportToBrowser(`DEEP_DIVE_TRACE_${session.id}`, md.trim(), 'md');
   };
 
   return (
@@ -130,17 +115,16 @@ ${session.steps.map(s => `- [${s.status.toUpperCase()}] ${s.label} (${s.type})`)
         agentType="DeepDiver" 
       />
       
-      {/* Background Ambience */}
       <div className="fixed inset-0 pointer-events-none opacity-20 bg-[radial-gradient(circle_at_50%_0%,_#06b6d4_0%,_transparent_50%)]"></div>
       
       <header className="mb-12 text-center relative z-10">
         <div className="inline-block px-6 py-2 rounded-full border border-cyan-500/30 bg-cyan-500/10 text-cyan-400 text-[10px] font-black uppercase tracking-[0.5em] mb-6 shadow-[0_0_40px_rgba(6,182,212,0.2)] animate-pulse">
-          Sovereign Retrieval System
+          Sovereign Retrieval System: Novita Active
         </div>
         <h1 className="text-6xl md:text-9xl font-outfit font-black text-white uppercase tracking-tighter leading-none italic">
           Deep <span className="text-cyan-400">Diver</span>
         </h1>
-        <p className="text-slate-500 font-bold uppercase tracking-[0.4em] text-[10px] mt-6">Engaging Hadal-class logic substrate</p>
+        <p className="text-slate-500 font-bold uppercase tracking-[0.4em] text-[10px] mt-6">Engaging <span className="text-white">{activeModel.split('/').pop()}</span> Thinking Substrate</p>
       </header>
 
       {!session ? (
@@ -165,7 +149,7 @@ ${session.steps.map(s => `- [${s.status.toUpperCase()}] ${s.label} (${s.type})`)
             <textarea 
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="E.g. Deconstruct the causal relationship between current interest rate volatility and tech sector expansion in the next 18 months..."
+              placeholder="E.g. Deconstruct the causal relationship between current interest rate volatility and tech sector expansion..."
               className="w-full h-56 bg-slate-950/80 border-2 border-slate-800 rounded-[3rem] p-12 text-cyan-50 font-mono text-lg focus:border-cyan-500 transition-all resize-none shadow-inner placeholder-slate-800"
             />
             
@@ -184,7 +168,7 @@ ${session.steps.map(s => `- [${s.status.toUpperCase()}] ${s.label} (${s.type})`)
               ) : (
                 <>
                   <span>Commence Deep Dive</span>
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 14l-7 7m0 0l-7-7m7 7V3" /></svg>
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
                 </>
               )}
             </button>
@@ -192,7 +176,6 @@ ${session.steps.map(s => `- [${s.status.toUpperCase()}] ${s.label} (${s.type})`)
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 relative z-10">
-          {/* Depth Telemetry Column */}
           <div className="lg:col-span-4 space-y-6">
             <div className="sticky top-10">
               <div className={`glass-card p-10 rounded-[3rem] border-cyan-500/30 transition-all duration-300 ${sonarActive ? 'bg-cyan-500/10 border-cyan-400 scale-[1.02]' : 'bg-black/40'}`}>
@@ -229,9 +212,6 @@ ${session.steps.map(s => `- [${s.status.toUpperCase()}] ${s.label} (${s.type})`)
                          <h4 className="text-sm font-black text-white uppercase tracking-tight">{step.label}</h4>
                        </div>
                      </div>
-                     {step.content && step.status === 'error' && (
-                       <p className="mt-4 text-xs text-rose-400 font-mono leading-relaxed">{step.content}</p>
-                     )}
                    </div>
                  ))}
               </div>
@@ -247,7 +227,6 @@ ${session.steps.map(s => `- [${s.status.toUpperCase()}] ${s.label} (${s.type})`)
             </div>
           </div>
 
-          {/* Abyssal Feed */}
           <div className="lg:col-span-8 space-y-12">
              <div className="glass-card p-12 rounded-[4rem] border-cyan-500/20 bg-black/80 min-h-[600px] relative overflow-hidden group shadow-2xl">
                 <div className="absolute top-0 right-0 p-12 opacity-[0.03] group-hover:opacity-10 transition-opacity">
@@ -259,21 +238,16 @@ ${session.steps.map(s => `- [${s.status.toUpperCase()}] ${s.label} (${s.type})`)
                       <div className={`w-3 h-3 rounded-full ${isProcessing ? 'bg-cyan-500 animate-ping' : 'bg-emerald-500'}`}></div>
                       <span className="text-[10px] font-black text-cyan-400 uppercase tracking-[0.4em]">Signal Integrity: {isProcessing ? 'Streaming' : 'Stabilized'}</span>
                    </div>
-                   {session.finalResult && (
-                     <button 
-                       onClick={handleExport}
-                       className="px-8 py-3 bg-cyan-600/10 border border-cyan-500/40 text-cyan-400 hover:bg-cyan-600 hover:text-black rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl"
-                     >
-                       Decrypt & Export (.md)
-                     </button>
-                   )}
                 </div>
 
                 <div className="prose prose-invert max-w-none">
                    {session.finalResult ? (
-                     <div className="whitespace-pre-wrap text-slate-100 text-xl leading-relaxed font-medium font-outfit italic selection:bg-cyan-500/40">
-                        "{session.finalResult}"
-                     </div>
+                     <>
+                        <div className="whitespace-pre-wrap text-slate-100 text-xl leading-relaxed font-medium font-outfit italic selection:bg-cyan-500/40">
+                            "{session.finalResult}"
+                        </div>
+                        <ActionHub content={session.finalResult} agentName="Deep Diver" title={`Dive Retrieval: ${session.query.substring(0, 30)}`} />
+                     </>
                    ) : (
                      <div className="flex flex-col items-center justify-center py-40 space-y-8 opacity-40">
                         <div className="relative">

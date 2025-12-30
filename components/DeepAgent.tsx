@@ -4,6 +4,7 @@ import { runDeepAgentLoop } from '../services/deepAgentService';
 import { DeepAgentSession, DeepStep } from '../types';
 import { exportToBrowser } from '../services/utils';
 import { NeuralVoiceArchitect } from './NeuralVoiceArchitect';
+import { ActionHub } from './ActionHub';
 
 const DeepAgent: React.FC = () => {
   const [input, setInput] = useState('');
@@ -29,29 +30,6 @@ const DeepAgent: React.FC = () => {
         setIsProcessing(false);
       }
     });
-  };
-
-  const handleExportMarkdown = () => {
-    if (!session || !session.finalResult) return;
-    
-    let mdContent = `# Quanta Deep Agent Research Report\n\n`;
-    mdContent += `**Query:** ${session.query}\n`;
-    mdContent += `**Session ID:** ${session.id}\n`;
-    mdContent += `**Timestamp:** ${new Date(session.startTime).toLocaleString()}\n\n`;
-    mdContent += `## Executive Synthesis\n\n${session.finalResult}\n\n`;
-    mdContent += `--- \n\n## Neural Threading Logs\n\n`;
-    
-    session.steps.forEach(step => {
-      mdContent += `### [${step.type.toUpperCase()}] ${step.label}\n`;
-      if (step.content) mdContent += `${step.content}\n\n`;
-      if (step.sources?.length) {
-        mdContent += `#### Grounding Sources:\n`;
-        step.sources.forEach(s => mdContent += `- [${s.title}](${s.uri})\n`);
-        mdContent += `\n`;
-      }
-    });
-
-    exportToBrowser(`DeepAgent_Report_${session.id}`, mdContent, 'md');
   };
 
   const getStepIcon = (type: string) => {
@@ -151,7 +129,7 @@ const DeepAgent: React.FC = () => {
           <div className="lg:col-span-8 space-y-12">
             {session.steps.filter(s => s.status === 'complete' || s.status === 'running').map((step, idx) => (
               <div key={idx} className="animate-in slide-in-from-bottom-4 duration-700">
-                <div className={`glass-card p-12 rounded-[3.5rem] border-2 ${
+                <div className={`glass-card p-12 rounded-[3.5rem] border-2 group ${
                   step.status === 'running' ? 'border-orange-500/30 bg-orange-500/5 shadow-2xl' : 'border-slate-800/50'
                 }`}>
                   <div className="flex items-center justify-between mb-8">
@@ -172,12 +150,16 @@ const DeepAgent: React.FC = () => {
                       </div>
                     )}
                   </div>
+
+                  {step.status === 'complete' && step.content && (
+                    <ActionHub content={step.content} agentName="Deep Agent" title={step.label} />
+                  )}
                 </div>
               </div>
             ))}
 
             {session.finalResult && (
-              <div className="animate-in zoom-in-95 duration-1000">
+              <div className="animate-in zoom-in-95 duration-1000 group">
                 <div className="glass-card p-16 rounded-[4rem] border-emerald-500 border-2 bg-emerald-500/5 shadow-[0_0_80px_rgba(16,185,129,0.15)] relative overflow-hidden">
                   <h2 className="text-4xl font-outfit font-black text-white uppercase tracking-tighter mb-10 italic">Sovereign Synthesis Report</h2>
                   <div className="prose prose-invert max-w-none">
@@ -185,17 +167,16 @@ const DeepAgent: React.FC = () => {
                       {session.finalResult}
                     </div>
                   </div>
-                  <div className="mt-16 pt-10 border-t border-emerald-500/20 flex items-center justify-between">
+                  
+                  <div className="mt-16">
+                    <ActionHub content={session.finalResult} agentName="Deep Agent" title={`Synthesis: ${session.query.substring(0, 30)}`} />
+                  </div>
+
+                  <div className="mt-8 pt-8 border-t border-emerald-500/20 flex items-center justify-between opacity-60">
                      <div className="flex flex-col">
                        <p className="text-[10px] font-black text-emerald-400 uppercase tracking-[0.5em]">Report ID: {session.id}</p>
                        <p className="text-[9px] font-bold text-slate-500 uppercase mt-1 italic">Knowledge Block Archived to Supabase LTM</p>
                      </div>
-                     <button 
-                       onClick={handleExportMarkdown}
-                       className="px-8 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-2xl transition-all"
-                     >
-                       Export Neural Data (.md)
-                     </button>
                   </div>
                 </div>
               </div>

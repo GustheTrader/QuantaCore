@@ -29,6 +29,9 @@ try {
       signInWithOtp: async () => ({ error: new Error("Supabase unavailable") }),
       signOut: async () => ({ error: null })
     },
+    functions: {
+      invoke: async () => ({ data: null, error: new Error("Functions Substrate Offline") })
+    },
     from: () => ({
       select: () => ({ order: () => ({ eq: () => Promise.resolve({ data: [], error: null }), ilike: () => Promise.resolve({ data: [], error: null }) }), eq: () => ({ single: () => Promise.resolve({ data: null, error: null }), order: () => Promise.resolve({ data: [], error: null }) }), single: () => Promise.resolve({ data: null, error: null }) }),
       upsert: () => Promise.resolve({ data: null, error: null }),
@@ -39,6 +42,23 @@ try {
 }
 
 export const supabase = supabaseInstance;
+
+/**
+ * EDGE FUNCTION CALLER
+ * Invokes a specific Supabase Edge Function by name.
+ */
+export const invokeEdgeFunction = async (functionName: string, payload: any = {}) => {
+  try {
+    const { data, error } = await supabase.functions.invoke(functionName, {
+      body: payload
+    });
+    if (error) throw error;
+    return data;
+  } catch (e: any) {
+    console.warn(`Edge Function [${functionName}] Call Failed:`, e.message);
+    throw e;
+  }
+};
 
 // System Prompt Versioning
 export const getActiveSystemPrompt = async (agentName: string) => {
@@ -138,11 +158,6 @@ export const fetchMemoriesFromSupabase = async (filter?: { query?: string, agent
       .from('memories')
       .select('*');
     
-    if (filter?.agentName) {
-      // In a real app, you'd use contains or a junction table
-      // Here we filter locally or via simple eq if possible
-    }
-
     const { data, error } = await query.order('timestamp', { ascending: false });
     
     if (error || !data) return null;
