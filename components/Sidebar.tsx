@@ -35,6 +35,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, onLogout, track, p
     { name: 'SME Council', icon: 'M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2', path: '/council' },
     { name: 'Projects', icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 v2M7 7h10', path: '/projects' },
     { name: 'Sovereign Memory', icon: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5', path: '/notebook' },
+    { name: 'NotebookLM', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z', path: '/notebooklm' },
+    { name: 'MCP Connectors', icon: 'M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z', path: '/mcp' },
     { name: 'Visual Forge', icon: 'M4 16l4.586-4.586a2 2 0 012.828 0L16 16', path: '/images' },
     { name: 'Cinematic Forge', icon: 'M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z', path: '/videos' },
     { name: 'Process Flow', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2', path: '/tasks' },
@@ -44,26 +46,31 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, onLogout, track, p
     const isActive = location.pathname === item.path;
     const isOrange = ['SME Council', 'Projects', 'Deep Agent', 'Deep Diver', 'Neural Settings', 'MCP Connectors', 'Cinematic Forge', 'Agent Zero'].includes(item.name);
     const isCyan = item.name === 'Deep Diver';
-    
+    const isPurple = item.name === 'NotebookLM';
+
     return (
       <Link
         key={item.name}
         to={item.path}
         className={`flex items-center p-2.5 rounded-xl transition-all group relative border ${
-          isActive 
-            ? (isCyan ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30 shadow-[0_0_20px_rgba(6,182,212,0.1)]' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.1)]')
+          isActive
+            ? (isCyan ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30 shadow-[0_0_20px_rgba(6,182,212,0.1)]'
+              : isPurple ? 'bg-purple-500/10 text-purple-400 border-purple-500/30 shadow-[0_0_20px_rgba(168,85,247,0.1)]'
+              : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.1)]')
             : isCyan
               ? 'text-cyan-400/70 hover:text-cyan-400 border-cyan-500/10 bg-cyan-500/5'
-              : isOrange
-                ? 'text-orange-400/70 hover:text-orange-400 border-orange-500/10 bg-orange-500/5'
-                : 'text-slate-500 hover:bg-slate-800/50 hover:text-slate-200 border-transparent'
+              : isPurple
+                ? 'text-purple-400/70 hover:text-purple-400 border-purple-500/10 bg-purple-500/5'
+                : isOrange
+                  ? 'text-orange-400/70 hover:text-orange-400 border-orange-500/10 bg-orange-500/5'
+                  : 'text-slate-500 hover:bg-slate-800/50 hover:text-slate-200 border-transparent'
         }`}
       >
-        <svg className={`w-5 h-5 min-w-[20px] ${isActive ? (isCyan ? 'text-cyan-400' : 'text-emerald-400') : isCyan ? 'text-cyan-400' : isOrange ? 'text-orange-400' : 'text-slate-600 group-hover:text-emerald-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className={`w-5 h-5 min-w-[20px] ${isActive ? (isCyan ? 'text-cyan-400' : isPurple ? 'text-purple-400' : 'text-emerald-400') : isCyan ? 'text-cyan-400' : isPurple ? 'text-purple-400' : isOrange ? 'text-orange-400' : 'text-slate-600 group-hover:text-emerald-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d={item.icon} />
         </svg>
-        {isOpen && <span className={`ml-3 font-black text-[11px] tracking-[0.1em] uppercase transition-all whitespace-nowrap ${isCyan ? 'text-cyan-100' : isOrange ? 'text-orange-100' : ''}`}>{item.name}</span>}
-        {isActive && isOpen && <div className={`absolute right-2.5 w-1 h-1 rounded-full shadow-[0_0_8px_currentColor] ${isCyan ? 'bg-cyan-400' : 'bg-emerald-400'}`}></div>}
+        {isOpen && <span className={`ml-3 font-black text-[11px] tracking-[0.1em] uppercase transition-all whitespace-nowrap ${isCyan ? 'text-cyan-100' : isPurple ? 'text-purple-100' : isOrange ? 'text-orange-100' : ''}`}>{item.name}</span>}
+        {isActive && isOpen && <div className={`absolute right-2.5 w-1 h-1 rounded-full shadow-[0_0_8px_currentColor] ${isCyan ? 'bg-cyan-400' : isPurple ? 'bg-purple-400' : 'bg-emerald-400'}`}></div>}
       </Link>
     );
   };

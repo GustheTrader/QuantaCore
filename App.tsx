@@ -17,6 +17,7 @@ import Council from './components/Council';
 import Projects from './components/Projects';
 import Settings from './components/Settings';
 import MCPConnectors from './components/MCPConnectors';
+import { NotebookLMPanel } from './components/NotebookLMPanel';
 import { supabase, signOut } from './services/supabaseService';
 
 interface ErrorBoundaryProps {
@@ -175,6 +176,7 @@ const App: React.FC = () => {
                     <Route path="/council" element={<Council />} />
                     <Route path="/projects" element={<Projects />} />
                     <Route path="/mcp" element={<MCPConnectors />} />
+                    <Route path="/notebooklm" element={<NotebookLMPanel agentName={profile.callsign || 'QUser'} />} />
                     <Route path="/images" element={<ImageGenerator />} />
                     <Route path="/videos" element={<VideoGenerator />} />
                     <Route path="/tasks" element={<TaskBoard />} />
