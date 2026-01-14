@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { chatWithSME, optimizePrompt, distillMemoryFromChat, reflectAndRefine } from '../services/geminiService';
-import { ChatMessage, OptimizationTelemetry, ReflectionResult, ComputeProvider, MemoryBlock } from '../types';
+import { ChatMessage, OptimizationTelemetry, ReflectionResult, ComputeProvider, SourceNode } from '../types';
 import { VoiceAgent } from './VoiceAgent';
 import { NeuralOptimizationWindow } from './NeuralOptimizationWindow';
 import { ActionHub } from './ActionHub';
@@ -58,16 +58,22 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile }) => {
     const savedLocal = localStorage.getItem(storageKey);
     if (savedLocal) {
       try { 
-        setMessages(JSON.parse(savedLocal)); 
-      } catch (e) { setDefaultMessage(); }
-    } else {
-      const remote = await fetchChatHistoryFromSupabase(activeAgent);
-      if (remote) {
-        setMessages(remote);
-        localStorage.setItem(storageKey, JSON.stringify(remote));
-      } else {
-        setDefaultMessage();
+        const parsed = JSON.parse(savedLocal);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setMessages(parsed);
+          return;
+        }
+      } catch (e) { 
+        console.error("Local history corrupt:", e);
       }
+    }
+    
+    const remote = await fetchChatHistoryFromSupabase(activeAgent);
+    if (remote && Array.isArray(remote) && remote.length > 0) {
+      setMessages(remote);
+      localStorage.setItem(storageKey, JSON.stringify(remote));
+    } else {
+      setDefaultMessage();
     }
   };
 
@@ -84,10 +90,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile }) => {
     const savedProvider = localStorage.getItem('quanta_preferred_provider');
     if (savedProvider) setComputeProvider(savedProvider as ComputeProvider);
 
-    const savedMemories = localStorage.getItem('quanta_notebook');
-    if (savedMemories) {
-      const memories: MemoryBlock[] = JSON.parse(savedMemories);
-      const relevantCount = memories.filter(m => 
+    const savedSources = localStorage.getItem('quanta_notebook');
+    if (savedSources) {
+      const sources: SourceNode[] = JSON.parse(savedSources);
+      const relevantCount = sources.filter(m => 
         !m.assignedAgents || 
         m.assignedAgents.length === 0 || 
         m.assignedAgents.includes(activeAgent) || 
@@ -104,12 +110,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile }) => {
   }, [activeAgent, storageKey]);
 
   const startAmbient = () => {
-    if (!ambientAudioCtx.current) {
-      ambientAudioCtx.current = new (window.AudioContext || (window as any).webkitAudioContext)();
-    }
-    if (ambientAudioCtx.current.state === 'suspended') {
-      ambientAudioCtx.current.resume();
-    }
+    if (!ambientAudioCtx.current) ambientAudioCtx.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+    if (ambientAudioCtx.current.state === 'suspended') ambientAudioCtx.current.resume();
     const ctx = ambientAudioCtx.current;
     const gainNode = ctx.createGain();
     gainNode.gain.setValueAtTime(0, ctx.currentTime);
@@ -125,7 +127,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile }) => {
       osc.start();
       return osc;
     };
-
     ambientOscillators.current = [createOsc(60), createOsc(110), createOsc(44, 'sine')];
     setIsAmbientActive(true);
   };
@@ -147,11 +148,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile }) => {
   const toggleAmbient = () => isAmbientActive ? stopAmbient() : startAmbient();
 
   const setDefaultMessage = () => {
-    setMessages([{ role: 'model', content: `Neural connection established. Welcome back, ${profile.callsign}. [${activeAgent}] online via ${computeProvider.toUpperCase()} compute.`, timestamp: Date.now() }]);
+    const initial = [{ role: 'model', content: `Neural connection established. Welcome back, ${profile.callsign}. [${activeAgent}] online via ${computeProvider.toUpperCase()} compute. Source grounding active.`, timestamp: Date.now() }] as ChatMessage[];
+    setMessages(initial);
+    localStorage.setItem(storageKey, JSON.stringify(initial));
   };
 
   const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  useEffect(scrollToBottom, [messages, isReflecting]);
+  useEffect(scrollToBottom, [messages, isReflecting, isLoading]);
 
   const handleOptimizeContext = async () => {
     if (!input.trim() || isOptimizing) return;
@@ -168,7 +171,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile }) => {
 
     const userMessage: ChatMessage = { role: 'user', content: input, timestamp: Date.now(), provider: computeProvider };
     const updatedMessages = [...messages, userMessage];
+    
     setMessages(updatedMessages);
+    localStorage.setItem(storageKey, JSON.stringify(updatedMessages));
+    
     setInput('');
     setOptimizationResult(null);
     setIsLoading(true);
@@ -182,6 +188,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile }) => {
         content: response.text,
         timestamp: Date.now(),
         sources: response.sources,
+        citations: response.citations,
         provider: computeProvider
       };
       
@@ -193,7 +200,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile }) => {
 
       setIsLearning(true);
       distillMemoryFromChat(finalMessages.slice(-4), activeAgent).then(newMemory => {
-        if (newMemory) setTelemetry(prev => ({ ...prev, optimizations: [...prev.optimizations, `Neural Growth: "${newMemory.title}" archived.`] }));
+        if (newMemory) setTelemetry(prev => ({ ...prev, optimizations: [...prev.optimizations, `Knowledge Grounding: "${newMemory.title}" archived.`] }));
         setIsLearning(false);
       });
 
@@ -201,7 +208,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile }) => {
         await triggerJudgeLoop(finalMessages);
       }
     } catch (error) {
-      setMessages(prev => [...prev, { role: 'model', content: "Neural bridge unstable. Synchronizing...", timestamp: Date.now() }]);
+      const errorMessage: ChatMessage = { role: 'model', content: "Neural bridge unstable. Synchronizing with Knowledge Substrate...", timestamp: Date.now() };
+      const failedMessages = [...updatedMessages, errorMessage];
+      setMessages(failedMessages);
+      localStorage.setItem(storageKey, JSON.stringify(failedMessages));
     } finally { setIsLoading(false); }
   };
 
@@ -229,10 +239,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile }) => {
     const newSkills = agentConfig.skills.includes('search')
       ? agentConfig.skills.filter(s => s !== 'search')
       : [...agentConfig.skills, 'search'];
-    
     setAgentConfig(prev => ({ ...prev, skills: newSkills }));
-    
-    // Persist skill update locally
     const savedConfigs = JSON.parse(localStorage.getItem('quanta_agent_configs') || '{}');
     savedConfigs[activeAgent] = { ...savedConfigs[activeAgent], skills: newSkills };
     localStorage.setItem('quanta_agent_configs', JSON.stringify(savedConfigs));
@@ -262,7 +269,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile }) => {
       <div className="p-8 border-b border-slate-800 bg-[#020617]/90 flex items-center justify-between relative">
         <div className="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-emerald-500/30 to-transparent"></div>
         <div className="flex items-center space-x-6">
-          <div className="w-14 h-14 bg-emerald-600/10 text-emerald-400 rounded-2xl flex items-center justify-center border border-emerald-500/20 shadow-[0_0_20px_rgba(16,185,129,0.1)] transition-transform hover:scale-105">
+          <div className="w-14 h-14 bg-emerald-600/10 text-emerald-400 rounded-2xl flex items-center justify-center border border-emerald-500/20 shadow-[0_0_20px_rgba(16,185,129,0.1)]">
             <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
           </div>
           <div>
@@ -270,38 +277,25 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile }) => {
             <div className="flex items-center space-x-3 mt-1">
               <span className={`w-2 h-2 rounded-full animate-pulse ${isReflecting ? 'bg-orange-500 shadow-[0_0_8px_#f97316]' : isLearning ? 'bg-indigo-500 shadow-[0_0_8px_#6366f1]' : 'bg-emerald-500 shadow-[0_0_8px_#10b981]'}`}></span>
               <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 italic">
-                {computeProvider} Logic Core
+                {computeProvider} Logic Core &bull; RAG Enabled
               </span>
             </div>
           </div>
         </div>
         
         <div className="flex space-x-4 items-center">
-          {/* SEARCH SKILL TOGGLE */}
           <button 
             onClick={toggleSearchSkill}
-            title={agentConfig.skills.includes('search') ? "Search Grounding: ACTIVE" : "Search Grounding: DISABLED"}
             className={`px-5 py-3 rounded-2xl border flex items-center justify-center space-x-3 transition-all ${agentConfig.skills.includes('search') ? 'bg-emerald-600/20 border-emerald-500 text-emerald-400' : 'bg-slate-950 border-slate-800 text-slate-700 hover:text-emerald-400'}`}
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
             <span className="text-[10px] font-black uppercase tracking-widest">{agentConfig.skills.includes('search') ? 'Live Search ON' : 'Live Search OFF'}</span>
           </button>
 
-          <button 
-            onClick={toggleAmbient}
-            title={isAmbientActive ? "Neural Hum: ON" : "Neural Hum: OFF"}
-            className={`w-12 h-12 rounded-xl border flex items-center justify-center transition-all ${isAmbientActive ? 'bg-orange-600/20 border-orange-500 text-orange-400 animate-glow' : 'bg-slate-950 border-slate-800 text-slate-700 hover:text-orange-400'}`}
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
-            </svg>
+          <button onClick={toggleAmbient} className={`w-12 h-12 rounded-xl border flex items-center justify-center transition-all ${isAmbientActive ? 'bg-orange-600/20 border-orange-500 text-orange-400 animate-glow' : 'bg-slate-950 border-slate-800 text-slate-700 hover:text-orange-400'}`}>
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" /></svg>
           </button>
-          <button 
-            onClick={() => setIsVoiceActive(true)}
-            className="w-12 h-12 rounded-xl bg-emerald-600/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 hover:bg-emerald-600 hover:text-white transition-all shadow-[0_0_15px_rgba(16,185,129,0.1)]"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
-          </button>
+
           <div className="bg-slate-950 p-1.5 rounded-2xl border border-slate-800 flex shadow-inner">
             {(['gemini', 'groq', 'local'] as ComputeProvider[]).map((p) => (
               <button 
@@ -335,8 +329,26 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile }) => {
             }`}>
               <div className="whitespace-pre-wrap text-[15px] leading-relaxed font-medium italic font-outfit">"{m.content}"</div>
               
+              {/* Grounded Citations (NotebookLM Style) */}
+              {m.citations && m.citations.length > 0 && (
+                <div className="mt-8 pt-6 border-t border-slate-800/50 space-y-4">
+                  <p className="text-[10px] font-black text-orange-400 uppercase tracking-widest">Knowledge Citations</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {m.citations.map((c, i) => (
+                      <div key={i} className="p-3 bg-slate-950/80 border border-slate-800 rounded-xl flex flex-col space-y-2">
+                        <div className="flex items-center space-x-2">
+                          <span className="w-5 h-5 bg-orange-600 text-white rounded text-[8px] font-black flex items-center justify-center">{i + 1}</span>
+                          <span className="text-[9px] font-black text-white uppercase truncate">{c.sourceTitle}</span>
+                        </div>
+                        <p className="text-[10px] text-slate-500 italic line-clamp-2">"{c.snippet}"</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {m.sources && m.sources.length > 0 && (
-                <div className="mt-8 pt-6 border-t border-slate-800/50 flex flex-wrap gap-3">
+                <div className="mt-6 pt-4 border-t border-slate-800/20 flex flex-wrap gap-3">
                   {m.sources.map((s, i) => (<a key={i} href={s.uri} target="_blank" rel="noopener noreferrer" className="text-[10px] bg-slate-950/80 border border-slate-800/50 px-4 py-2 rounded-xl text-slate-400 hover:text-orange-400 hover:border-orange-500/30 transition-all truncate max-w-[220px]">{s.title}</a>))}
                 </div>
               )}
@@ -379,16 +391,16 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile }) => {
                 type="text" 
                 value={input} 
                 onChange={(e) => setInput(e.target.value)} 
-                placeholder={`Submit high-density instruction via ${computeProvider.toUpperCase()}...`} 
+                placeholder={`Query ${activeAgent} via grounded knowledge...`} 
                 className="w-full bg-transparent text-white py-5 focus:outline-none font-outfit font-bold text-xl italic placeholder-slate-600" 
               />
             </div>
             <button 
               type="submit" 
               disabled={isLoading || !input.trim()} 
-              className="px-14 py-7 bg-slate-900/50 text-slate-500 hover:text-white hover:bg-orange-600 border border-slate-800 hover:border-orange-400 rounded-full font-black uppercase tracking-[0.4em] text-[13px] transition-all shadow-xl active:scale-95 disabled:opacity-30 disabled:grayscale"
+              className="px-14 py-7 bg-slate-900/50 text-slate-500 hover:text-white hover:bg-orange-600 border border-slate-800 hover:border-orange-400 rounded-full font-black uppercase tracking-[0.4em] text-[13px] transition-all shadow-xl active:scale-95 disabled:opacity-30"
             >
-              Transmit
+              Ground & Transmit
             </button>
           </form>
         </div>

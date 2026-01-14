@@ -6,7 +6,9 @@ import Dashboard from './components/Dashboard';
 import ChatInterface from './components/ChatInterface';
 import DeepAgent from './components/DeepAgent';
 import DeepDiverAgent from './components/DeepDiverAgent';
+import AgentZero from './components/AgentZero';
 import ImageGenerator from './components/ImageGenerator';
+import VideoGenerator from './components/VideoGenerator';
 import TaskBoard from './components/TaskBoard';
 import AuthPage from './components/AuthPage';
 import ProfileSetup from './components/ProfileSetup';
@@ -26,12 +28,11 @@ interface ErrorBoundaryState {
   error: Error | null;
 }
 
+// Fix: Use React.Component to ensure that the props property is correctly inherited and typed for the TypeScript compiler
 class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
   public state: ErrorBoundaryState = { hasError: false, error: null };
 
-  constructor(props: ErrorBoundaryProps) {
-    super(props);
-  }
+  // Fix: Removed redundant constructor that only called super(props) to simplify type resolution
 
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {
     return { hasError: true, error };
@@ -59,6 +60,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
         </div>
       );
     }
+    // Fix: Destructuring children from this.props now that React.Component inheritance is explicitly handled
     const { children } = this.props;
     return children;
   }
@@ -169,10 +171,12 @@ const App: React.FC = () => {
                     <Route path="/chat" element={<ChatInterface profile={profile} />} />
                     <Route path="/deep-agent" element={<DeepAgent />} />
                     <Route path="/deep-diver" element={<DeepDiverAgent />} />
+                    <Route path="/agent-zero" element={<AgentZero />} />
                     <Route path="/council" element={<Council />} />
                     <Route path="/projects" element={<Projects />} />
                     <Route path="/mcp" element={<MCPConnectors />} />
                     <Route path="/images" element={<ImageGenerator />} />
+                    <Route path="/videos" element={<VideoGenerator />} />
                     <Route path="/tasks" element={<TaskBoard />} />
                     <Route path="/notebook" element={<Notebook />} />
                     <Route path="/settings" element={<Settings />} />

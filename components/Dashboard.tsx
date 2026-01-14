@@ -19,6 +19,7 @@ import {
   PolarRadiusAxis
 } from 'recharts';
 import { VoiceAgent } from './VoiceAgent';
+import { Task } from '../types';
 
 interface AgentProps {
   name: string;
@@ -300,6 +301,116 @@ const ForgePlaceholderCard: React.FC<{ onClick: () => void }> = ({ onClick }) =>
   </button>
 );
 
+const DashboardKanban: React.FC = () => {
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [newTask, setNewTask] = useState('');
+
+  useEffect(() => {
+    const saved = localStorage.getItem('quanta_tasks');
+    if (saved) setTasks(JSON.parse(saved));
+  }, []);
+
+  const saveTasks = (updated: Task[]) => {
+    setTasks(updated);
+    localStorage.setItem('quanta_tasks', JSON.stringify(updated));
+  };
+
+  const addTask = () => {
+    if (!newTask.trim()) return;
+    const task: Task = {
+      id: Math.random().toString(36).substr(2, 9),
+      title: newTask,
+      status: 'todo',
+      priority: 'medium',
+      category: 'Strategic',
+      timestamp: Date.now()
+    };
+    saveTasks([task, ...tasks]);
+    setNewTask('');
+  };
+
+  const moveTask = (id: string, status: Task['status']) => {
+    saveTasks(tasks.map(t => t.id === id ? { ...t, status } : t));
+  };
+
+  const removeTask = (id: string) => {
+    saveTasks(tasks.filter(t => t.id !== id));
+  };
+
+  const renderCol = (status: Task['status'], label: string, color: string) => (
+    <div className="flex-1 min-w-[300px] space-y-6">
+      <div className="flex items-center justify-between px-4 mb-4">
+        <div className="flex items-center space-x-3">
+          <div className={`w-2 h-2 rounded-full ${color} shadow-[0_0_10px_currentColor]`}></div>
+          <span className="text-[11px] font-black uppercase tracking-[0.3em] text-white">{label}</span>
+        </div>
+        <span className="text-[10px] font-black text-slate-600 bg-slate-900 px-2 py-1 rounded-md">{tasks.filter(t => t.status === status).length}</span>
+      </div>
+      <div className="space-y-4 max-h-[500px] overflow-y-auto custom-scrollbar pr-2">
+        {tasks.filter(t => t.status === status).map(t => (
+          <div key={t.id} className="glass-card p-6 rounded-3xl border border-slate-800 hover:border-emerald-500/20 transition-all group relative overflow-hidden">
+            <div className={`absolute top-0 left-0 w-1 h-full ${
+              t.priority === 'high' ? 'bg-rose-500 shadow-[0_0_10px_#f43f5e]' : 
+              t.priority === 'medium' ? 'bg-orange-500 shadow-[0_0_10px_#f97316]' : 'bg-emerald-500'
+            }`}></div>
+            <p className="text-[14px] font-medium text-slate-200 leading-snug mb-4 font-outfit uppercase tracking-tight italic">"{t.title}"</p>
+            <div className="flex items-center justify-between pt-4 border-t border-slate-800/50">
+               <div className="flex space-x-2">
+                 {status !== 'todo' && (
+                   <button onClick={() => moveTask(t.id, status === 'done' ? 'in-progress' : 'todo')} className="w-7 h-7 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-600 hover:text-white transition-all">
+                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" /></svg>
+                   </button>
+                 )}
+                 {status !== 'done' && (
+                   <button onClick={() => moveTask(t.id, status === 'todo' ? 'in-progress' : 'done')} className="w-7 h-7 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center text-emerald-500 hover:bg-emerald-600 hover:text-white transition-all">
+                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" /></svg>
+                   </button>
+                 )}
+               </div>
+               <button onClick={() => removeTask(t.id)} className="text-[9px] font-black uppercase text-slate-600 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-all">Purge</button>
+            </div>
+          </div>
+        ))}
+        {tasks.filter(t => t.status === status).length === 0 && (
+          <div className="py-10 text-center border-2 border-dashed border-slate-800/50 rounded-[2.5rem] opacity-20">
+            <p className="text-[9px] font-black uppercase tracking-widest">No Active Nodes</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="glass-card p-10 md:p-14 rounded-[4rem] border-emerald-500/10 shadow-2xl relative overflow-hidden bg-[#020617]/40">
+      <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-emerald-500/20 to-transparent"></div>
+      <div className="flex flex-col md:flex-row items-center justify-between mb-12 gap-6">
+         <div>
+            <h3 className="text-3xl font-outfit font-black text-white uppercase tracking-tighter italic">Operational <span className="text-emerald-400">Command</span></h3>
+            <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em] mt-1">Live SME Execution Pipeline</p>
+         </div>
+         <div className="flex items-center bg-slate-950 p-2 rounded-2xl border border-slate-800 shadow-inner w-full md:w-auto max-w-md group focus-within:border-emerald-500/50 transition-all">
+            <input 
+              value={newTask} 
+              onChange={e => setNewTask(e.target.value)} 
+              onKeyDown={e => e.key === 'Enter' && addTask()}
+              placeholder="Inject new node..." 
+              className="bg-transparent border-none outline-none text-white text-xs font-bold px-4 py-2 flex-1 italic placeholder-slate-800"
+            />
+            <button onClick={addTask} className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-lg hover:scale-105 transition-all">
+               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" /></svg>
+            </button>
+         </div>
+      </div>
+
+      <div className="flex flex-col lg:flex-row gap-10 overflow-x-auto custom-scrollbar pb-6">
+         {renderCol('todo', 'Input Backlog', 'bg-slate-500')}
+         {renderCol('in-progress', 'Neural Processing', 'bg-orange-500')}
+         {renderCol('done', 'Finalized Archive', 'bg-emerald-500')}
+      </div>
+    </div>
+  );
+};
+
 const Dashboard: React.FC<DashboardProps> = ({ track, profile }) => {
   const navigate = useNavigate();
   const [voiceConfig, setVoiceConfig] = useState({ active: false, agentName: '', prompt: '', skills: ['search'], voiceName: 'Zephyr', inputTranscription: true, outputTranscription: true });
@@ -517,6 +628,11 @@ const Dashboard: React.FC<DashboardProps> = ({ track, profile }) => {
             </div>
           </div>
         </div>
+      </section>
+
+      {/* Operational Kanban Core Section */}
+      <section className="mb-32">
+        <DashboardKanban />
       </section>
 
       {/* Logic Cores Section */}

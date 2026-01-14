@@ -5,11 +5,17 @@ const STORAGE_KEY = 'quanta_user_credits';
 
 export const getCredits = (): UserCredits => {
   const saved = localStorage.getItem(STORAGE_KEY);
-  if (saved) return JSON.parse(saved);
+  if (saved) {
+    const parsed = JSON.parse(saved);
+    // Migration for existing users
+    if (parsed.visualEnergy === undefined) parsed.visualEnergy = 2000;
+    return parsed;
+  }
   
   const initial: UserCredits = {
     cloudTokens: 10000,
     deepAgentTokens: 5000,
+    visualEnergy: 2000,
     lastSync: Date.now()
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(initial));
@@ -18,8 +24,6 @@ export const getCredits = (): UserCredits => {
 
 export const deductCloudCredits = (amount: number = 10) => {
   const credits = getCredits();
-  // Don't deduct if in sovereign mode (handled by settings check in components usually, 
-  // but we enforce here if needed. For now, assume this is called only for credit-based compute).
   credits.cloudTokens = Math.max(0, credits.cloudTokens - amount);
   credits.lastSync = Date.now();
   localStorage.setItem(STORAGE_KEY, JSON.stringify(credits));
@@ -34,12 +38,21 @@ export const deductDeepAgentCredits = (amount: number = 50) => {
   window.dispatchEvent(new Event('quanta_credits_updated'));
 };
 
-export const checkHasCredits = (type: 'cloud' | 'agent'): boolean => {
+export const deductVisualEnergy = (amount: number = 50) => {
+  const credits = getCredits();
+  credits.visualEnergy = Math.max(0, credits.visualEnergy - amount);
+  credits.lastSync = Date.now();
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(credits));
+  window.dispatchEvent(new Event('quanta_credits_updated'));
+};
+
+export const checkHasCredits = (type: 'cloud' | 'agent' | 'visual'): boolean => {
   const credits = getCredits();
   const settings = JSON.parse(localStorage.getItem('quanta_api_settings') || '{}');
   
-  // If user is in BYOK (Sovereign) mode, they don't use platform credits
   if (settings.computeMode === 'sovereign') return true;
   
-  return type === 'cloud' ? credits.cloudTokens > 0 : credits.deepAgentTokens > 0;
+  if (type === 'cloud') return credits.cloudTokens > 0;
+  if (type === 'agent') return credits.deepAgentTokens > 0;
+  return credits.visualEnergy > 0;
 };

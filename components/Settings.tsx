@@ -30,9 +30,11 @@ const Settings: React.FC = () => {
     }
   });
 
+  // Fixed error by adding visualEnergy property to UserCredits initialization
   const [credits, setCredits] = useState<UserCredits>({
     cloudTokens: 10000,
     deepAgentTokens: 5000,
+    visualEnergy: 2000,
     lastSync: Date.now()
   });
 

@@ -201,7 +201,8 @@ export const VoiceAgent: React.FC<VoiceAgentProps> = ({
         }
 
         const sessionPromise = ai.live.connect({
-          model: 'gemini-2.5-flash-native-audio-preview-09-2025',
+          // Updated to correct native audio model per latest guidelines
+          model: 'gemini-2.5-flash-native-audio-preview-12-2025',
           config: { 
             responseModalities: [Modality.AUDIO], 
             inputAudioTranscription: inputTranscription ? {} : undefined, 

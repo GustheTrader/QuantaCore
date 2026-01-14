@@ -2,9 +2,11 @@
 export interface Task {
   id: string;
   title: string;
-  completed: boolean;
+  status: 'todo' | 'in-progress' | 'done';
   priority: 'low' | 'medium' | 'high';
   category: string;
+  description?: string;
+  timestamp: number;
 }
 
 export type ComputeProvider = 'gemini' | 'groq' | 'local' | 'abacus' | 'novita';
@@ -15,6 +17,23 @@ export interface ChatMessage {
   timestamp: number;
   sources?: { uri: string; title: string }[];
   provider?: ComputeProvider;
+  citations?: { sourceId: string; sourceTitle: string; snippet: string }[];
+}
+
+export interface SourceNode {
+  id: string;
+  title: string;
+  content: string;
+  type: 'doc' | 'url' | 'pdf' | 'distilled';
+  category: string;
+  assignedAgents: string[]; 
+  timestamp: number;
+  metadata?: {
+    author?: string;
+    url?: string;
+    wordCount?: number;
+    summary?: string;
+  };
 }
 
 export interface ProjectChat {
@@ -58,6 +77,23 @@ export interface GeneratedImage {
   url: string;
   prompt: string;
   timestamp: number;
+  type: 'image' | 'video';
+}
+
+export interface ZeroLogEntry {
+  id: string;
+  type: 'info' | 'code' | 'output' | 'error' | 'agent';
+  agentName?: string;
+  content: string;
+  timestamp: number;
+}
+
+export interface AgentZeroSession {
+  id: string;
+  status: 'idle' | 'executing' | 'error';
+  dockerStatus: 'connected' | 'offline';
+  logs: ZeroLogEntry[];
+  workspace: string; // Path
 }
 
 export interface OptimizationTelemetry {
@@ -73,16 +109,6 @@ export interface ReflectionResult {
   suggestedPrompt: string | null;
   weaknesses: string[];
   strengths: string[];
-}
-
-export interface MemoryBlock {
-  id: string;
-  title: string;
-  content: string;
-  category: string;
-  assignedAgents: string[]; 
-  timestamp: number;
-  source?: 'manual' | 'distilled'; 
 }
 
 export interface CouncilTurn {
@@ -122,7 +148,6 @@ export interface AbacusStreamChunk {
   error?: string;
 }
 
-// MCP TYPES
 export type MCPConnectorType = 'local' | 'docker';
 
 export interface MCPConnector {
@@ -141,7 +166,6 @@ export interface MCPConnector {
   };
 }
 
-// SETTINGS TYPES
 export interface StorageSettings {
   provider: 'local' | 'supabase' | 'hybrid';
   supabaseUrl: string;
@@ -166,5 +190,6 @@ export interface ApiSettings {
 export interface UserCredits {
   cloudTokens: number;
   deepAgentTokens: number;
+  visualEnergy: number;
   lastSync: number;
 }

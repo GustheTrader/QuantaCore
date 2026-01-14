@@ -1,6 +1,7 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { DeepStep, DeepAgentSession, MemoryBlock } from "../types";
+// Corrected import: MemoryBlock does not exist in types.ts, using SourceNode instead
+import { DeepStep, DeepAgentSession, SourceNode } from "../types";
 import { recallRelevantMemories, distillMemoryFromChat } from "./geminiService";
 import { syncMemoryToSupabase } from "./supabaseService";
 
@@ -112,14 +113,15 @@ export const runDeepAgentLoop = async (
     session.endTime = Date.now();
     
     // 5. ARCHIVE TO LTM (Long Term Memory)
-    const memory: MemoryBlock = {
+    // Corrected type: MemoryBlock -> SourceNode
+    const memory: SourceNode = {
       id: `deep_${sessionId}`,
       title: `Deep Research: ${query.substring(0, 40)}...`,
       content: synthResponse.text || "",
       category: "Strategic",
       assignedAgents: ["Deep Agent", "All Agents"],
       timestamp: Date.now(),
-      source: 'distilled'
+      type: 'distilled' // Corrected property: source -> type
     };
     await syncMemoryToSupabase(memory);
     

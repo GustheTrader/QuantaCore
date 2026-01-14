@@ -79,9 +79,10 @@ const Projects: React.FC = () => {
     setIsAddingProject(false);
   };
 
+  // Fixed handleFileUpload to properly type the files array
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || !activeProjectId) return;
-    const files = Array.from(e.target.files);
+    const files = Array.from(e.target.files) as File[];
     
     files.forEach(file => {
       const reader = new FileReader();

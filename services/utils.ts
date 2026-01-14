@@ -1,5 +1,6 @@
 
-import { MemoryBlock } from "../types";
+// Corrected import: MemoryBlock does not exist in types.ts, using SourceNode instead
+import { SourceNode } from "../types";
 import { syncMemoryToSupabase } from "./supabaseService";
 
 /**
@@ -19,14 +20,15 @@ export const stripMarkdown = (text: string): string => {
  * Syncs a text string to the Sovereign Memory (Notebook)
  */
 export const archiveToSovereignMemory = async (title: string, content: string, agentName: string) => {
-  const memory: MemoryBlock = {
+  // Corrected type: MemoryBlock -> SourceNode
+  const memory: SourceNode = {
     id: `archived_${Math.random().toString(36).substring(2, 9)}`,
     title: `SME Insight: ${title}`,
     content,
     category: 'Strategic',
     assignedAgents: [agentName, 'All Agents'],
     timestamp: Date.now(),
-    source: 'distilled'
+    type: 'distilled' // Corrected property: source -> type
   };
 
   const existing = JSON.parse(localStorage.getItem('quanta_notebook') || "[]");

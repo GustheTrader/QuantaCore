@@ -1,7 +1,8 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { GoogleGenAI, Type } from "@google/genai";
-import { CouncilTurn, MemoryBlock } from '../types';
+// Corrected import: MemoryBlock does not exist in types.ts, using SourceNode instead
+import { CouncilTurn, SourceNode } from '../types';
 import { getSMEContext, optimizePrompt } from '../services/geminiService';
 import { ActionHub } from './ActionHub';
 import { ContextOptimizerBar } from './ContextOptimizerBar';
@@ -81,7 +82,8 @@ const Council: React.FC = () => {
 
       const savedMemories = localStorage.getItem('quanta_notebook');
       if (savedMemories) {
-        const memories: MemoryBlock[] = JSON.parse(savedMemories);
+        // Corrected type name: MemoryBlock -> SourceNode
+        const memories: SourceNode[] = JSON.parse(savedMemories);
         setActiveContextCount(memories.length);
       }
     }
@@ -150,6 +152,8 @@ const Council: React.FC = () => {
       const FPT_OMEGA_PROTOCOL = `You are a high-performance SME agent using First Principles Thinking (FPT-OMEGA). You MUST structure your output using deconstruction (analogies removed), atomic axioms (fundamental truths), and reconstruction (advice).`;
 
       const globalCtx = await getSMEContext("All Agents", operatorProfile);
+      let cumulativeDebate = "";
+      let judgeSynthesis = "";
 
       for (const agent of selectedAgents) {
         setDebateLog(prev => [...prev, { agentName: agent, role: 'proposer', content: 'Analyzing first principles...', status: 'processing' }]);
@@ -178,9 +182,12 @@ const Council: React.FC = () => {
 
         try {
           const data = JSON.parse(response.text || '{}');
+          const turnContent = data.content || 'Reasoning failed.';
+          cumulativeDebate += `\n\n[AGENT ${agent}]:\n${turnContent}`;
+
           setDebateLog(prev => prev.map(t => t.agentName === agent ? { 
             ...t, 
-            content: data.content || 'Reasoning failed.', 
+            content: turnContent, 
             status: 'complete', 
             logicAudit: { 
               deconstruction: data.deconstruction || ["Removing analogical noise"], 
@@ -197,7 +204,7 @@ const Council: React.FC = () => {
       
       const judgeResponse = await ai.models.generateContent({
         model: 'gemini-3-pro-preview',
-        contents: `Strategic Debate Context between ${selectedAgents.join(', ')}.\nProblem: ${prompt}\n\nSynthesize the most logical path forward based on deliberation and search data. Return JSON with audit trail.`,
+        contents: `Strategic Debate Context:\n${cumulativeDebate}\n\nProblem: ${prompt}\n\nSynthesize the most logical path forward based on deliberation and search data. Return JSON with audit trail.`,
         config: { 
           tools: [{ googleSearch: {} }],
           systemInstruction: `You are the Neural Judge. Synthesize SME input with total logical purity.\n${globalCtx.fullHeader}`,
@@ -217,6 +224,7 @@ const Council: React.FC = () => {
 
       try {
         const judgeData = JSON.parse(judgeResponse.text || '{}');
+        judgeSynthesis = judgeData.synthesis || 'Synthesis error.';
         const sources = judgeResponse.candidates?.[0]?.groundingMetadata?.groundingChunks
           ?.filter(chunk => chunk.web)
           ?.map(chunk => ({
@@ -226,7 +234,7 @@ const Council: React.FC = () => {
 
         setDebateLog(prev => prev.map(t => t.role === 'judge' ? { 
           ...t, 
-          content: judgeData.synthesis || 'Synthesis error.', 
+          content: judgeSynthesis, 
           status: 'complete', 
           sources,
           logicAudit: { 
@@ -241,13 +249,44 @@ const Council: React.FC = () => {
 
       setDebateLog(prev => [...prev, { agentName: 'BOARD OF DIRECTORS', role: 'board', content: 'Issuing directive...', status: 'processing' }]);
       
-      const lastJudge = debateLog.find(t => t.role === 'judge')?.content || '';
       const boardResponse = await ai.models.generateContent({
         model: 'gemini-3-pro-preview',
-        contents: `Judge Synthesis: ${lastJudge}\n\nIssue exactly 3 immediate action items for ${operatorProfile?.callsign || 'Prime'}.`
+        contents: `Judge Synthesis: ${judgeSynthesis}\n\nOriginal Problem: ${prompt}\n\nYou are the Board of Directors. Review the Judge's synthesis and issue a structured executive directive.`,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              summary: { type: Type.STRING, description: "Executive summary of the council's findings." },
+              decision: { type: Type.STRING, description: "The final strategic path or decision." },
+              confidenceScore: { type: Type.NUMBER, description: "Confidence in this decision (0-100)." },
+              actionItems: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Exactly 3 immediate, high-impact tasks." },
+              references: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Key agent insights or axioms cited." }
+            },
+            required: ["summary", "decision", "confidenceScore", "actionItems", "references"]
+          }
+        }
       });
 
-      setDebateLog(prev => prev.map(t => t.role === 'board' ? { ...t, content: boardResponse.text || '', status: 'complete' } : t));
+      try {
+        const boardData = JSON.parse(boardResponse.text || '{}');
+        // Format the content property as a structured markdown string for the turn
+        const formattedBoardContent = `### EXECUTIVE DIRECTIVE\n\n**SUMMARY:**\n${boardData.summary}\n\n**FINAL DECISION:**\n${boardData.decision}\n\n**CONFIDENCE METRIC:** ${boardData.confidenceScore}%\n\n**IMMEDIATE ACTION ITEMS:**\n1. ${boardData.actionItems[0]}\n2. ${boardData.actionItems[1]}\n3. ${boardData.actionItems[2]}\n\n**SME CITATIONS:**\n- ${boardData.references.join('\n- ')}`;
+
+        setDebateLog(prev => prev.map(t => t.role === 'board' ? { 
+          ...t, 
+          content: formattedBoardContent, 
+          status: 'complete',
+          // Store raw JSON in logicAudit for specialized UI rendering
+          logicAudit: {
+            deconstruction: [boardData.summary],
+            axioms: boardData.references,
+            reconstruction: `${boardData.confidenceScore}` // Used to pass the score
+          }
+        } : t));
+      } catch (e) {
+        setDebateLog(prev => prev.map(t => t.role === 'board' ? { ...t, content: boardResponse.text || '', status: 'complete' } : t));
+      }
 
     } catch (e) {
       console.error(e);
@@ -388,42 +427,82 @@ const Council: React.FC = () => {
                 <div key={i} className={`relative flex items-start space-x-10 animate-in slide-in-from-left-8 duration-700 group`}>
                   <div className={`w-20 h-20 rounded-[1.5rem] flex items-center justify-center shrink-0 z-10 shadow-2xl border-2 ${
                     turn.role === 'judge' ? 'bg-emerald-600 border-emerald-400 text-white animate-orbit' : 
-                    turn.role === 'board' ? 'bg-orange-600 border-orange-400 text-white' : 
+                    turn.role === 'board' ? 'bg-orange-600 border-orange-400 text-white shadow-[0_0_30px_rgba(249,115,22,0.4)]' : 
                     'bg-slate-900 border-slate-700 text-slate-500'
                   }`}>
-                    <span className="text-xs font-black uppercase">{turn.agentName.substring(0, 2)}</span>
+                    {turn.role === 'board' ? (
+                      <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+                    ) : (
+                      <span className="text-xs font-black uppercase">{turn.agentName.substring(0, 2)}</span>
+                    )}
                   </div>
                   
                   <div className={`flex-1 glass-card p-10 rounded-[3rem] border-2 transition-all duration-700 ${
                     turn.role === 'judge' ? 'border-emerald-500/50 quanta-logic-gradient scale-[1.02]' : 
-                    turn.role === 'board' ? 'border-orange-500/50 bg-orange-500/5' : 
+                    turn.role === 'board' ? 'border-orange-500 shadow-[0_0_80px_rgba(249,115,22,0.1)] bg-[#020617]' : 
                     'border-slate-800'
                   }`}>
                     <div className="flex items-center justify-between mb-8">
                       <div>
-                        <h4 className="text-white font-outfit font-black uppercase tracking-tighter text-3xl italic">{turn.agentName}</h4>
+                        <h4 className={`font-outfit font-black uppercase tracking-tighter text-3xl italic ${turn.role === 'board' ? 'text-orange-400' : 'text-white'}`}>{turn.agentName}</h4>
                         <p className={`text-[9px] font-black uppercase tracking-[0.4em] mt-1 ${
                           turn.role === 'judge' ? 'text-emerald-400' : 
-                          turn.role === 'board' ? 'text-orange-400' : 
+                          turn.role === 'board' ? 'text-orange-500 animate-pulse' : 
                           'text-slate-500'
                         }`}>{turn.role} Substrate Active</p>
                       </div>
-                      {turn.logicAudit && (
-                        <button 
-                          onClick={() => toggleAudit(turnId)}
-                          className={`flex items-center space-x-3 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${isAuditExpanded ? 'bg-orange-600 border-orange-400 text-white shadow-lg' : 'bg-slate-900 border-slate-800 text-slate-500 hover:text-white hover:border-orange-500/50'}`}
-                        >
-                          <svg className={`w-4 h-4 transition-transform duration-500 ${isAuditExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" /></svg>
-                          <span>{isAuditExpanded ? 'Collapse Trace' : 'Audit Logic Trace'}</span>
-                        </button>
-                      )}
+                      
+                      <div className="flex items-center space-x-4">
+                        {turn.role === 'board' && turn.logicAudit && (
+                           <div className="flex flex-col items-end mr-6">
+                              <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">Board Confidence</span>
+                              <div className="flex items-center space-x-3">
+                                 <div className="w-32 h-1.5 bg-slate-900 rounded-full overflow-hidden border border-white/5">
+                                    <div 
+                                      className="h-full bg-gradient-to-r from-orange-600 to-emerald-500 transition-all duration-1000" 
+                                      style={{ width: `${turn.logicAudit.reconstruction}%` }}
+                                    ></div>
+                                 </div>
+                                 <span className="text-xs font-black text-emerald-400">{turn.logicAudit.reconstruction}%</span>
+                              </div>
+                           </div>
+                        )}
+                        
+                        {turn.logicAudit && turn.role !== 'board' && (
+                          <button 
+                            onClick={() => toggleAudit(turnId)}
+                            className={`flex items-center space-x-3 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${isAuditExpanded ? 'bg-orange-600 border-orange-400 text-white shadow-lg' : 'bg-slate-900 border-slate-800 text-slate-500 hover:text-white hover:border-orange-500/50'}`}
+                          >
+                            <svg className={`w-4 h-4 transition-transform duration-500 ${isAuditExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" /></svg>
+                            <span>{isAuditExpanded ? 'Collapse Trace' : 'Audit Logic Trace'}</span>
+                          </button>
+                        )}
+                      </div>
                     </div>
                     
-                    <div className="text-slate-200 text-xl leading-relaxed font-medium">
-                      <div className="whitespace-pre-wrap font-outfit">"{turn.content || 'Synthesizing axioms...'}"</div>
+                    <div className={`text-slate-200 leading-relaxed font-medium ${turn.role === 'board' ? 'text-lg' : 'text-xl'}`}>
+                      <div className={`whitespace-pre-wrap font-outfit ${turn.role === 'board' ? 'bg-slate-950/50 p-8 rounded-[2rem] border border-orange-500/10' : ''}`}>
+                        {turn.role === 'board' ? (
+                          <div className="prose prose-invert max-w-none">
+                            {turn.content.split('###').map((section, idx) => {
+                               if (!section.trim()) return null;
+                               return (
+                                 <div key={idx} className="mb-6 last:mb-0">
+                                   <div className="text-orange-500 text-[10px] font-black uppercase tracking-[0.3em] mb-3">» {section.split('\n')[0]}</div>
+                                   <div className="text-slate-300 ml-4 border-l-2 border-orange-500/20 pl-6">
+                                     {section.split('\n').slice(1).join('\n')}
+                                   </div>
+                                 </div>
+                               );
+                            })}
+                          </div>
+                        ) : (
+                          `"${turn.content || 'Synthesizing axioms...'}"`
+                        )}
+                      </div>
 
-                      {/* Logic Audit Display */}
-                      {turn.logicAudit && isAuditExpanded && (
+                      {/* Logic Audit Display (For Proposers/Judges) */}
+                      {turn.logicAudit && isAuditExpanded && turn.role !== 'board' && (
                         <div className="mt-8 pt-8 border-t border-slate-800/50 space-y-6 animate-in slide-in-from-top-2 duration-500">
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="p-6 bg-slate-950/50 border border-rose-500/20 rounded-2xl">

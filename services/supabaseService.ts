@@ -1,6 +1,7 @@
 
 import { createClient } from '@supabase/supabase-js';
-import { MemoryBlock, ReflectionResult, ChatMessage, NeuralProject } from '../types';
+// Corrected import: MemoryBlock does not exist in types.ts, using SourceNode instead
+import { SourceNode, ReflectionResult, ChatMessage, NeuralProject } from '../types';
 
 const SUPABASE_URL = 'https://ovugynuxvtvfkwjkyxby.supabase.co';
 
@@ -131,7 +132,8 @@ export const signOut = async () => {
 };
 
 // Memory Management (Long Term Memory)
-export const syncMemoryToSupabase = async (memory: MemoryBlock) => {
+// Corrected type name: MemoryBlock -> SourceNode
+export const syncMemoryToSupabase = async (memory: SourceNode) => {
   try {
     const { data, error } = await supabase
       .from('memories')
@@ -140,6 +142,7 @@ export const syncMemoryToSupabase = async (memory: MemoryBlock) => {
         title: memory.title,
         content: memory.content,
         category: memory.category,
+        type: memory.type, // Explicitly sync the type
         assigned_agents: memory.assignedAgents,
         timestamp: new Date(memory.timestamp).toISOString(),
         is_ltm: true // Identifying as Long Term Memory
@@ -152,7 +155,8 @@ export const syncMemoryToSupabase = async (memory: MemoryBlock) => {
   }
 };
 
-export const fetchMemoriesFromSupabase = async (filter?: { query?: string, agentName?: string }): Promise<MemoryBlock[] | null> => {
+// Corrected type name: MemoryBlock -> SourceNode
+export const fetchMemoriesFromSupabase = async (filter?: { query?: string, agentName?: string }): Promise<SourceNode[] | null> => {
   try {
     let query = supabase
       .from('memories')
@@ -167,12 +171,13 @@ export const fetchMemoriesFromSupabase = async (filter?: { query?: string, agent
       title: item.title,
       content: item.content,
       category: item.category,
+      type: item.type || 'distilled', // Defaulting type if missing
       assignedAgents: item.assigned_agents || [],
       timestamp: new Date(item.timestamp).getTime()
     }));
 
     if (filter?.agentName) {
-      result = result.filter((m: MemoryBlock) => 
+      result = result.filter((m: SourceNode) => 
         m.assignedAgents.includes(filter.agentName!) || m.assignedAgents.includes("All Agents")
       );
     }
