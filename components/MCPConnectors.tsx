@@ -32,6 +32,22 @@ const MCPConnectors: React.FC = () => {
           endpoint: 'docker://postgres-mcp-agent',
           assignedAgents: ['QFinance'],
           config: { image: 'mcp/postgres-connector:latest', ports: ['5432:5432'], sovereignShield: false }
+        },
+        {
+          id: 'mcp_03',
+          name: 'NotebookLM Neural Bridge',
+          type: 'local',
+          status: 'disconnected',
+          endpoint: 'stdio://notebooklm-server',
+          assignedAgents: ['DeepAgent', 'QResearch', 'QAssistant', 'Council'],
+          config: {
+            command: 'node ./mcp-servers/notebooklm/dist/index.js',
+            env: {
+              'NOTEBOOKLM_COOKIE_FILE': './mcp-servers/notebooklm/notebooklm-cookies.json',
+              'NOTEBOOKLM_HEADLESS': 'true'
+            },
+            sovereignShield: true
+          }
         }
       ];
       setConnectors(defaults);

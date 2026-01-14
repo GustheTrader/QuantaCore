@@ -193,3 +193,117 @@ export interface UserCredits {
   visualEnergy: number;
   lastSync: number;
 }
+
+// ==================== NOTEBOOKLM INTEGRATION ====================
+
+export interface NotebookLMNotebook {
+  id: string;
+  title: string;
+  sourceCount: number;
+  lastModified: string;
+  createdDate?: string;
+}
+
+export interface NotebookLMSource {
+  id: string;
+  title: string;
+  type: 'pdf' | 'url' | 'doc' | 'text' | 'youtube';
+  url?: string;
+  addedDate?: string;
+}
+
+export interface NotebookLMCitation {
+  sourceId: string;
+  sourceTitle: string;
+  excerpt: string;
+  pageNumber?: number;
+}
+
+export interface NotebookLMChatResponse {
+  success: boolean;
+  notebookId: string;
+  question: string;
+  answer: string;
+  citations: NotebookLMCitation[];
+}
+
+export interface NotebookLMBriefing {
+  success: boolean;
+  notebookId: string;
+  format: 'summary' | 'briefing' | 'study-guide' | 'faq' | 'table';
+  content: string;
+  length: number;
+  generatedAt?: number;
+}
+
+export interface NotebookLMFlashcard {
+  question: string;
+  answer: string;
+  difficulty?: 'basic' | 'intermediate' | 'advanced';
+}
+
+export interface NotebookLMQuiz {
+  questions: Array<{
+    question: string;
+    type: 'multiple-choice' | 'short-answer';
+    options?: string[];
+    correctAnswer: string;
+  }>;
+  answerKey: Record<string, string>;
+}
+
+export interface NotebookLMPodcast {
+  success: boolean;
+  notebookId: string;
+  audioUrl: string;
+  transcriptUrl?: string;
+  duration?: number;
+  tone: 'conversational' | 'educational' | 'professional';
+  generatedAt: number;
+}
+
+export interface NotebookLMToolResult {
+  success: boolean;
+  data: any;
+  error?: string;
+  timestamp: number;
+}
+
+export interface NotebookLMSession {
+  currentNotebookId: string | null;
+  notebooks: NotebookLMNotebook[];
+  lastSync: number;
+}
+
+// Tool registry types
+export type ToolCategory = 'search' | 'analysis' | 'synthesis' | 'notebook' | 'mcp' | 'internal';
+export type ToolProvider = 'gemini' | 'notebooklm' | 'mcp' | 'internal';
+
+export interface ToolDefinition {
+  id: string;
+  name: string;
+  description: string;
+  category: ToolCategory;
+  provider: ToolProvider;
+  schema: any; // FunctionDeclaration schema
+  enabledByDefault: boolean;
+  requiredAgents?: string[];
+  cost?: number; // Token cost estimate
+}
+
+export interface AgentContext {
+  agentName: string;
+  sessionId: string;
+  history: ChatMessage[];
+  availableTools: ToolDefinition[];
+  enabledSkills: string[];
+}
+
+export interface ToolExecutionResult {
+  success: boolean;
+  toolId: string;
+  result: any;
+  error?: string;
+  tokensUsed?: number;
+  executionTime?: number;
+}
