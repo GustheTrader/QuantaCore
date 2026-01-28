@@ -4,6 +4,7 @@ import { SourceNode, ChatMessage, ReflectionResult, ComputeProvider } from "../t
 import { syncMemoryToSupabase, logReflection, archiveAndActivatePrompt, fetchMemoriesFromSupabase } from "./supabaseService";
 import { chatWithOpenAICompatible } from "./groqService";
 import { deductCloudCredits, checkHasCredits } from "./creditService";
+import { FPT_SYSTEM_PROMPT } from "./fptContent";
 
 const getAI = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
 
@@ -108,15 +109,21 @@ export const chatWithSME = async (
   customPrompt?: string,
   enabledSkills: string[] = ['search'],
   profile?: { name: string, callsign: string, personality: string },
-  provider: ComputeProvider = 'gemini'
+  provider: ComputeProvider = 'gemini',
+  useFPT: boolean = false
 ) => {
   if (!checkHasCredits('cloud')) {
     throw new Error("Neural Energy Depleted: Refill Cloud Intelligence tokens to continue.");
   }
 
   const ctx = await getSMEContext(agentName, profile, message);
-  const systemBase = customPrompt || `You are ${agentName}, a Subject Matter Expert (SME). Ground all answers in provided source knowledge. ${ctx.identityContext}`;
+  let systemBase = customPrompt || `You are ${agentName}, a Subject Matter Expert (SME). Ground all answers in provided source knowledge. ${ctx.identityContext}`;
   
+  // FPT Injection
+  if (useFPT) {
+    systemBase += `\n\n${FPT_SYSTEM_PROMPT}`;
+  }
+
   const fullSystemInstruction = `${systemBase}\n\n${ctx.fullHeader}`;
 
   if (provider === 'groq' || provider === 'local') {
@@ -129,17 +136,53 @@ export const chatWithSME = async (
   const tools: any[] = [];
   if (enabledSkills.includes('search')) tools.push({ googleSearch: {} });
 
+  // If FPT is on, we enforce schema. If not, regular text.
+  let config: any = {
+    tools: tools.length > 0 ? tools : undefined,
+    systemInstruction: fullSystemInstruction
+  };
+
+  if (useFPT) {
+    config.responseMimeType = "application/json";
+    config.responseSchema = {
+      type: Type.OBJECT,
+      properties: {
+        deconstruction: { type: Type.ARRAY, items: { type: Type.STRING } },
+        assumptionsRemoved: { type: Type.ARRAY, items: { type: Type.STRING } },
+        axioms: { type: Type.ARRAY, items: { type: Type.STRING } },
+        reconstruction: { type: Type.STRING }
+      },
+      required: ["deconstruction", "axioms", "reconstruction"]
+    };
+  }
+
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
     contents: [
       ...history.map(h => ({ role: h.role === 'user' ? 'user' : 'model', parts: [{ text: h.content }] })),
       { role: 'user', parts: [{ text: message }] }
     ],
-    config: {
-      tools: tools.length > 0 ? tools : undefined,
-      systemInstruction: fullSystemInstruction
-    }
+    config: config
   });
+
+  let finalText = response.text || "";
+  let fptAudit = undefined;
+
+  // Handle FPT Parsing
+  if (useFPT && finalText) {
+    try {
+      const parsed = JSON.parse(finalText);
+      finalText = parsed.reconstruction;
+      fptAudit = {
+        deconstruction: parsed.deconstruction || [],
+        assumptionsRemoved: parsed.assumptionsRemoved || [],
+        axioms: parsed.axioms || [],
+        reconstruction: parsed.reconstruction
+      };
+    } catch (e) {
+      console.warn("FPT JSON Parse failed, falling back to raw text.");
+    }
+  }
 
   const sources = response.candidates?.[0]?.groundingMetadata?.groundingChunks
     ?.filter(chunk => chunk.web)
@@ -151,10 +194,11 @@ export const chatWithSME = async (
   deductCloudCredits(10);
 
   return {
-    text: response.text || "",
+    text: finalText,
     sources,
     citations: ctx.citations,
-    usage: response.candidates?.[0]?.content 
+    usage: response.candidates?.[0]?.content,
+    fptAudit
   };
 };
 

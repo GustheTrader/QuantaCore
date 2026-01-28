@@ -10,6 +10,7 @@ const TaskBoard: React.FC = () => {
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
 
   useEffect(() => {
     const saved = localStorage.getItem('quanta_tasks');
@@ -54,6 +55,24 @@ const TaskBoard: React.FC = () => {
     setTasks(tasks.filter(t => t.id !== id));
   };
 
+  const handleDragStart = (e: React.DragEvent, taskId: string) => {
+    setDraggedTaskId(taskId);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDrop = (e: React.DragEvent, status: Task['status']) => {
+    e.preventDefault();
+    if (draggedTaskId) {
+      moveTask(draggedTaskId, status);
+      setDraggedTaskId(null);
+    }
+  };
+
   const handleOptimize = async () => {
     if (tasks.length === 0 || isOptimizing) return;
     setIsOptimizing(true);
@@ -71,8 +90,12 @@ const TaskBoard: React.FC = () => {
   const renderColumn = (status: Task['status'], title: string, colorClass: string) => {
     const columnTasks = tasks.filter(t => t.status === status);
     return (
-      <div className="flex flex-col h-full min-w-[320px] bg-slate-900/40 rounded-[2.5rem] border border-slate-800/50 p-6">
-        <div className="flex items-center justify-between mb-6 px-4">
+      <div 
+        className="flex flex-col h-full min-w-[320px] bg-slate-900/40 rounded-[2.5rem] border border-slate-800/50 p-6 transition-colors hover:bg-slate-900/60"
+        onDragOver={handleDragOver}
+        onDrop={(e) => handleDrop(e, status)}
+      >
+        <div className="flex items-center justify-between mb-6 px-4 pointer-events-none">
           <div className="flex items-center space-x-3">
             <div className={`w-2 h-2 rounded-full ${colorClass} shadow-[0_0_10px_currentColor]`}></div>
             <h3 className="text-[11px] font-black uppercase tracking-[0.3em] text-white">{title}</h3>
@@ -82,21 +105,26 @@ const TaskBoard: React.FC = () => {
           </span>
         </div>
         
-        <div className="flex-1 space-y-4 overflow-y-auto custom-scrollbar pr-2">
+        <div className="flex-1 space-y-4 overflow-y-auto custom-scrollbar pr-2 min-h-[100px]">
           {columnTasks.map((task) => (
-            <div key={task.id} className="glass-card p-6 rounded-3xl border border-slate-800 hover:border-emerald-500/30 transition-all group animate-in slide-in-from-bottom-2 duration-300">
-              <div className="flex justify-between items-start mb-4">
+            <div 
+              key={task.id} 
+              draggable
+              onDragStart={(e) => handleDragStart(e, task.id)}
+              className={`glass-card p-6 rounded-3xl border border-slate-800 hover:border-emerald-500/30 transition-all group animate-in slide-in-from-bottom-2 duration-300 cursor-grab active:cursor-grabbing ${draggedTaskId === task.id ? 'opacity-40 scale-95 border-emerald-500/50' : ''}`}
+            >
+              <div className="flex justify-between items-start mb-4 pointer-events-none">
                 <span className="text-[9px] font-black uppercase tracking-widest text-emerald-400/70 bg-emerald-500/5 px-2 py-1 rounded-md border border-emerald-500/10">
                   {task.category}
                 </span>
-                <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-auto">
                   <button onClick={() => removeTask(task.id)} className="p-1.5 text-slate-600 hover:text-rose-500 transition-colors">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                   </button>
                 </div>
               </div>
               
-              <h4 className="text-white text-sm font-bold leading-relaxed mb-6 font-outfit uppercase tracking-tight">
+              <h4 className="text-white text-sm font-bold leading-relaxed mb-6 font-outfit uppercase tracking-tight pointer-events-none">
                 {task.title}
               </h4>
               
@@ -119,7 +147,7 @@ const TaskBoard: React.FC = () => {
                     </button>
                   )}
                 </div>
-                <div className={`text-[8px] font-black uppercase tracking-tighter ${
+                <div className={`text-[8px] font-black uppercase tracking-tighter pointer-events-none ${
                   task.priority === 'high' ? 'text-rose-500' : task.priority === 'medium' ? 'text-orange-500' : 'text-emerald-500'
                 }`}>
                   {task.priority} Priority

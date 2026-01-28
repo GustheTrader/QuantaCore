@@ -1,4 +1,3 @@
-
 import React, { Component, useState, useEffect, ErrorInfo, ReactNode } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
@@ -17,7 +16,8 @@ import Council from './components/Council';
 import Projects from './components/Projects';
 import Settings from './components/Settings';
 import MCPConnectors from './components/MCPConnectors';
-import { NotebookLMPanel } from './components/NotebookLMPanel';
+import PersonalAssistant from './components/PersonalAssistant';
+import Gateway from './components/Gateway';
 import { supabase, signOut } from './services/supabaseService';
 
 interface ErrorBoundaryProps {
@@ -29,11 +29,17 @@ interface ErrorBoundaryState {
   error: Error | null;
 }
 
-// Fix: Use React.Component to ensure that the props property is correctly inherited and typed for the TypeScript compiler
 class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  public state: ErrorBoundaryState = { hasError: false, error: null };
+  public state: ErrorBoundaryState;
+  
+  // Explicitly declaring props to resolve TS error 'Property props does not exist'
+  public props: Readonly<ErrorBoundaryProps> & Readonly<{ children?: ReactNode }>;
 
-  // Fix: Removed redundant constructor that only called super(props) to simplify type resolution
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false, error: null };
+    this.props = props;
+  }
 
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {
     return { hasError: true, error };
@@ -61,9 +67,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
         </div>
       );
     }
-    // Fix: Destructuring children from this.props now that React.Component inheritance is explicitly handled
-    const { children } = this.props;
-    return children;
+    return this.props.children;
   }
 }
 
@@ -170,13 +174,14 @@ const App: React.FC = () => {
                   <Routes>
                     <Route path="/" element={<Dashboard track={session.track} profile={profile} />} />
                     <Route path="/chat" element={<ChatInterface profile={profile} />} />
+                    <Route path="/gateway" element={<Gateway />} />
+                    <Route path="/assistant" element={<PersonalAssistant profile={profile} />} />
                     <Route path="/deep-agent" element={<DeepAgent />} />
                     <Route path="/deep-diver" element={<DeepDiverAgent />} />
                     <Route path="/agent-zero" element={<AgentZero />} />
                     <Route path="/council" element={<Council />} />
                     <Route path="/projects" element={<Projects />} />
                     <Route path="/mcp" element={<MCPConnectors />} />
-                    <Route path="/notebooklm" element={<NotebookLMPanel agentName={profile.callsign || 'QUser'} />} />
                     <Route path="/images" element={<ImageGenerator />} />
                     <Route path="/videos" element={<VideoGenerator />} />
                     <Route path="/tasks" element={<TaskBoard />} />

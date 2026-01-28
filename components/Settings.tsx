@@ -225,8 +225,95 @@ const Settings: React.FC = () => {
                   ))}
                 </div>
               </div>
+
+              {/* Local Storage Config */}
+              {(settings.storage.provider === 'local' || settings.storage.provider === 'hybrid') && (
+                <div className="space-y-6 animate-in fade-in">
+                  <div className="flex items-center justify-between">
+                    <label className="text-emerald-400 text-[11px] font-black uppercase tracking-[0.4em] px-2">Local Drive Path</label>
+                    <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">Node.js / Electron Bridge</span>
+                  </div>
+                  <input 
+                    type="text" 
+                    value={settings.storage.localPath || './quanta-backups'} 
+                    onChange={(e) => setSettings({...settings, storage: {...settings.storage, localPath: e.target.value}})} 
+                    placeholder="./quanta-backups" 
+                    className="w-full bg-slate-950 border-2 border-slate-800 rounded-3xl py-6 px-10 text-white font-mono focus:border-emerald-500 transition-all outline-none shadow-inner" 
+                  />
+                  <p className="text-[9px] text-slate-500 px-4 italic">Specify the relative or absolute path where the Neural Engine will write JSON/MD memories.</p>
+                </div>
+              )}
+
+              {/* Supabase Storage Config */}
+              {(settings.storage.provider === 'supabase' || settings.storage.provider === 'hybrid') && (
+                <div className="space-y-6 animate-in fade-in pt-6 border-t border-slate-800/50">
+                  <label className="text-emerald-400 text-[11px] font-black uppercase tracking-[0.4em] px-2">Supabase Cloud Vector</label>
+                  
+                  <div className="grid grid-cols-1 gap-6">
+                    <input 
+                      type="text" 
+                      value={settings.storage.supabaseUrl} 
+                      onChange={(e) => setSettings({...settings, storage: {...settings.storage, supabaseUrl: e.target.value}})} 
+                      placeholder="Project URL (https://xyz.supabase.co)" 
+                      className="w-full bg-slate-950 border-2 border-slate-800 rounded-3xl py-6 px-10 text-white font-mono focus:border-emerald-500 transition-all outline-none shadow-inner" 
+                    />
+                    <input 
+                      type="password" 
+                      value={settings.storage.supabaseAnonKey} 
+                      onChange={(e) => setSettings({...settings, storage: {...settings.storage, supabaseAnonKey: e.target.value}})} 
+                      placeholder="Anon Key (public)" 
+                      className="w-full bg-slate-950 border-2 border-slate-800 rounded-3xl py-6 px-10 text-white font-mono focus:border-emerald-500 transition-all outline-none shadow-inner" 
+                    />
+                    <input 
+                      type="text" 
+                      value={settings.storage.bucketName} 
+                      onChange={(e) => setSettings({...settings, storage: {...settings.storage, bucketName: e.target.value}})} 
+                      placeholder="Storage Bucket Name (e.g. quanta-vault)" 
+                      className="w-full bg-slate-950 border-2 border-slate-800 rounded-3xl py-6 px-10 text-white font-mono focus:border-emerald-500 transition-all outline-none shadow-inner" 
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Sync Toggles */}
+              <div className="pt-8 border-t border-slate-800/50 flex flex-col md:flex-row gap-8">
+                <label className="flex items-center space-x-4 cursor-pointer group">
+                  <div className="relative">
+                    <input 
+                      type="checkbox" 
+                      className="peer sr-only"
+                      checked={settings.storage.syncPrompts}
+                      onChange={(e) => setSettings({...settings, storage: {...settings.storage, syncPrompts: e.target.checked}})}
+                    />
+                    <div className="w-12 h-7 bg-slate-900 rounded-full peer-checked:bg-indigo-600 transition-all border border-slate-700"></div>
+                    <div className="absolute left-1 top-1 w-5 h-5 bg-white rounded-full transition-all peer-checked:translate-x-5 shadow-lg"></div>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-black text-white uppercase tracking-widest group-hover:text-indigo-400 transition-colors">Sync Prompt Data</span>
+                    <span className="text-[9px] text-slate-500">Archive system instructions</span>
+                  </div>
+                </label>
+
+                <label className="flex items-center space-x-4 cursor-pointer group">
+                  <div className="relative">
+                    <input 
+                      type="checkbox" 
+                      className="peer sr-only"
+                      checked={settings.storage.syncOutputs}
+                      onChange={(e) => setSettings({...settings, storage: {...settings.storage, syncOutputs: e.target.checked}})}
+                    />
+                    <div className="w-12 h-7 bg-slate-900 rounded-full peer-checked:bg-orange-600 transition-all border border-slate-700"></div>
+                    <div className="absolute left-1 top-1 w-5 h-5 bg-white rounded-full transition-all peer-checked:translate-x-5 shadow-lg"></div>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-black text-white uppercase tracking-widest group-hover:text-orange-400 transition-colors">Sync Generated Output</span>
+                    <span className="text-[9px] text-slate-500">Save MD/JSON artifacts</span>
+                  </div>
+                </label>
+              </div>
+
             </div>
-            <button onClick={handleSaveSettings} className="w-full py-10 quanta-btn-primary text-white rounded-[2.5rem] font-black uppercase tracking-[0.5em] text-[13px] shadow-[0_0_50px_rgba(16,185,129,0.2)] transition-all">
+            <button onClick={handleSaveSettings} className="w-full py-10 quanta-btn-primary text-white rounded-[2.5rem] font-black uppercase tracking-[0.5em] text-[13px] shadow-[0_0_50px_rgba(16,185,129,0.2)] transition-all active:scale-95">
               {saveStatus || "Sync Storage Protocols"}
             </button>
           </div>

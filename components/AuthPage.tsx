@@ -15,53 +15,46 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
 
   const features = [
     {
-      title: "Storage Sovereignty",
-      desc: (
-        <ul className="space-y-1 mt-2">
-          <li>• <span className="font-bold text-white">Sovereign AI</span> compute cores.</li>
-          <li>• Secure <span className="font-bold text-white">Data</span> governance.</li>
-          <li>• Encrypted Prompt isolation.</li>
-          <li>• <span className="font-bold text-white">Output</span> saved to your <span className="font-bold text-emerald-400">Cloud Bucket</span>.</li>
-        </ul>
-      ),
-      icon: "M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2v10a2 2 0 00-2 2v10a2 2 0 002 2z",
+      title: "Persistent Memory",
+      desc: "A revolutionary vector-embedded knowledge substrate that allows your AI to retain long-term context. It builds a sovereign, localized knowledge base from every interaction, remembering your preferences, documents, and strategic axioms forever without external dependencies.",
+      icon: "M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4",
       accent: "text-orange-500",
       border: "border-orange-500/20"
     },
     {
+      title: "Sovereign Local AI",
+      desc: "A privacy-first autonomous agent running directly on your local hardware via Ollama bridge. It operates with zero latency and complete data isolation, capable of managing local files and processing sensitive information without a single byte leaving your machine.",
+      icon: "M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z",
+      accent: "text-emerald-400",
+      border: "border-emerald-500/20"
+    },
+    {
       title: "FPT-Omega Engine",
-      desc: "First Principles Thinking framework. Deconstructing complexity into atomic logic units.",
+      desc: "First Principles Thinking framework that deconstructs complexity into atomic logic units. It strips away analogical noise to ensure every neural response is grounded in fundamental truths and verifiable axioms.",
       icon: "M13 10V3L4 14h7v7l9-11h-7z",
       accent: "text-emerald-500",
       border: "border-emerald-500/20"
     },
     {
       title: "Neural Cortex",
-      desc: "Centralized orchestration for all SME cores. Intelligent task and context routing.",
+      desc: "Centralized orchestration layer for all SME cores. Intelligent task routing and context management ensure that the most qualified specialized agent handles every specific query with maximum precision.",
       icon: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z",
       accent: "text-orange-400",
       border: "border-orange-500/20"
     },
     {
       title: "SME Council",
-      desc: "Multi-agent strategic debate and executive synthesis grounded in live search data.",
+      desc: "Multi-agent strategic debate protocol. Specialized agents (Proposer, Critic, Judge) autonomously debate problems, check logic chains, and synthesize outcomes to provide board-level executive direction.",
       icon: "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857",
       accent: "text-emerald-400",
       border: "border-emerald-500/20"
     },
     {
       title: "Hybrid Inference",
-      desc: "Cloud-speed scaling for public research, local inference for sensitive private data.",
+      desc: "Adaptive compute routing architecture. Seamlessly switch between Cloud-speed scaling for public research and Sovereign Local inference for sensitive private data processing, ensuring optimal performance for every task.",
       icon: "M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z",
       accent: "text-orange-500",
       border: "border-orange-500/20"
-    },
-    {
-      title: "Privacy Protocol",
-      desc: "Zero data collection policy. No telemetry, no training on user data. Purely sovereign.",
-      icon: "M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z",
-      accent: "text-emerald-400",
-      border: "border-emerald-500/20"
     }
   ];
 
@@ -99,7 +92,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
           
           <div className="mb-12 mt-6">
             <h2 className="text-3xl md:text-5xl font-outfit font-black uppercase tracking-tighter italic">
-              Sovereign <span className="text-orange-500">AI</span> <span className="text-emerald-400">Nervous System.</span>
+              Sovereign <span className="text-orange-500">AI</span> Brain & <span className="text-emerald-400">Nervous System.</span>
             </h2>
           </div>
           

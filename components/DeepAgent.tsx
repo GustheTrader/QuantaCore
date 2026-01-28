@@ -5,12 +5,14 @@ import { DeepAgentSession, DeepStep } from '../types';
 import { exportToBrowser } from '../services/utils';
 import { NeuralVoiceArchitect } from './NeuralVoiceArchitect';
 import { ActionHub } from './ActionHub';
+import { FPTOverlay } from './FPTOverlay';
 
 const DeepAgent: React.FC = () => {
   const [input, setInput] = useState('');
   const [session, setSession] = useState<DeepAgentSession | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isVoiceArchitectOpen, setIsVoiceArchitectOpen] = useState(false);
+  const [isFPTResearchOpen, setIsFPTResearchOpen] = useState(false);
   const logEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -51,10 +53,19 @@ const DeepAgent: React.FC = () => {
         onResult={(res) => setInput(res)} 
         agentType="DeepAgent" 
       />
+      <FPTOverlay isOpen={isFPTResearchOpen} onClose={() => setIsFPTResearchOpen(false)} />
       
       <header className="mb-12 text-center">
-        <div className="inline-block px-6 py-2 rounded-full border border-orange-500/30 bg-orange-500/10 text-orange-400 text-[10px] font-black uppercase tracking-[0.5em] mb-6 shadow-2xl">
-          Deep Reasoning Protocol & LTM Synchronized
+        <div className="flex justify-center gap-4 mb-6">
+          <div className="px-6 py-2 rounded-full border border-orange-500/30 bg-orange-500/10 text-orange-400 text-[10px] font-black uppercase tracking-[0.5em] shadow-2xl">
+            Deep Reasoning Protocol
+          </div>
+          <button 
+            onClick={() => setIsFPTResearchOpen(true)}
+            className="px-6 py-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 text-[10px] font-black uppercase tracking-[0.3em] hover:bg-emerald-500 hover:text-white transition-all"
+          >
+            FPT-Omega Active
+          </button>
         </div>
         <h1 className="text-6xl md:text-8xl font-outfit font-black text-white uppercase tracking-tighter italic">Neural <span className="quantum-gradient-text italic">Deep Agent</span></h1>
         <p className="text-slate-500 font-bold uppercase tracking-[0.4em] text-[10px] mt-4">Consulting Long-Term Memory for iterative synthesis</p>
@@ -138,6 +149,9 @@ const DeepAgent: React.FC = () => {
                      }`}>
                         {step.type} Stage
                      </span>
+                     {step.type === 'plan' && step.status === 'complete' && (
+                       <span className="text-[9px] font-black uppercase tracking-widest text-emerald-400">FPT Strategy Locked</span>
+                     )}
                   </div>
                   
                   <div className="text-slate-200 text-lg leading-relaxed font-medium font-outfit italic">

@@ -6,12 +6,8 @@ import {
   Bar, 
   XAxis, 
   YAxis, 
-  CartesianGrid, 
-  Tooltip, 
   ResponsiveContainer, 
   Cell,
-  AreaChart,
-  Area, 
   Radar, 
   RadarChart,
   PolarGrid,
@@ -55,29 +51,24 @@ const SKILL_OPTIONS = [
 ];
 
 const SMEAgentSkeleton: React.FC = () => (
-  <div className="sme-card-enhanced p-8 rounded-[3.5rem] flex flex-col h-full border border-slate-800 bg-slate-900/40 animate-pulse overflow-hidden">
+  <div className="relative overflow-hidden rounded-[3rem] p-8 border border-white/5 bg-gradient-to-br from-[#0f172a] via-[#020617] to-[#052e16] flex flex-col h-full animate-pulse">
     <div className="mb-10 flex items-start justify-between">
-      <div className="w-16 h-16 rounded-[1.5rem] bg-slate-800 border border-slate-700 shadow-inner"></div>
+      <div className="w-16 h-16 rounded-2xl bg-slate-800/50 border border-slate-700/50"></div>
       <div className="flex space-x-3">
-        <div className="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700"></div>
-        <div className="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700"></div>
+        <div className="w-10 h-10 rounded-xl bg-slate-800/50 border border-slate-700/50"></div>
+        <div className="w-10 h-10 rounded-xl bg-slate-800/50 border border-slate-700/50"></div>
       </div>
     </div>
-    <div className="h-8 w-3/4 bg-slate-800 rounded-lg mb-2"></div>
-    <div className="h-3 w-1/4 bg-emerald-500/20 rounded-full mb-8"></div>
+    <div className="h-8 w-3/4 bg-slate-800/50 rounded-lg mb-4"></div>
+    <div className="h-3 w-1/4 bg-emerald-900/30 rounded-full mb-8"></div>
     <div className="flex-1 space-y-3 mb-8">
-      <div className="h-4 w-full bg-slate-800/60 rounded-lg"></div>
-      <div className="h-4 w-5/6 bg-slate-800/60 rounded-lg"></div>
-      <div className="h-4 w-4/6 bg-slate-800/60 rounded-lg"></div>
-    </div>
-    <div className="flex flex-wrap gap-2 mb-10 pt-8 border-t border-slate-800/50">
-      <div className="h-5 w-12 bg-slate-800 rounded-full"></div>
-      <div className="h-5 w-16 bg-slate-800 rounded-full"></div>
-      <div className="h-5 w-14 bg-slate-800 rounded-full"></div>
+      <div className="h-4 w-full bg-slate-800/30 rounded-lg"></div>
+      <div className="h-4 w-5/6 bg-slate-800/30 rounded-lg"></div>
+      <div className="h-4 w-4/6 bg-slate-800/30 rounded-lg"></div>
     </div>
     <div className="space-y-4">
-      <div className="w-full h-16 bg-slate-800 rounded-[2rem]"></div>
-      <div className="w-full h-14 bg-slate-800/50 rounded-[2rem]"></div>
+      <div className="w-full h-16 bg-slate-800/40 rounded-[2rem]"></div>
+      <div className="w-full h-14 bg-slate-800/30 rounded-[2rem]"></div>
     </div>
   </div>
 );
@@ -240,51 +231,76 @@ const SuperAgentCard: React.FC<AgentProps & {
   onConfigure: () => void, 
   isCustom?: boolean,
   enabledSkills: string[]
-}> = ({ name, subhead, desc, icon, tags, iconBg, iconColor, onVoice, onConfigure, isCustom, enabledSkills }) => {
+}> = ({ name, subhead, desc, icon, tags, onVoice, onConfigure, isCustom, enabledSkills }) => {
   const navigate = useNavigate();
+  
   return (
-    <div className={`sme-card-enhanced p-8 rounded-[3.5rem] flex flex-col h-full border group ${isCustom ? 'border-orange-500/40' : ''}`}>
-      <div className="mb-10 flex items-start justify-between">
-        <div className={`w-16 h-16 rounded-[1.5rem] flex items-center justify-center border border-emerald-400/30 bg-[#020617]/80 ${iconColor} transition-transform group-hover:scale-110 shadow-lg`}>
+    <div className={`relative overflow-hidden rounded-[3rem] p-8 border border-white/5 bg-gradient-to-br from-[#0f172a] via-[#020617] to-[#052e16] group transition-all duration-500 hover:border-emerald-500/40 hover:shadow-[0_0_60px_rgba(16,185,129,0.15)] hover:-translate-y-2 flex flex-col h-full ${isCustom ? 'border-orange-500/30' : ''}`}>
+      {/* Dynamic Background Splashes */}
+      <div className="absolute -right-20 -top-20 w-64 h-64 bg-emerald-500/10 blur-[80px] rounded-full pointer-events-none group-hover:bg-emerald-500/20 transition-all duration-700"></div>
+      <div className="absolute -left-20 -bottom-20 w-64 h-64 bg-orange-500/5 blur-[80px] rounded-full pointer-events-none group-hover:bg-orange-500/10 transition-all duration-700"></div>
+      
+      <div className="mb-8 flex items-start justify-between relative z-10">
+        <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-900/40 to-[#020617] border border-emerald-500/30 flex items-center justify-center text-emerald-400 shadow-lg group-hover:scale-110 transition-transform duration-500 ${isCustom ? 'text-orange-400 border-orange-500/30 from-orange-900/20' : ''}`}>
           <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d={icon} /></svg>
         </div>
-        <div className="flex space-x-3 relative z-10">
-           <button onClick={(e) => { e.stopPropagation(); onConfigure(); }} title="Configure Logic Core" className="w-10 h-10 rounded-xl bg-slate-950/80 border border-emerald-500/30 flex items-center justify-center text-emerald-400 hover:text-white hover:bg-emerald-600 transition-all shadow-inner">
+        <div className="flex space-x-2">
+           <button 
+             onClick={(e) => { e.stopPropagation(); onConfigure(); }} 
+             title="Configure Logic Core" 
+             className="w-10 h-10 rounded-xl bg-[#020617] border border-emerald-500/20 flex items-center justify-center text-emerald-500/70 hover:text-white hover:border-emerald-500 hover:bg-emerald-500/20 transition-all shadow-inner"
+           >
              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /></svg>
            </button>
-           <button onClick={(e) => { e.stopPropagation(); onVoice(); }} title="Activate Vocal Link" className="w-10 h-10 rounded-xl bg-orange-600/20 border border-orange-500/50 flex items-center justify-center text-orange-400 hover:bg-orange-600 hover:text-white transition-all shadow-xl">
-             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7" /></svg>
+           <button 
+             onClick={(e) => { e.stopPropagation(); onVoice(); }} 
+             title="Activate Vocal Link" 
+             className="w-10 h-10 rounded-xl bg-[#020617] border border-orange-500/30 flex items-center justify-center text-orange-400 hover:bg-orange-600 hover:text-white transition-all shadow-lg hover:shadow-orange-500/20"
+           >
+             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7" /></svg>
            </button>
         </div>
       </div>
-      <h3 className="font-outfit font-black text-3xl text-white mb-1 truncate uppercase tracking-tighter leading-none italic group-hover:text-emerald-300 transition-colors">{name}</h3>
-      <p className={`font-black text-[11px] uppercase tracking-[0.3em] mb-8 ${isCustom ? 'text-orange-400' : 'text-emerald-400'}`}>{subhead}</p>
-      <div className="flex-1">
-        <p className="text-slate-300 text-[15px] leading-relaxed mb-8 font-medium italic opacity-80 group-hover:opacity-100 transition-opacity line-clamp-4">"{desc}"</p>
+
+      <div className="relative z-10 mb-6">
+        <h3 className="text-3xl font-outfit font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-emerald-100 to-emerald-400 uppercase tracking-tighter italic mb-1 group-hover:via-white transition-all">{name}</h3>
+        <p className={`font-black text-[10px] uppercase tracking-[0.3em] ${isCustom ? 'text-orange-400' : 'text-emerald-500/80'}`}>{subhead}</p>
+      </div>
+
+      <div className="flex-1 relative z-10">
+        <p className="text-slate-400/90 text-[14px] leading-relaxed mb-8 font-medium font-outfit group-hover:text-slate-300 transition-colors line-clamp-3">"{desc}"</p>
       </div>
       
       {/* Skill Indicators */}
-      <div className="flex space-x-2 mb-6">
+      <div className="flex space-x-2 mb-8 relative z-10">
         {SKILL_OPTIONS.map(s => (
-          <div key={s.id} title={s.name} className={`w-6 h-6 rounded-md flex items-center justify-center border ${enabledSkills.includes(s.id) ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-400' : 'border-slate-800 bg-slate-900 text-slate-700 opacity-40'}`}>
+          <div key={s.id} title={s.name} className={`w-6 h-6 rounded-md flex items-center justify-center border transition-all ${enabledSkills.includes(s.id) ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.1)]' : 'border-white/5 bg-slate-900/50 text-slate-700 opacity-60'}`}>
             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d={s.icon} /></svg>
           </div>
         ))}
       </div>
 
-      <div className="flex flex-wrap gap-2 mb-10 pt-8 border-t border-emerald-500/10">
+      {/* Tags */}
+      <div className="flex flex-wrap gap-2 mb-8 pt-6 border-t border-emerald-500/10 relative z-10">
         {tags.map((t) => (
-          <span key={t} className="text-[9px] px-3.5 py-2 rounded-xl font-black uppercase tracking-widest bg-slate-950/50 border border-emerald-500/20 text-emerald-400/70 group-hover:border-emerald-500/50 group-hover:text-emerald-300 transition-all">{t}</span>
+          <span key={t} className="text-[9px] px-3 py-1.5 rounded-lg font-black uppercase tracking-widest bg-slate-950/60 border border-emerald-500/20 text-emerald-400/60 group-hover:border-emerald-500/40 group-hover:text-emerald-300 transition-all">{t}</span>
         ))}
       </div>
-      <div className="flex flex-col space-y-4">
-        <button onClick={() => navigate('/chat', { state: { agent: name } })} className="w-full py-6 text-white rounded-[2rem] font-black uppercase tracking-[0.3em] text-[12px] shadow-2xl flex items-center justify-center space-x-4 transition-all hover:scale-[1.02] quanta-btn-primary group-hover:shadow-emerald-500/30">
+
+      <div className="flex flex-col space-y-3 relative z-10">
+        <button 
+          onClick={() => navigate('/chat', { state: { agent: name } })} 
+          className="w-full py-5 text-white rounded-[2rem] font-black uppercase tracking-[0.3em] text-[11px] shadow-lg shadow-emerald-900/20 flex items-center justify-center space-x-4 transition-all hover:scale-[1.02] bg-gradient-to-r from-emerald-700 to-teal-700 border border-emerald-500/20 hover:shadow-emerald-500/30 active:scale-95"
+        >
           <span>Engage SME Link</span>
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
         </button>
-        <button onClick={(e) => { e.stopPropagation(); onVoice(); }} className="w-full py-5 rounded-[2rem] font-black uppercase tracking-[0.3em] text-[10px] border transition-all flex items-center justify-center space-x-4 bg-slate-900 border-orange-500/30 text-orange-400 hover:bg-orange-600 hover:text-white shadow-xl">
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
-          <span>Initialize Vocal Link</span>
+        <button 
+          onClick={(e) => { e.stopPropagation(); onVoice(); }} 
+          className="w-full py-4 rounded-[2rem] font-black uppercase tracking-[0.3em] text-[10px] border transition-all flex items-center justify-center space-x-3 bg-[#020617] border-orange-500/20 text-orange-400/80 hover:bg-orange-950/30 hover:border-orange-500/50 hover:text-orange-400"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
+          <span>Vocal Link</span>
         </button>
       </div>
     </div>
@@ -292,12 +308,13 @@ const SuperAgentCard: React.FC<AgentProps & {
 };
 
 const ForgePlaceholderCard: React.FC<{ onClick: () => void }> = ({ onClick }) => (
-  <button onClick={onClick} className="glass-card p-10 rounded-[3.5rem] flex flex-col items-center justify-center text-center border-2 border-dashed border-emerald-500/30 hover:border-emerald-400 hover:bg-emerald-500/5 transition-all duration-500 group min-h-[500px] shadow-2xl">
-    <div className="w-24 h-24 rounded-full bg-slate-950 border-2 border-emerald-500/20 flex items-center justify-center mb-8 group-hover:scale-110 transition-transform shadow-[0_0_30px_rgba(16,185,129,0.1)]">
-      <svg className="w-12 h-12 text-emerald-500 group-hover:rotate-90 transition-transform duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" /></svg>
+  <button onClick={onClick} className="relative overflow-hidden rounded-[3rem] p-8 border border-white/5 bg-gradient-to-br from-[#0f172a]/50 via-[#020617]/50 to-[#052e16]/20 flex flex-col items-center justify-center text-center hover:border-emerald-500/40 hover:bg-[#0f172a] transition-all duration-500 group min-h-[500px] shadow-lg">
+    <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(16,185,129,0.05)_0%,_transparent_70%)] opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
+    <div className="w-24 h-24 rounded-[2rem] bg-slate-950 border border-emerald-500/20 flex items-center justify-center mb-8 group-hover:scale-110 transition-transform shadow-[0_0_30px_rgba(16,185,129,0.05)] relative z-10">
+      <svg className="w-10 h-10 text-emerald-500/50 group-hover:text-emerald-400 group-hover:rotate-90 transition-all duration-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" /></svg>
     </div>
-    <h3 className="font-outfit font-black text-3xl text-white mb-2 uppercase tracking-tighter italic">Forge New Core</h3>
-    <p className="text-[11px] font-black text-slate-500 uppercase tracking-[0.5em] mb-6">Initialize Custom Neural Logic</p>
+    <h3 className="font-outfit font-black text-3xl text-slate-500 mb-2 uppercase tracking-tighter italic group-hover:text-emerald-400 transition-colors relative z-10">Forge New Core</h3>
+    <p className="text-[10px] font-black text-slate-600 uppercase tracking-[0.5em] mb-6 relative z-10">Initialize Custom Neural Logic</p>
   </button>
 );
 

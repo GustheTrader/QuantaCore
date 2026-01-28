@@ -13,6 +13,7 @@ const Notebook: React.FC = () => {
   const [isProcessingSource, setIsProcessingSource] = useState(false);
   const [guideSummary, setGuideSummary] = useState<string | null>(null);
   const [isGeneratingGuide, setIsGeneratingGuide] = useState(false);
+  const [isCompacting, setIsCompacting] = useState(false);
   
   // Specific Upload Sub-modes
   const [uploadMode, setUploadMode] = useState<'main' | 'link' | 'text'>('main');
@@ -123,6 +124,59 @@ const Notebook: React.FC = () => {
     }
   };
 
+  const handleCompaction = async () => {
+    if (sources.length < 2) return;
+    setIsCompacting(true);
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const contentToCompact = sources.map(s => `[SOURCE: ${s.title}]: ${s.content.substring(0, 3000)}...`).join('\n\n');
+      
+      const response = await ai.models.generateContent({
+        model: 'gemini-3-flash-preview',
+        contents: `You are the Sovereign Knowledge Architect. 
+        TASK: Compact the following ${sources.length} memory blocks into a SINGLE, high-density "Master Context Block".
+        
+        RULES:
+        1. Strip all conversational filler.
+        2. Merge duplicate concepts.
+        3. Retain specific entities, dates, and axioms.
+        4. Output structure: Markdown with clear headers.
+        
+        INPUT DATA:
+        ${contentToCompact}`,
+      });
+
+      const compactedText = response.text;
+      if (!compactedText) throw new Error("Compaction failed");
+
+      const masterNode: SourceNode = {
+          id: `compact_${Date.now()}`,
+          title: `Compacted Knowledge Block (${new Date().toLocaleDateString()})`,
+          content: compactedText,
+          type: 'distilled',
+          category: 'Compacted Archive',
+          assignedAgents: ['All Agents'],
+          timestamp: Date.now(),
+          metadata: {
+              wordCount: compactedText.split(' ').length,
+              summary: "High-density compaction of previous memory states."
+          }
+      };
+
+      // In this mode, we replace the displayed list with the master node for clarity
+      const updated = [masterNode]; 
+      setSources(updated);
+      localStorage.setItem('quanta_notebook', JSON.stringify(updated));
+      await syncMemoryToSupabase(masterNode);
+      // Note: Original sources are effectively "archived" by removal from the active list.
+      
+    } catch(e) {
+      console.error("Compaction error", e);
+    } finally {
+      setIsCompacting(false);
+    }
+  };
+
   const deleteSource = async (id: string) => {
     const updated = sources.filter(s => s.id !== id);
     setSources(updated);
@@ -143,7 +197,7 @@ const Notebook: React.FC = () => {
             <div className="p-8 flex items-center justify-between border-b border-slate-800">
               <div className="flex items-center space-x-3">
                 <svg className="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5" /></svg>
-                <h2 className="text-xl font-outfit font-black text-white uppercase tracking-tighter italic">Notebook<span className="text-emerald-400">LM</span> Portal</h2>
+                <h2 className="text-xl font-outfit font-black text-white uppercase tracking-tighter italic">Knowledge <span className="text-emerald-400">Portal</span></h2>
               </div>
               <button onClick={() => { setIsUploadPortalOpen(false); setUploadMode('main'); }} className="p-2 text-slate-500 hover:text-white transition-colors">
                 <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
@@ -259,34 +313,52 @@ const Notebook: React.FC = () => {
       <div className="w-full lg:w-96 flex flex-col space-y-6 shrink-0">
         <div className="glass-card p-8 rounded-[2.5rem] border-emerald-500/20 shadow-2xl flex flex-col h-full bg-[#020617]/50">
            <div className="flex items-center justify-between mb-8">
-              <h2 className="text-[10px] font-black text-emerald-400 uppercase tracking-[0.4em]">Active Sources</h2>
-              <button 
-                onClick={() => setIsUploadPortalOpen(true)}
-                className="w-10 h-10 rounded-xl bg-emerald-600/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 hover:bg-emerald-600 hover:text-white transition-all shadow-xl"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" /></svg>
-              </button>
+              <h2 className="text-[10px] font-black text-emerald-400 uppercase tracking-[0.4em]">Context Topology</h2>
+              <div className="flex space-x-2">
+                <button 
+                  onClick={handleCompaction}
+                  disabled={isCompacting || sources.length < 2}
+                  className={`w-10 h-10 rounded-xl border flex items-center justify-center transition-all shadow-xl ${isCompacting ? 'bg-orange-500 text-white animate-pulse' : 'bg-slate-900 border-slate-700 text-orange-400 hover:border-orange-500 hover:bg-orange-500/10'}`}
+                  title="Run Neural Compaction"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 v2M7 7h10" /></svg>
+                </button>
+                <button 
+                  onClick={() => setIsUploadPortalOpen(true)}
+                  className="w-10 h-10 rounded-xl bg-emerald-600/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 hover:bg-emerald-600 hover:text-white transition-all shadow-xl"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" /></svg>
+                </button>
+              </div>
            </div>
 
            <div className="flex-1 overflow-y-auto custom-scrollbar space-y-3 pr-2">
              {sources.length === 0 ? (
                <div className="py-20 text-center border-2 border-dashed border-slate-800 rounded-3xl opacity-30">
-                  <p className="text-[9px] font-black uppercase">Source Portal Awaiting Input</p>
+                  <p className="text-[9px] font-black uppercase">Knowledge Base Empty</p>
                </div>
              ) : (
                sources.map(source => (
                  <button 
                    key={source.id} 
                    onClick={() => setActiveSourceId(source.id)}
-                   className={`w-full p-4 rounded-2xl border text-left transition-all group relative overflow-hidden ${activeSourceId === source.id ? 'bg-emerald-600/10 border-emerald-500 shadow-lg' : 'bg-slate-900 border-slate-800 hover:border-slate-700'}`}
+                   className={`w-full p-4 rounded-2xl border text-left transition-all group relative overflow-hidden flex flex-col gap-2 ${activeSourceId === source.id ? 'bg-emerald-600/10 border-emerald-500 shadow-lg' : 'bg-slate-900 border-slate-800 hover:border-slate-700'}`}
                  >
-                   <div className="flex items-center space-x-3 mb-2">
-                      <div className={`w-8 h-8 rounded-lg bg-slate-950 border border-emerald-500/20 flex items-center justify-center text-[10px] font-black ${source.type === 'pdf' ? 'text-rose-400' : source.type === 'url' ? 'text-cyan-400' : 'text-emerald-500'}`}>
-                        {source.type.toUpperCase()}
+                   <div className="flex items-center space-x-3 mb-1">
+                      <div className={`w-8 h-8 rounded-lg bg-slate-950 border border-emerald-500/20 flex items-center justify-center text-[10px] font-black shrink-0 ${source.type === 'pdf' ? 'text-rose-400' : source.type === 'url' ? 'text-cyan-400' : 'text-emerald-500'}`}>
+                        {source.type.toUpperCase().substring(0, 3)}
                       </div>
-                      <h3 className="text-xs font-black text-white uppercase truncate pr-6">{source.title}</h3>
+                      <h3 className="text-xs font-black text-white uppercase truncate">{source.title}</h3>
                    </div>
-                   <p className="text-[9px] text-slate-500 line-clamp-1 italic">"{source.metadata?.summary?.substring(0, 40)}..."</p>
+                   
+                   {/* Context Block Visual */}
+                   <div className="w-full flex items-center space-x-2 px-1">
+                      <div className="flex-1 h-1.5 bg-slate-950 rounded-full overflow-hidden border border-white/5">
+                         <div className="h-full bg-gradient-to-r from-emerald-600 to-emerald-400" style={{width: `${Math.min(100, (source.metadata?.wordCount || 0) / 50)}%`}}></div>
+                      </div>
+                      <span className="text-[8px] font-mono text-slate-500">{source.metadata?.wordCount || 0} words</span>
+                   </div>
+
                    <button 
                      onClick={(e) => { e.stopPropagation(); deleteSource(source.id); }}
                      className="absolute top-4 right-4 p-1 opacity-0 group-hover:opacity-100 text-slate-600 hover:text-rose-500 transition-all"
@@ -359,10 +431,10 @@ const Notebook: React.FC = () => {
                   <svg className="w-20 h-20 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5" /></svg>
                </div>
                <div>
-                  <h2 className="text-2xl font-outfit font-black text-white uppercase tracking-tighter">Knowledge Explorer Substrate</h2>
+                  <h2 className="text-2xl font-outfit font-black text-white uppercase tracking-tighter">Sovereign Knowledge Base</h2>
                   <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mt-4 max-w-md mx-auto leading-loose">
-                    Open the portal to inject sources. Agents will ground all logic in the active context window. 
-                    Support for physical and digital knowledge streams.
+                    Persistent context blocks grounded in local memory.
+                    Open the portal to inject sources or compact existing knowledge nodes.
                   </p>
                   <button 
                     onClick={() => setIsUploadPortalOpen(true)}

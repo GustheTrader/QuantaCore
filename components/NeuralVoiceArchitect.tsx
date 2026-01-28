@@ -7,19 +7,23 @@ interface NeuralVoiceArchitectProps {
   onClose: () => void;
   onResult: (finalPrompt: string) => void;
   agentType: 'DeepAgent' | 'DeepDiver';
+  autoStart?: boolean;
 }
 
-export const NeuralVoiceArchitect: React.FC<NeuralVoiceArchitectProps> = ({ isOpen, onClose, onResult, agentType }) => {
+export const NeuralVoiceArchitect: React.FC<NeuralVoiceArchitectProps> = ({ isOpen, onClose, onResult, agentType, autoStart = false }) => {
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const recognitionRef = useRef<any>(null);
+  const transcriptRef = useRef('');
 
   useEffect(() => {
     if (typeof window !== 'undefined' && ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
       const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
       recognitionRef.current = new SpeechRecognition();
-      recognitionRef.current.continuous = true;
+      // If autoStart is true, we want one-shot interaction (listen -> process). 
+      // Otherwise, continuous mode for manual control.
+      recognitionRef.current.continuous = !autoStart; 
       recognitionRef.current.interimResults = true;
       recognitionRef.current.lang = 'en-US';
 
@@ -29,51 +33,90 @@ export const NeuralVoiceArchitect: React.FC<NeuralVoiceArchitectProps> = ({ isOp
           currentTranscript += event.results[i][0].transcript;
         }
         setTranscript(currentTranscript);
+        transcriptRef.current = currentTranscript;
       };
 
       recognitionRef.current.onerror = (event: any) => {
         console.error('Speech Recognition Error', event.error);
-        setIsListening(false);
+        if (event.error !== 'no-speech') {
+            setIsListening(false);
+        }
+      };
+
+      recognitionRef.current.onend = () => {
+        if (autoStart && transcriptRef.current.trim()) {
+            handleArchitectPrompt();
+        } else if (autoStart) {
+            // Restart if no speech detected in auto mode? 
+            // Better to stop to avoid loops, or let user click.
+            setIsListening(false);
+        } else {
+            setIsListening(false);
+        }
       };
     }
   }, []);
+
+  useEffect(() => {
+    if (isOpen && autoStart && recognitionRef.current && !isListening && !isProcessing) {
+        setTranscript('');
+        transcriptRef.current = '';
+        try {
+            recognitionRef.current.start();
+            setIsListening(true);
+        } catch (e) {
+            console.error("Auto-start failed:", e);
+        }
+    }
+  }, [isOpen, autoStart]);
 
   const toggleListening = () => {
     if (isListening) {
       recognitionRef.current?.stop();
       setIsListening(false);
-      if (transcript) handleArchitectPrompt();
+      // For manual mode, stopping implies we are done and want to process
+      if (transcript && !autoStart) handleArchitectPrompt();
     } else {
       setTranscript('');
+      transcriptRef.current = '';
       recognitionRef.current?.start();
       setIsListening(true);
     }
   };
 
   const handleArchitectPrompt = async () => {
-    if (!transcript) return;
+    const textToProcess = transcriptRef.current || transcript;
+    if (!textToProcess) return;
+    
     setIsProcessing(true);
+    // Stop recognition if it's still running (for safety)
+    if (isListening) {
+        recognitionRef.current?.stop();
+        setIsListening(false);
+    }
+
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
         contents: `You are the Neural Voice Architect. Transform this rough spoken instruction into a high-density, professional deep research query for a ${agentType === 'DeepAgent' ? 'Recursive Research Loop' : 'Deep Abyssal Retrieval'}. Use First Principles Thinking. 
         
-        SPOKEN TEXT: "${transcript}"
+        SPOKEN TEXT: "${textToProcess}"
         
         Return ONLY the refined query string. No conversational filler.`,
       });
 
-      const refined = response.text?.trim() || transcript;
+      const refined = response.text?.trim() || textToProcess;
       onResult(refined);
       onClose();
     } catch (e) {
       console.error(e);
-      onResult(transcript);
+      onResult(textToProcess);
       onClose();
     } finally {
       setIsProcessing(false);
       setTranscript('');
+      transcriptRef.current = '';
     }
   };
 
@@ -106,10 +149,10 @@ export const NeuralVoiceArchitect: React.FC<NeuralVoiceArchitectProps> = ({ isOp
             )}
           </div>
           <h2 className="text-3xl font-outfit font-black text-white mt-8 uppercase tracking-tighter italic">
-            {isListening ? 'Architecting...' : isProcessing ? 'Refining Logic...' : 'Vocal Architect'}
+            {isListening ? 'Listening...' : isProcessing ? 'Refining Logic...' : 'Vocal Architect'}
           </h2>
           <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.5em] mt-2">
-            Speak your rough research objective
+            {autoStart ? 'Speak naturally...' : 'Tap to speak'}
           </p>
         </div>
 
@@ -124,7 +167,7 @@ export const NeuralVoiceArchitect: React.FC<NeuralVoiceArchitectProps> = ({ isOp
                isListening ? 'bg-slate-900 text-orange-500 border border-orange-500/30' : 'quanta-btn-orange text-white shadow-xl'
              }`}
            >
-             {isListening ? 'Finish Transcription' : 'Begin Capture'}
+             {isListening ? 'Finish & Send' : 'Start Capture'}
            </button>
         </div>
       </div>

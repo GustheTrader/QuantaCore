@@ -14,8 +14,10 @@ const Projects: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isEditingInstructions, setIsEditingInstructions] = useState(false);
   const [searchEnabled, setSearchEnabled] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const projectUploadRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const loadProjects = async () => {
@@ -79,10 +81,8 @@ const Projects: React.FC = () => {
     setIsAddingProject(false);
   };
 
-  // Fixed handleFileUpload to properly type the files array
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || !activeProjectId) return;
-    const files = Array.from(e.target.files) as File[];
+  const processFiles = (files: File[]) => {
+    if (!activeProjectId) return;
     
     files.forEach(file => {
       const reader = new FileReader();
@@ -91,7 +91,7 @@ const Projects: React.FC = () => {
         const newFile: ProjectFile = {
           id: Math.random().toString(36).substr(2, 9),
           name: file.name,
-          type: file.type,
+          type: file.type || 'application/octet-stream',
           size: file.size,
           content: content
         };
@@ -99,8 +99,37 @@ const Projects: React.FC = () => {
           p.id === activeProjectId ? { ...p, files: [...p.files, newFile] } : p
         ));
       };
-      reader.readAsText(file);
+      
+      // Handle images as Data URL, everything else as Text for context ingestion
+      if (file.type.startsWith('image/')) {
+        reader.readAsDataURL(file);
+      } else {
+        reader.readAsText(file);
+      }
     });
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || !activeProjectId) return;
+    processFiles(Array.from(e.target.files));
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      processFiles(Array.from(e.dataTransfer.files));
+    }
   };
 
   const handleTransmit = async (e?: React.FormEvent) => {
@@ -110,7 +139,7 @@ const Projects: React.FC = () => {
     setIsProcessing(true);
     const userMsg: ChatMessage = { role: 'user', content: input, timestamp: Date.now() };
     
-    const fileContext = activeProject.files.map(f => `[FILE: ${f.name}]\n${f.content}`).join('\n\n');
+    const fileContext = activeProject.files.map(f => `[FILE: ${f.name}]\n${f.content.substring(0, 10000)}... (truncated)`).join('\n\n');
     const systemInstruction = `${activeProject.customInstructions}\n\nProject Context:\n${activeProject.description}\n\nAttached Data:\n${fileContext}`;
 
     try {
@@ -150,8 +179,9 @@ const Projects: React.FC = () => {
 
   const getFileIcon = (name: string) => {
     const ext = name.split('.').pop()?.toLowerCase();
-    if (['png', 'jpg', 'jpeg'].includes(ext || '')) return 'PNG';
+    if (['png', 'jpg', 'jpeg', 'webp'].includes(ext || '')) return 'IMG';
     if (ext === 'pdf') return 'PDF';
+    if (['doc', 'docx'].includes(ext || '')) return 'DOC';
     return 'TXT';
   };
 
@@ -378,8 +408,23 @@ const Projects: React.FC = () => {
                   )}
                </div>
 
-               {/* Project Files */}
-               <div className="glass-card p-10 rounded-[3rem] border-slate-800/50">
+               {/* Project Files with Drop Zone */}
+               <div 
+                 className={`glass-card p-10 rounded-[3rem] border-slate-800/50 relative transition-all duration-300 ${isDragging ? 'border-emerald-500 bg-emerald-500/5 shadow-[0_0_50px_rgba(16,185,129,0.1)]' : ''}`}
+                 onDragOver={handleDragOver}
+                 onDragLeave={handleDragLeave}
+                 onDrop={handleDrop}
+               >
+                  {isDragging && (
+                    <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 rounded-[3rem] backdrop-blur-sm animate-in fade-in duration-300">
+                      <div className="text-center p-8 bg-slate-900 border border-emerald-500 rounded-3xl shadow-2xl">
+                        <svg className="w-16 h-16 text-emerald-400 mx-auto mb-4 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
+                        <p className="text-xl font-black text-white uppercase tracking-widest">Ingest Data</p>
+                        <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-[0.2em] mt-2">All Formats Accepted</p>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="flex items-center justify-between mb-8">
                      <div className="flex items-center space-x-4">
                         <div className="w-10 h-10 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center text-indigo-400">
@@ -387,12 +432,19 @@ const Projects: React.FC = () => {
                         </div>
                         <h3 className="text-xl font-outfit font-black text-white uppercase tracking-tighter italic">Project Files <span className="text-slate-600 ml-2">({activeProject.files.length} Items)</span></h3>
                      </div>
-                     <button className="text-[9px] font-black uppercase text-indigo-400 hover:text-indigo-300 tracking-widest">Manage</button>
+                     <button 
+                       onClick={() => projectUploadRef.current?.click()}
+                       className="text-[9px] font-black uppercase text-indigo-400 hover:text-indigo-300 tracking-widest flex items-center space-x-2 bg-slate-900 px-4 py-2 rounded-xl border border-slate-800 transition-all hover:border-indigo-500/50"
+                     >
+                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                       <span>Upload</span>
+                     </button>
+                     <input type="file" ref={projectUploadRef} className="hidden" multiple onChange={(e) => e.target.files && processFiles(Array.from(e.target.files))} />
                   </div>
                   <div className="space-y-3 max-h-[300px] overflow-y-auto custom-scrollbar pr-4">
                     {activeProject.files.length === 0 ? (
                       <div className="py-12 border-2 border-dashed border-slate-800 rounded-[2rem] text-center">
-                         <p className="text-[9px] font-black text-slate-700 uppercase tracking-widest">Awaiting local context injection</p>
+                         <p className="text-[9px] font-black text-slate-700 uppercase tracking-widest">Drag & Drop Documents Here</p>
                       </div>
                     ) : (
                       activeProject.files.map(file => (

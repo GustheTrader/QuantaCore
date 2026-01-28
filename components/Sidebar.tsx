@@ -28,15 +28,15 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, onLogout, track, p
 
   const navItems = [
     { name: 'Quanta Core', icon: 'M13 10V3L4 14h7v7l9-11h-7z', path: '/' },
+    { name: 'Unified Gateway', icon: 'M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z', path: '/gateway' },
     { name: 'Neural Chat', icon: 'M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z', path: '/chat' },
+    { name: 'Personal Assistant', icon: 'M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z', path: '/assistant' },
     { name: 'Deep Agent', icon: 'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z', path: '/deep-agent' },
     { name: 'Deep Diver', icon: 'M19 14l-7 7m0 0l-7-7m7 7V3', path: '/deep-diver' },
     { name: 'Agent Zero', icon: 'M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4', path: '/agent-zero' },
     { name: 'SME Council', icon: 'M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2', path: '/council' },
-    { name: 'Projects', icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 v2M7 7h10', path: '/projects' },
-    { name: 'Sovereign Memory', icon: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5', path: '/notebook' },
-    { name: 'NotebookLM', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z', path: '/notebooklm' },
-    { name: 'MCP Connectors', icon: 'M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z', path: '/mcp' },
+    { name: 'Projects', icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 v2M7 7h10', path: '/projects' },
+    { name: 'Sovereign Knowledge', icon: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5', path: '/notebook' },
     { name: 'Visual Forge', icon: 'M4 16l4.586-4.586a2 2 0 012.828 0L16 16', path: '/images' },
     { name: 'Cinematic Forge', icon: 'M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z', path: '/videos' },
     { name: 'Process Flow', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2', path: '/tasks' },
@@ -44,33 +44,31 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, onLogout, track, p
 
   const renderNavLink = (item: { name: string, icon: string, path: string }) => {
     const isActive = location.pathname === item.path;
-    const isOrange = ['SME Council', 'Projects', 'Deep Agent', 'Deep Diver', 'Neural Settings', 'MCP Connectors', 'Cinematic Forge', 'Agent Zero'].includes(item.name);
+    const isOrange = ['SME Council', 'Projects', 'Deep Agent', 'Deep Diver', 'Neural Settings', 'MCP Connectors', 'Cinematic Forge', 'Agent Zero', 'Personal Assistant', 'Unified Gateway'].includes(item.name);
     const isCyan = item.name === 'Deep Diver';
-    const isPurple = item.name === 'NotebookLM';
-
+    const isAssistant = item.name === 'Personal Assistant';
+    
     return (
       <Link
         key={item.name}
         to={item.path}
         className={`flex items-center p-2.5 rounded-xl transition-all group relative border ${
-          isActive
-            ? (isCyan ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30 shadow-[0_0_20px_rgba(6,182,212,0.1)]'
-              : isPurple ? 'bg-purple-500/10 text-purple-400 border-purple-500/30 shadow-[0_0_20px_rgba(168,85,247,0.1)]'
-              : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.1)]')
+          isActive 
+            ? (isCyan ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30 shadow-[0_0_20px_rgba(6,182,212,0.1)]' : isAssistant ? 'bg-rose-500/10 text-rose-400 border-rose-500/30 shadow-[0_0_20px_rgba(244,63,94,0.1)]' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.1)]')
             : isCyan
               ? 'text-cyan-400/70 hover:text-cyan-400 border-cyan-500/10 bg-cyan-500/5'
-              : isPurple
-                ? 'text-purple-400/70 hover:text-purple-400 border-purple-500/10 bg-purple-500/5'
+              : isAssistant
+                ? 'text-rose-400/70 hover:text-rose-400 border-rose-500/10 bg-rose-500/5'
                 : isOrange
                   ? 'text-orange-400/70 hover:text-orange-400 border-orange-500/10 bg-orange-500/5'
                   : 'text-slate-500 hover:bg-slate-800/50 hover:text-slate-200 border-transparent'
         }`}
       >
-        <svg className={`w-5 h-5 min-w-[20px] ${isActive ? (isCyan ? 'text-cyan-400' : isPurple ? 'text-purple-400' : 'text-emerald-400') : isCyan ? 'text-cyan-400' : isPurple ? 'text-purple-400' : isOrange ? 'text-orange-400' : 'text-slate-600 group-hover:text-emerald-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className={`w-5 h-5 min-w-[20px] ${isActive ? (isCyan ? 'text-cyan-400' : isAssistant ? 'text-rose-400' : 'text-emerald-400') : isCyan ? 'text-cyan-400' : isAssistant ? 'text-rose-400' : isOrange ? 'text-orange-400' : 'text-slate-600 group-hover:text-emerald-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d={item.icon} />
         </svg>
-        {isOpen && <span className={`ml-3 font-black text-[11px] tracking-[0.1em] uppercase transition-all whitespace-nowrap ${isCyan ? 'text-cyan-100' : isPurple ? 'text-purple-100' : isOrange ? 'text-orange-100' : ''}`}>{item.name}</span>}
-        {isActive && isOpen && <div className={`absolute right-2.5 w-1 h-1 rounded-full shadow-[0_0_8px_currentColor] ${isCyan ? 'bg-cyan-400' : isPurple ? 'bg-purple-400' : 'bg-emerald-400'}`}></div>}
+        {isOpen && <span className={`ml-3 font-black text-[11px] tracking-[0.1em] uppercase transition-all whitespace-nowrap ${isCyan ? 'text-cyan-100' : isAssistant ? 'text-rose-100' : isOrange ? 'text-orange-100' : ''}`}>{item.name}</span>}
+        {isActive && isOpen && <div className={`absolute right-2.5 w-1 h-1 rounded-full shadow-[0_0_8px_currentColor] ${isCyan ? 'bg-cyan-400' : isAssistant ? 'bg-rose-400' : 'bg-emerald-400'}`}></div>}
       </Link>
     );
   };
@@ -144,7 +142,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, onLogout, track, p
           <div className="space-y-1">
             {renderNavLink({ 
               name: 'Neural Settings', 
-              icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z', 
+              icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z', 
               path: '/settings' 
             })}
           </div>
