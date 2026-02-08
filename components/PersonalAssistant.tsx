@@ -161,7 +161,7 @@ const PersonalAssistant: React.FC<PersonalAssistantProps> = ({ profile }) => {
                      {log}
                    </div>
                  ))}
-                 {isProcessing && <div className="animate-pulse text-rose-400">>> PROCESSING_LOGIC_CHAIN...</div>}
+                 {isProcessing && <div className="animate-pulse text-rose-400">{'>>'} PROCESSING_LOGIC_CHAIN...</div>}
               </div>
            </div>
         </div>

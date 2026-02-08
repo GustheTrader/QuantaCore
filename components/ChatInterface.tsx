@@ -16,7 +16,7 @@ interface ChatInterfaceProps {
 
 const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile }) => {
   const location = useLocation();
-  const activeAgent = (location.state as any)?.agent || "Quanta Core";
+  const activeAgent = (location.state as { agent?: string } | null)?.agent || "Quanta Core";
   const storageKey = `quanta_chat_history_${activeAgent.replace(/\s+/g, '_').toLowerCase()}`;
   
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -83,27 +83,35 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile }) => {
 
   useEffect(() => {
     syncHistory();
-    const savedConfigs = JSON.parse(localStorage.getItem('quanta_agent_configs') || '{}');
-    if (savedConfigs[activeAgent]) {
-      setAgentConfig({ 
-        prompt: savedConfigs[activeAgent].prompt, 
-        skills: savedConfigs[activeAgent].skills || ['search'] 
-      });
+    try {
+      const savedConfigs = JSON.parse(localStorage.getItem('quanta_agent_configs') || '{}');
+      if (savedConfigs[activeAgent]) {
+        setAgentConfig({
+          prompt: savedConfigs[activeAgent].prompt,
+          skills: savedConfigs[activeAgent].skills || ['search']
+        });
+      }
+    } catch (e) {
+      console.error('Failed to parse agent configs:', e);
     }
-    
+
     const savedProvider = localStorage.getItem('quanta_preferred_provider');
     if (savedProvider) setComputeProvider(savedProvider as ComputeProvider);
 
-    const savedSources = localStorage.getItem('quanta_notebook');
-    if (savedSources) {
-      const sources: SourceNode[] = JSON.parse(savedSources);
-      const relevantCount = sources.filter(m => 
-        !m.assignedAgents || 
-        m.assignedAgents.length === 0 || 
-        m.assignedAgents.includes(activeAgent) || 
-        m.assignedAgents.includes("All Agents")
-      ).length;
-      setActiveContextCount(relevantCount);
+    try {
+      const savedSources = localStorage.getItem('quanta_notebook');
+      if (savedSources) {
+        const sources: SourceNode[] = JSON.parse(savedSources);
+        const relevantCount = sources.filter(m =>
+          !m.assignedAgents ||
+          m.assignedAgents.length === 0 ||
+          m.assignedAgents.includes(activeAgent) ||
+          m.assignedAgents.includes("All Agents")
+        ).length;
+        setActiveContextCount(relevantCount);
+      }
+    } catch (e) {
+      console.error('Failed to parse notebook sources:', e);
     }
 
     window.addEventListener('storage', syncHistory);
@@ -114,7 +122,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile }) => {
   }, [activeAgent, storageKey]);
 
   const startAmbient = () => {
-    if (!ambientAudioCtx.current) ambientAudioCtx.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    if (!ambientAudioCtx.current) ambientAudioCtx.current = new AudioCtx();
     if (ambientAudioCtx.current.state === 'suspended') ambientAudioCtx.current.resume();
     const ctx = ambientAudioCtx.current;
     const gainNode = ctx.createGain();
@@ -140,8 +149,18 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile }) => {
       const ctx = ambientAudioCtx.current;
       ambientGain.current.gain.linearRampToValueAtTime(0, ctx.currentTime + 1);
       setTimeout(() => {
-        ambientOscillators.current.forEach(osc => { try { osc.stop(); } catch(e) {} });
+        ambientOscillators.current.forEach(osc => {
+          try { osc.stop(); osc.disconnect(); } catch(e) { /* already stopped */ }
+        });
         ambientOscillators.current = [];
+        if (ambientGain.current) {
+          ambientGain.current.disconnect();
+          ambientGain.current = null;
+        }
+        if (ambientAudioCtx.current) {
+          ambientAudioCtx.current.close().catch(() => {});
+          ambientAudioCtx.current = null;
+        }
         setIsAmbientActive(false);
       }, 1100);
     } else {
@@ -239,9 +258,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile }) => {
       if (reflection.suggestedPrompt && reflection.score < 4) {
         const updatedPrompt = reflection.suggestedPrompt;
         setAgentConfig(prev => ({ ...prev, prompt: updatedPrompt }));
-        const savedConfigs = JSON.parse(localStorage.getItem('quanta_agent_configs') || '{}');
-        savedConfigs[activeAgent] = { ...savedConfigs[activeAgent], prompt: updatedPrompt };
-        localStorage.setItem('quanta_agent_configs', JSON.stringify(savedConfigs));
+        try {
+          const savedConfigs = JSON.parse(localStorage.getItem('quanta_agent_configs') || '{}');
+          savedConfigs[activeAgent] = { ...savedConfigs[activeAgent], prompt: updatedPrompt };
+          localStorage.setItem('quanta_agent_configs', JSON.stringify(savedConfigs));
+        } catch (e) {
+          console.error('Failed to save agent config:', e);
+        }
       }
     } catch (e) { console.error(e); } finally { setIsReflecting(false); }
   };
@@ -256,9 +279,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile }) => {
       ? agentConfig.skills.filter(s => s !== 'search')
       : [...agentConfig.skills, 'search'];
     setAgentConfig(prev => ({ ...prev, skills: newSkills }));
-    const savedConfigs = JSON.parse(localStorage.getItem('quanta_agent_configs') || '{}');
-    savedConfigs[activeAgent] = { ...savedConfigs[activeAgent], skills: newSkills };
-    localStorage.setItem('quanta_agent_configs', JSON.stringify(savedConfigs));
+    try {
+      const savedConfigs = JSON.parse(localStorage.getItem('quanta_agent_configs') || '{}');
+      savedConfigs[activeAgent] = { ...savedConfigs[activeAgent], skills: newSkills };
+      localStorage.setItem('quanta_agent_configs', JSON.stringify(savedConfigs));
+    } catch (e) {
+      console.error('Failed to save skill config:', e);
+    }
   };
 
   const toggleAudit = (index: number) => {
