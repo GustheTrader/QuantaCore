@@ -1,0 +1,107 @@
+@import "tailwindcss";
+
+:root {
+  --quanta-blue-deep: #020617;
+  --quanta-blue-core: #0f172a;
+  --quanta-emerald-light: #10b981;
+  --quanta-emerald-dark: #064e3b;
+  --quanta-primary-orange: #f97316;
+  --quanta-accent-teal: #14b8a6;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: var(--quanta-blue-deep);
+  color: #f9fafb;
+  overflow-x: hidden;
+  margin: 0;
+}
+
+.font-outfit { font-family: 'Outfit', sans-serif; }
+.font-mono { font-family: 'JetBrains Mono', monospace; }
+
+.quantum-gradient-text {
+  background: linear-gradient(135deg, #10b981, #14b8a6, #f97316);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.quanta-logic-gradient {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(15, 23, 42, 0.4) 50%, rgba(249, 115, 22, 0.05) 100%);
+}
+
+.quanta-btn-primary {
+  background: linear-gradient(to right, #064e3b, #10b981);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+.quanta-btn-primary:hover {
+  box-shadow: 0 0 30px rgba(16, 185, 129, 0.4);
+  transform: translateY(-2px);
+  border-color: rgba(16, 185, 129, 0.6);
+}
+
+.quanta-btn-orange {
+  background: linear-gradient(to right, #f97316, #ea580c);
+  transition: all 0.3s ease;
+}
+.quanta-btn-orange:hover {
+  box-shadow: 0 0 30px rgba(249, 115, 22, 0.4);
+}
+
+.glass-card {
+  background: rgba(15, 23, 42, 0.8);
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(16, 185, 129, 0.15);
+}
+
+.sme-card-enhanced {
+  background: linear-gradient(165deg, #0f172a 0%, #064e3b 45%, #020617 100%);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.5s ease;
+}
+.sme-card-enhanced:hover {
+  border-color: rgba(16, 185, 129, 0.5);
+  box-shadow: 0 0 50px rgba(16, 185, 129, 0.15);
+  transform: translateY(-4px);
+}
+.sme-card-enhanced::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(249, 115, 22, 0.08) 0%, transparent 60%);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+.sme-card-enhanced:hover::after {
+  opacity: 1;
+}
+
+@keyframes pulse-glow {
+  0% { box-shadow: 0 0 10px rgba(16, 185, 129, 0.1); }
+  50% { box-shadow: 0 0 40px rgba(20, 184, 166, 0.2); }
+  100% { box-shadow: 0 0 10px rgba(16, 185, 129, 0.1); }
+}
+.animate-glow { animation: pulse-glow 4s infinite; }
+
+@keyframes pulse-glow-orange {
+  0% { box-shadow: 0 0 10px rgba(249, 115, 22, 0.15); }
+  50% { box-shadow: 0 0 35px rgba(249, 115, 22, 0.5); }
+  100% { box-shadow: 0 0 10px rgba(249, 115, 22, 0.15); }
+}
+.animate-glow-orange { animation: pulse-glow-orange 3s infinite; }
+
+.custom-scrollbar::-webkit-scrollbar { width: 4px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: #10b981; border-radius: 10px; }
+
+.bg-mesh {
+  background-image: radial-gradient(rgba(16, 185, 129, 0.05) 1.5px, transparent 1.5px);
+  background-size: 40px 40px;
+}

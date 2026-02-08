@@ -1,135 +1,15 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>QuantaAI Agents - SME Neural Council</title>
-  <script>
-    window.process = { env: {} };
-  </script>
-  <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --quanta-blue-deep: #020617;
-      --quanta-blue-core: #0f172a;
-      --quanta-emerald-light: #10b981;
-      --quanta-emerald-dark: #064e3b;
-      --quanta-primary-orange: #f97316;
-      --quanta-accent-teal: #14b8a6;
-    }
-    body {
-      font-family: 'Inter', sans-serif;
-      background-color: var(--quanta-blue-deep);
-      color: #f9fafb;
-      overflow-x: hidden;
-      margin: 0;
-    }
-    .font-outfit { font-family: 'Outfit', sans-serif; }
-    .font-mono { font-family: 'JetBrains Mono', monospace; }
-    
-    .quantum-gradient-text {
-      background: linear-gradient(135deg, #10b981, #14b8a6, #f97316);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-    .quanta-logic-gradient {
-      background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(15, 23, 42, 0.4) 50%, rgba(249, 115, 22, 0.05) 100%);
-    }
-    .quanta-btn-primary {
-      background: linear-gradient(to right, #064e3b, #10b981);
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      border: 1px solid rgba(16, 185, 129, 0.3);
-    }
-    .quanta-btn-primary:hover {
-      box-shadow: 0 0 30px rgba(16, 185, 129, 0.4);
-      transform: translateY(-2px);
-      border-color: rgba(16, 185, 129, 0.6);
-    }
-    .quanta-btn-orange {
-      background: linear-gradient(to right, #f97316, #ea580c);
-      transition: all 0.3s ease;
-    }
-    .quanta-btn-orange:hover {
-      box-shadow: 0 0 30px rgba(249, 115, 22, 0.4);
-    }
-    
-    .glass-card {
-      background: rgba(15, 23, 42, 0.8);
-      backdrop-filter: blur(24px);
-      border: 1px solid rgba(16, 185, 129, 0.15);
-    }
-
-    /* Refined SME Card: Blue Deep with Green Core and Orange Highlights */
-    .sme-card-enhanced {
-      background: linear-gradient(165deg, #0f172a 0%, #064e3b 45%, #020617 100%);
-      border: 1px solid rgba(16, 185, 129, 0.2);
-      position: relative;
-      overflow: hidden;
-      transition: all 0.5s ease;
-    }
-    .sme-card-enhanced:hover {
-      border-color: rgba(16, 185, 129, 0.5);
-      box-shadow: 0 0 50px rgba(16, 185, 129, 0.15);
-      transform: translateY(-4px);
-    }
-    .sme-card-enhanced::after {
-      content: '';
-      position: absolute;
-      top: -50%;
-      left: -50%;
-      width: 200%;
-      height: 200%;
-      background: radial-gradient(circle, rgba(249, 115, 22, 0.08) 0%, transparent 60%);
-      pointer-events: none;
-      opacity: 0;
-      transition: opacity 0.5s ease;
-    }
-    .sme-card-enhanced:hover::after {
-      opacity: 1;
-    }
-    
-    @keyframes pulse-glow {
-      0% { box-shadow: 0 0 10px rgba(16, 185, 129, 0.1); }
-      50% { box-shadow: 0 0 40px rgba(20, 184, 166, 0.2); }
-      100% { box-shadow: 0 0 10px rgba(16, 185, 129, 0.1); }
-    }
-    .animate-glow { animation: pulse-glow 4s infinite; }
-
-    @keyframes pulse-glow-orange {
-      0% { box-shadow: 0 0 10px rgba(249, 115, 22, 0.15); }
-      50% { box-shadow: 0 0 35px rgba(249, 115, 22, 0.5); }
-      100% { box-shadow: 0 0 10px rgba(249, 115, 22, 0.15); }
-    }
-    .animate-glow-orange { animation: pulse-glow-orange 3s infinite; }
-    
-    .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-    .custom-scrollbar::-webkit-scrollbar-thumb { background: #10b981; border-radius: 10px; }
-    
-    .bg-mesh {
-      background-image: radial-gradient(rgba(16, 185, 129, 0.05) 1.5px, transparent 1.5px);
-      background-size: 40px 40px;
-    }
-  </style>
-  <script type="importmap">
-  {
-    "imports": {
-      "react": "https://esm.sh/react@^19.2.3",
-      "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-      "react/": "https://esm.sh/react@^19.2.3/",
-      "@google/genai": "https://esm.sh/@google/genai@^1.34.0",
-      "react-router-dom": "https://esm.sh/react-router-dom@^7.11.0",
-      "recharts": "https://esm.sh/recharts@^3.6.0",
-      "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@^2.39.0"
-    }
-  }
-  </script>
 </head>
 <body class="bg-mesh">
   <div id="root"></div>
+  <script type="module" src="./index.tsx"></script>
 </body>
 </html>

@@ -30,15 +30,12 @@ interface ErrorBoundaryState {
 }
 
 class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  public state: ErrorBoundaryState;
-  
-  // Explicitly declaring props to resolve TS error 'Property props does not exist'
-  public props: Readonly<ErrorBoundaryProps> & Readonly<{ children?: ReactNode }>;
+  declare state: ErrorBoundaryState;
+  declare props: Readonly<ErrorBoundaryProps>;
 
   constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false, error: null };
-    this.props = props;
   }
 
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {
