@@ -5,8 +5,22 @@ export interface Task {
   status: 'todo' | 'in-progress' | 'done';
   priority: 'low' | 'medium' | 'high';
   category: string;
-  description?: string;
+  description?: string; // Short summary
+  content?: string; // Full markdown body
+  icon?: string; // Emoji or SVG
+  coverImage?: string; // URL
+  attachments: TaskAttachment[];
   timestamp: number;
+}
+
+export interface TaskAttachment {
+  id: string;
+  name: string;
+  size: number;
+  type: string;
+  localUrl: string; // Blob URL or local path
+  s3Url: string; // s3://bucket/key
+  synced: boolean;
 }
 
 export type ComputeProvider = 'gemini' | 'groq' | 'local' | 'abacus' | 'novita';
@@ -16,6 +30,20 @@ export interface FPTAudit {
   assumptionsRemoved: string[]; // What analogies were stripped
   axioms: string[]; // The fundamental truths remaining
   reconstruction: string; // The solution built up from axioms
+}
+
+export interface ContextOptimizationData {
+  original: string;
+  optimized: string;
+  structure: {
+    role: string;
+    task: string;
+    constraints: string[];
+    context: string;
+  };
+  missingInfo: string[];
+  traceId: string;
+  latency: number;
 }
 
 export interface ChatMessage {
@@ -94,6 +122,7 @@ export interface ZeroLogEntry {
   agentName?: string;
   content: string;
   timestamp: number;
+  lat?: number;
 }
 
 export interface AgentZeroSession {
@@ -201,4 +230,37 @@ export interface UserCredits {
   deepAgentTokens: number;
   visualEnergy: number;
   lastSync: number;
+}
+
+// EDGE & MECH NETWORK TYPES
+export type EdgeDomain = 'futures' | 'crypto' | 'prediction' | 'sports_arb';
+
+export interface MechNode {
+  id: string;
+  region: string; // e.g., 'us-east', 'eu-west'
+  status: 'idle' | 'spinning' | 'hot' | 'cooling';
+  latency: number; // ms
+  load: number; // 0-100
+  activeTask?: string;
+}
+
+export interface HotPathLog {
+  id: string;
+  timestamp: number;
+  level: 'info' | 'warn' | 'crit' | 'exec';
+  source: 'REDIS' | 'EDGE' | 'MECH' | 'CORE';
+  message: string;
+  latency?: number;
+}
+
+export interface EdgeSession {
+  isActive: boolean;
+  domains: EdgeDomain[];
+  nodes: MechNode[];
+  logs: HotPathLog[];
+  redisMetrics: {
+    opsPerSec: number;
+    hitRate: number;
+    memoryUsage: string;
+  };
 }

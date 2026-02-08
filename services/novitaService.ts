@@ -10,20 +10,16 @@ import { deductDeepAgentCredits, checkHasCredits } from './creditService';
 const NOVITA_BASE_URL = 'https://api.novita.ai/openai/v1/chat/completions';
 
 const getNovitaConfig = () => {
-  try {
-    const saved = localStorage.getItem('quanta_api_settings');
-    if (saved) {
-      const settings = JSON.parse(saved);
-      return {
-        key: settings.novitaKey || process.env.NOVITA_API_KEY || '',
-        model: settings.novitaModel || 'moonshotai/kimi-k2-thinking'
-      };
-    }
-  } catch (e) {
-    console.error('Failed to parse Novita settings:', e);
+  const saved = localStorage.getItem('quanta_api_settings');
+  if (saved) {
+    const settings = JSON.parse(saved);
+    return {
+      key: settings.novitaKey || 'sk_zWjgBxMtUYbDX9IzHXjv7GdMhm4CtTodN_bDFDpDI5M',
+      model: settings.novitaModel || 'moonshotai/kimi-k2-thinking'
+    };
   }
   return {
-    key: process.env.NOVITA_API_KEY || '',
+    key: 'sk_zWjgBxMtUYbDX9IzHXjv7GdMhm4CtTodN_bDFDpDI5M',
     model: 'moonshotai/kimi-k2-thinking'
   };
 };

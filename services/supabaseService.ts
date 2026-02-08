@@ -10,12 +10,11 @@ const getSupabaseKey = () => {
     if (typeof process !== 'undefined' && process.env && process.env.SUPABASE_KEY) {
       return process.env.SUPABASE_KEY;
     }
-    if (typeof window !== 'undefined') {
-      const win = window as unknown as { process?: { env?: { SUPABASE_KEY?: string } } };
-      if (win.process?.env?.SUPABASE_KEY) return win.process.env.SUPABASE_KEY;
+    if (typeof window !== 'undefined' && (window as any).process?.env?.SUPABASE_KEY) {
+      return (window as any).process.env.SUPABASE_KEY;
     }
   } catch (e) {}
-  return '';
+  return 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92dWd5bnV4dnR2Zmt3amt5eGJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MDcwMDAwMDAsImV4cCI6MjA0NTYwMDAwMH0.placeholder';
 };
 
 let supabaseInstance: any;
@@ -49,7 +48,7 @@ export const supabase = supabaseInstance;
  * EDGE FUNCTION CALLER
  * Invokes a specific Supabase Edge Function by name.
  */
-export const invokeEdgeFunction = async (functionName: string, payload: Record<string, unknown> = {}) => {
+export const invokeEdgeFunction = async (functionName: string, payload: any = {}) => {
   try {
     const { data, error } = await supabase.functions.invoke(functionName, {
       body: payload
@@ -94,7 +93,7 @@ export const archiveAndActivatePrompt = async (agentName: string, promptText: st
 };
 
 // Reflection Logs
-export const logReflection = async (agentName: string, messages: ChatMessage[], result: ReflectionResult) => {
+export const logReflection = async (agentName: string, messages: any[], result: ReflectionResult) => {
   try {
     const { data, error } = await supabase.from('reflection_logs').insert({
       agent_name: agentName,
@@ -167,14 +166,14 @@ export const fetchMemoriesFromSupabase = async (filter?: { query?: string, agent
     
     if (error || !data) return null;
 
-    let result = data.map((item: Record<string, unknown>) => ({
-      id: item.id as string,
-      title: item.title as string,
-      content: item.content as string,
-      category: item.category as string,
-      type: (item.type as SourceNode['type']) || 'distilled',
-      assignedAgents: (item.assigned_agents as string[]) || [],
-      timestamp: new Date(item.timestamp as string | number).getTime()
+    let result = data.map((item: any) => ({
+      id: item.id,
+      title: item.title,
+      content: item.content,
+      category: item.category,
+      type: item.type || 'distilled', // Defaulting type if missing
+      assignedAgents: item.assigned_agents || [],
+      timestamp: new Date(item.timestamp).getTime()
     }));
 
     if (filter?.agentName) {

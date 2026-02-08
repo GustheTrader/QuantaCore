@@ -26,14 +26,10 @@ const Notebook: React.FC = () => {
     const loadData = async () => {
       const remote = await fetchMemoriesFromSupabase();
       if (remote) {
-        setSources(remote);
+        setSources(remote as any);
       } else {
-        try {
-          const local = localStorage.getItem('quanta_notebook');
-          if (local) setSources(JSON.parse(local));
-        } catch (e) {
-          console.error('Failed to parse notebook from localStorage:', e);
-        }
+        const local = localStorage.getItem('quanta_notebook');
+        if (local) setSources(JSON.parse(local));
       }
     };
     loadData();
@@ -98,7 +94,7 @@ const Notebook: React.FC = () => {
       const updated = [source, ...sources];
       setSources(updated);
       localStorage.setItem('quanta_notebook', JSON.stringify(updated));
-      await syncMemoryToSupabase(source);
+      await syncMemoryToSupabase(source as any);
     } catch (e) {
       console.error(e);
     } finally {

@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { runDeepAgentLoop } from '../services/deepAgentService';
+import { runDeepAgentLoop, runAbacusAgentSession } from '../services/deepAgentService';
 import { DeepAgentSession, DeepStep } from '../types';
 import { exportToBrowser } from '../services/utils';
 import { NeuralVoiceArchitect } from './NeuralVoiceArchitect';
@@ -13,6 +13,11 @@ const DeepAgent: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isVoiceArchitectOpen, setIsVoiceArchitectOpen] = useState(false);
   const [isFPTResearchOpen, setIsFPTResearchOpen] = useState(false);
+  
+  // Abacus Config
+  const [computeProvider, setComputeProvider] = useState<'gemini' | 'abacus'>('gemini');
+  const [abacusAgentId, setAbacusAgentId] = useState('');
+  
   const logEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -26,12 +31,26 @@ const DeepAgent: React.FC = () => {
     setIsProcessing(true);
     setSession(null);
     
-    await runDeepAgentLoop(input, (updatedSession) => {
-      setSession(updatedSession);
-      if (updatedSession.endTime) {
+    if (computeProvider === 'abacus') {
+      if (!abacusAgentId.trim()) {
+        alert("Please enter a valid Abacus Agent ID.");
         setIsProcessing(false);
+        return;
       }
-    });
+      await runAbacusAgentSession(input, abacusAgentId, (updatedSession) => {
+        setSession(updatedSession);
+        if (updatedSession.endTime) {
+          setIsProcessing(false);
+        }
+      });
+    } else {
+      await runDeepAgentLoop(input, (updatedSession) => {
+        setSession(updatedSession);
+        if (updatedSession.endTime) {
+          setIsProcessing(false);
+        }
+      });
+    }
   };
 
   const getStepIcon = (type: string) => {
@@ -74,6 +93,36 @@ const DeepAgent: React.FC = () => {
       {!session && (
         <div className="max-w-3xl mx-auto">
           <div className="glass-card p-12 rounded-[4rem] border-emerald-500/20 quanta-logic-gradient shadow-2xl relative overflow-hidden">
+            
+            {/* Compute Selection */}
+            <div className="mb-8 flex justify-center">
+              <div className="bg-slate-900/80 p-2 rounded-2xl border border-slate-800 flex shadow-inner">
+                <button 
+                  onClick={() => setComputeProvider('gemini')}
+                  className={`px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${computeProvider === 'gemini' ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
+                >
+                  Gemini Orchestration
+                </button>
+                <button 
+                  onClick={() => setComputeProvider('abacus')}
+                  className={`px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${computeProvider === 'abacus' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
+                >
+                  Abacus.AI Agent
+                </button>
+              </div>
+            </div>
+
+            {computeProvider === 'abacus' && (
+              <div className="mb-8 animate-in slide-in-from-top-2">
+                <input 
+                  value={abacusAgentId}
+                  onChange={(e) => setAbacusAgentId(e.target.value)}
+                  placeholder="Enter Abacus Agent ID (e.g. 2d3c...)"
+                  className="w-full bg-slate-950/50 border border-indigo-500/30 rounded-2xl py-4 px-6 text-white font-mono text-xs focus:border-indigo-500 outline-none text-center"
+                />
+              </div>
+            )}
+
             <div className="flex items-center justify-between mb-8">
               <h3 className="text-white text-[11px] font-black uppercase tracking-[0.4em]">Submit Sovereign Inquiry</h3>
               <button 
@@ -95,7 +144,7 @@ const DeepAgent: React.FC = () => {
               disabled={isProcessing || !input.trim()}
               className="w-full mt-10 py-8 quanta-btn-primary text-white rounded-[2.5rem] font-black uppercase tracking-[0.5em] text-[12px] shadow-2xl flex items-center justify-center space-x-4 active:scale-95 disabled:opacity-30"
             >
-              {isProcessing ? 'Synchronizing LTM & Launching Loop...' : 'Launch Deep Agent'}
+              {isProcessing ? 'Synchronizing & Launching Loop...' : `Launch ${computeProvider === 'abacus' ? 'Abacus' : 'Deep'} Agent`}
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
             </button>
           </div>
@@ -113,20 +162,23 @@ const DeepAgent: React.FC = () => {
                   <div key={step.id} className={`p-6 rounded-[2rem] border transition-all duration-500 ${
                     step.status === 'running' ? 'bg-orange-500/10 border-orange-500 shadow-xl' : 
                     step.status === 'complete' ? 'bg-emerald-500/10 border-emerald-500/50' : 
+                    step.status === 'error' ? 'bg-rose-500/10 border-rose-500' :
                     'bg-slate-900 border-slate-800 opacity-50'
                   }`}>
                     <div className="flex items-center space-x-4">
                       <div className={`w-10 h-10 rounded-xl flex items-center justify-center border ${
                         step.status === 'running' ? 'bg-orange-600 text-white animate-pulse' : 
                         step.status === 'complete' ? 'bg-emerald-600 text-white' : 
+                        step.status === 'error' ? 'bg-rose-600 text-white' :
                         'bg-slate-950 text-slate-700'
                       }`}>
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d={getStepIcon(step.type)} /></svg>
                       </div>
                       <div>
                         <p className={`text-[10px] font-black uppercase tracking-widest ${
-                          step.status === 'running' ? 'text-orange-400' : 'text-slate-500'
-                        }`}>{step.status === 'running' ? 'Active Processor' : 'Node Complete'}</p>
+                          step.status === 'running' ? 'text-orange-400' : 
+                          step.status === 'error' ? 'text-rose-400' : 'text-slate-500'
+                        }`}>{step.status === 'running' ? 'Active Processor' : step.status === 'error' ? 'Logic Failure' : 'Node Complete'}</p>
                         <h4 className="text-sm font-black text-white uppercase tracking-tight">{step.label}</h4>
                       </div>
                     </div>
@@ -138,14 +190,16 @@ const DeepAgent: React.FC = () => {
 
           {/* Report Area */}
           <div className="lg:col-span-8 space-y-12">
-            {session.steps.filter(s => s.status === 'complete' || s.status === 'running').map((step, idx) => (
+            {session.steps.filter(s => s.status === 'complete' || s.status === 'running' || s.status === 'error').map((step, idx) => (
               <div key={idx} className="animate-in slide-in-from-bottom-4 duration-700">
                 <div className={`glass-card p-12 rounded-[3.5rem] border-2 group ${
                   step.status === 'running' ? 'border-orange-500/30 bg-orange-500/5 shadow-2xl' : 'border-slate-800/50'
                 }`}>
                   <div className="flex items-center justify-between mb-8">
                      <span className={`text-[9px] font-black uppercase tracking-[0.3em] px-4 py-2 rounded-xl border ${
-                       step.status === 'running' ? 'border-orange-400 text-orange-400' : 'border-emerald-500/30 text-emerald-500'
+                       step.status === 'running' ? 'border-orange-400 text-orange-400' : 
+                       step.status === 'error' ? 'border-rose-400 text-rose-400' :
+                       'border-emerald-500/30 text-emerald-500'
                      }`}>
                         {step.type} Stage
                      </span>
@@ -172,7 +226,7 @@ const DeepAgent: React.FC = () => {
               </div>
             ))}
 
-            {session.finalResult && (
+            {session.finalResult && session.endTime && (
               <div className="animate-in zoom-in-95 duration-1000 group">
                 <div className="glass-card p-16 rounded-[4rem] border-emerald-500 border-2 bg-emerald-500/5 shadow-[0_0_80px_rgba(16,185,129,0.15)] relative overflow-hidden">
                   <h2 className="text-4xl font-outfit font-black text-white uppercase tracking-tighter mb-10 italic">Sovereign Synthesis Report</h2>

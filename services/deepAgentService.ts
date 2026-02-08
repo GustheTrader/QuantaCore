@@ -4,6 +4,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { DeepStep, DeepAgentSession, SourceNode } from "../types";
 import { recallRelevantMemories, distillMemoryFromChat } from "./geminiService";
 import { syncMemoryToSupabase } from "./supabaseService";
+import { streamAbacusAgent } from "./abacusService";
 
 const getAI = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
 
@@ -130,5 +131,47 @@ export const runDeepAgentLoop = async (
   } catch (error) {
     console.error("Deep Agent Loop Failure:", error);
     addStep({ id: 'error', type: 'critique', status: 'error', label: 'Neural Connection Lost' });
+  }
+};
+
+export const runAbacusAgentSession = async (
+  query: string,
+  agentId: string,
+  onUpdate: (session: DeepAgentSession) => void
+) => {
+  const sessionId = `ABACUS_${Math.random().toString(36).substr(2, 9)}`;
+  let session: DeepAgentSession = {
+    id: sessionId,
+    query,
+    steps: [{ 
+      id: 'abacus_stream', 
+      type: 'synthesize', 
+      status: 'running', 
+      label: 'Abacus Neural Stream' 
+    }],
+    startTime: Date.now(),
+    finalResult: ''
+  };
+
+  onUpdate({ ...session });
+
+  try {
+    await streamAbacusAgent(agentId, query, (chunk) => {
+      if (chunk.text) {
+        session.finalResult = (session.finalResult || '') + chunk.text;
+      }
+      if (chunk.is_complete) {
+        session.endTime = Date.now();
+        session.steps[0].status = 'complete';
+        session.steps[0].label = 'Abacus Inference Complete';
+      }
+      onUpdate({ ...session });
+    });
+  } catch (e: any) {
+    session.steps[0].status = 'error';
+    session.steps[0].label = 'Abacus Signal Interrupted';
+    session.steps[0].content = e.message;
+    session.endTime = Date.now();
+    onUpdate({ ...session });
   }
 };

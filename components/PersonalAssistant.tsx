@@ -1,92 +1,100 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { GoogleGenAI } from "@google/genai";
-import { NeuralVoiceArchitect } from './NeuralVoiceArchitect';
+import { VoiceAgent } from './VoiceAgent';
 
 interface PersonalAssistantProps {
   profile: { name: string, callsign: string, personality: string };
 }
 
-interface MoltSkill {
+interface NoesisModule {
   id: string;
   name: string;
-  category: 'perception' | 'action' | 'system';
-  version: string;
-  description: string;
-  active: boolean;
+  category: 'perception' | 'action' | 'core';
+  status: 'active' | 'standby' | 'processing';
+  load: number;
   icon: string;
 }
 
-const PersonalAssistant: React.FC<PersonalAssistantProps> = ({ profile }) => {
+const NOEsisAgent: React.FC<PersonalAssistantProps> = ({ profile }) => {
   const [input, setInput] = useState('');
-  const [response, setResponse] = useState<string | null>(null);
+  const [isVoiceActive, setIsVoiceActive] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [isVoiceOpen, setIsVoiceOpen] = useState(false);
-  const [systemLog, setSystemLog] = useState<string[]>(['Moltbot Core v2.1 initialized', 'ClawdHub repository synced', 'Waiting for operator command...']);
   
-  const [skills, setSkills] = useState<MoltSkill[]>([
-    { id: 'ocr', name: 'Optical Vision', category: 'perception', version: '1.4.2', description: 'Real-time screen OCR and object detection.', active: true, icon: 'M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z' },
-    { id: 'browser', name: 'Chromium Driver', category: 'action', version: '2.0.1', description: 'Headless navigation and DOM manipulation.', active: true, icon: 'M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9' },
-    { id: 'mouse', name: 'HID Controller', category: 'action', version: '1.1.0', description: 'Direct mouse/keyboard event injection.', active: true, icon: 'M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122' },
-    { id: 'fs', name: 'File System', category: 'system', version: '0.9.5', description: 'Local read/write access to approved dirs.', active: false, icon: 'M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z' },
-    { id: 'term', name: 'Shell Exec', category: 'system', version: '1.2.0', description: 'Bash/Powershell command execution.', active: false, icon: 'M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' }
+  // Simulated System State
+  const [visionLatency, setVisionLatency] = useState(12);
+  const [memoryUsage, setMemoryUsage] = useState(24);
+  const [visualStream, setVisualStream] = useState<string[]>([]);
+  
+  const [modules, setModules] = useState<NoesisModule[]>([
+    { id: 'vis_cortex', name: 'Omni-Vision', category: 'perception', status: 'active', load: 45, icon: 'M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z' },
+    { id: 'aud_cortex', name: 'Echo-Locate', category: 'perception', status: 'standby', load: 12, icon: 'M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z' },
+    { id: 'act_driver', name: 'Kinetic Driver', category: 'action', status: 'active', load: 8, icon: 'M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122' },
+    { id: 'sys_core', name: 'Logic Substrate', category: 'core', status: 'active', load: 65, icon: 'M13 10V3L4 14h7v7l9-11h-7z' },
   ]);
 
-  const toggleSkill = (id: string) => {
-    setSkills(prev => prev.map(s => s.id === id ? { ...s, active: !s.active } : s));
-    addLog(`Skill [${id}] state changed.`);
+  const [logs, setLogs] = useState<string[]>([
+    'NOEsis Kernel v9.0 loaded.',
+    'Multimodal sensors calibrated.',
+    'Awaiting operator intent...'
+  ]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setVisionLatency(prev => Math.max(8, Math.min(40, prev + (Math.random() * 10 - 5))));
+      setMemoryUsage(prev => Math.max(20, Math.min(80, prev + (Math.random() * 5 - 2.5))));
+      
+      setModules(prev => prev.map(m => ({
+        ...m,
+        load: Math.max(5, Math.min(95, m.load + (Math.random() * 10 - 5)))
+      })));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const addLog = (msg: string, type: 'info' | 'warn' | 'success' = 'info') => {
+    setLogs(prev => [...prev.slice(-8), `[${type.toUpperCase()}] ${msg}`]);
   };
 
-  const addLog = (entry: string) => {
-    setSystemLog(prev => [...prev.slice(-6), `[${new Date().toLocaleTimeString()}] ${entry}`]);
-  };
-
-  const handleCommand = async (e?: React.FormEvent, cmdOverride?: string) => {
+  const handleCommand = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    
-    const cmd = cmdOverride || input;
-    if (!cmd.trim() || isProcessing) return;
-
-    if (cmdOverride) setInput(cmdOverride);
+    if (!input.trim() || isProcessing) return;
 
     setIsProcessing(true);
-    setResponse(null);
-    addLog(`USER COMMAND: "${cmd}"`);
-
-    // Simulate Moltbot Planning Phase
-    const activeSkills = skills.filter(s => s.active).map(s => s.name).join(', ');
+    addLog(`Operator Input: "${input}"`, 'info');
     
-    setTimeout(() => addLog(`Analyzing via Moltbot Core...`), 400);
-    setTimeout(() => addLog(`Checking capabilities: [${activeSkills}]`), 800);
+    // Simulate thinking process
+    setTimeout(() => {
+        setVisualStream(prev => [...prev, "Analysing Intent..."]);
+        addLog("Deconstructing Logic via FPT...", 'warn');
+    }, 500);
 
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const apiKey = (typeof process !== 'undefined' && process.env?.API_KEY) || 
+                     ((window as any).process?.env?.API_KEY);
+      
+      if (!apiKey) throw new Error("Neural Credentials Missing");
+
+      const ai = new GoogleGenAI({ apiKey });
       const res = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
-        contents: `You are the Moltbot Personal Assistant.
-        USER: "${cmd}"
-        ACTIVE SKILLS: ${activeSkills}
+        contents: `You are NOEsis, a high-functioning Desktop Orchestrator.
+        USER: "${input}"
         
-        1. Formulate a technical plan to execute this on the local machine.
-        2. Provide a short, robotic confirmation.
+        1. Analyze the request.
+        2. Determine which modules (Vision, Audio, Driver) are needed.
+        3. Provide a tactical response.
         
-        Return valid JSON: { "plan": ["step 1", "step 2"], "response": "text" }`,
+        Output format: JSON { "modules": ["vis_cortex"], "action": "Scanning...", "response": "text" }`,
         config: { responseMimeType: 'application/json' }
       });
 
       const data = JSON.parse(res.text || '{}');
-      
-      if (data.plan) {
-        data.plan.forEach((step: string, i: number) => {
-            setTimeout(() => addLog(`EXEC: ${step}`), 1200 + (i * 600));
-        });
-      }
-      setResponse(data.response || "Task initiated.");
-      if (!cmdOverride) setInput('');
-    } catch (e) {
-      console.error(e);
-      setResponse("Neural link unstable. Unable to formulate Moltbot plan.");
-      addLog("ERROR: API handshake failed.");
+      setVisualStream(prev => [...prev, `Action: ${data.action}`]);
+      addLog(`Execution Plan: ${data.action}`, 'success');
+      setInput('');
+    } catch (e: any) {
+      addLog(`Neural handshake failed: ${e.message}`, 'warn');
     } finally {
       setTimeout(() => setIsProcessing(false), 2000);
     }
@@ -94,192 +102,187 @@ const PersonalAssistant: React.FC<PersonalAssistantProps> = ({ profile }) => {
 
   return (
     <div className="animate-in fade-in duration-1000 max-w-7xl mx-auto pb-40">
-      <NeuralVoiceArchitect 
-        isOpen={isVoiceOpen} 
-        onClose={() => setIsVoiceOpen(false)} 
-        onResult={(res) => handleCommand(undefined, res)} 
-        agentType="DeepAgent"
-        autoStart={true}
+      <VoiceAgent 
+        isActive={isVoiceActive}
+        agentName="NOEsis Prime"
+        systemInstruction={`You are NOEsis, a hyper-intelligent Desktop Orchestrator. You control the user's digital environment. You are precise, high-bandwidth, and multimodal. Address the operator as ${profile.callsign}.`}
+        onClose={() => setIsVoiceActive(false)}
+        profile={profile}
+        enabledSkills={['search', 'calendar', 'docs', 'drive']}
+        voiceName="Fenrir"
       />
 
-      <header className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-rose-500/20 pb-8">
+      {/* Header */}
+      <header className="flex flex-col md:flex-row items-end justify-between gap-8 mb-12 border-b border-slate-800 pb-8">
         <div>
           <div className="flex items-center space-x-3 mb-4">
-             <div className="bg-rose-600 text-white text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-md">Moltbot V2</div>
-             <a href="https://github.com/Jeffguys/moltbot" target="_blank" rel="noreferrer" className="text-slate-500 hover:text-rose-400 text-[10px] font-bold uppercase tracking-widest flex items-center space-x-1 transition-colors">
-                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
-                <span>Jeffguys/Moltbot</span>
-             </a>
+             <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-black uppercase tracking-[0.3em] px-3 py-1.5 rounded-lg flex items-center gap-2">
+                <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
+                System Nominal
+             </div>
+             <div className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Uptime: 42:19:03</div>
           </div>
-          <h1 className="text-5xl font-outfit font-black text-white uppercase tracking-tighter italic">Desktop <span className="text-rose-500">Orchestrator</span></h1>
-          <p className="text-slate-500 font-bold uppercase tracking-[0.4em] text-[10px] mt-2">Local Computer Agency Dashboard</p>
+          <h1 className="text-6xl font-outfit font-black text-white uppercase tracking-tighter italic">NOEsis <span className="quantum-gradient-text">Agent</span></h1>
+          <p className="text-slate-500 font-bold uppercase tracking-[0.4em] text-[10px] mt-2">Neural Operational Engine &bull; Sovereign Instance</p>
         </div>
         
-        <div className="flex items-center space-x-6">
-           <div className="text-right">
-              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Operator</p>
-              <p className="text-white font-bold">{profile.callsign}</p>
-           </div>
-           <div className="text-right">
-              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">System Load</p>
-              <div className="flex items-center space-x-2">
-                 <div className="w-16 h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                    <div className="h-full bg-rose-500 animate-pulse w-[40%]"></div>
-                 </div>
-              </div>
-           </div>
+        <div className="flex items-center gap-4">
+           <button 
+             onClick={() => setIsVoiceActive(true)}
+             className="group relative px-8 py-4 bg-slate-900 border-2 border-emerald-500/30 hover:border-emerald-500 text-emerald-400 rounded-2xl transition-all shadow-[0_0_30px_rgba(16,185,129,0.1)] hover:shadow-[0_0_50px_rgba(16,185,129,0.3)] overflow-hidden"
+           >
+             <div className="absolute inset-0 bg-emerald-500/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+             <div className="flex items-center space-x-3 relative z-10">
+               <svg className="w-5 h-5 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
+               <span className="text-[11px] font-black uppercase tracking-widest">Initialize Voice Link</span>
+             </div>
+           </button>
         </div>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 h-[600px]">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 h-[700px]">
         
-        {/* LEFT: System Status & Logs */}
+        {/* LEFT: Modules & Telemetry */}
         <div className="lg:col-span-3 flex flex-col gap-6">
-           <div className="glass-card p-6 rounded-[2rem] border-rose-500/20 bg-rose-500/5">
-              <h3 className="text-[10px] font-black text-rose-400 uppercase tracking-[0.3em] mb-4">Core Telemetry</h3>
-              <div className="space-y-4">
-                 <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold text-slate-400">VISION</span>
-                    <span className="text-[10px] font-mono text-emerald-400">ACTIVE</span>
+           <div className="glass-card p-6 rounded-[2.5rem] border-slate-800 bg-slate-900/20">
+              <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-6">Neural Telemetry</h3>
+              <div className="space-y-6">
+                 <div>
+                    <div className="flex justify-between mb-2 text-[9px] font-black uppercase tracking-widest text-slate-400">
+                       <span>Vision Latency</span>
+                       <span className="text-emerald-400">{Math.round(visionLatency)}ms</span>
+                    </div>
+                    <div className="h-1 bg-slate-800 rounded-full overflow-hidden">
+                       <div className="h-full bg-emerald-500 transition-all duration-500" style={{width: `${(visionLatency/50)*100}%`}}></div>
+                    </div>
                  </div>
-                 <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold text-slate-400">HID LINK</span>
-                    <span className="text-[10px] font-mono text-emerald-400">CONNECTED</span>
-                 </div>
-                 <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold text-slate-400">LATENCY</span>
-                    <span className="text-[10px] font-mono text-white">24ms</span>
+                 <div>
+                    <div className="flex justify-between mb-2 text-[9px] font-black uppercase tracking-widest text-slate-400">
+                       <span>Memory Buffer</span>
+                       <span className="text-orange-400">{Math.round(memoryUsage)}%</span>
+                    </div>
+                    <div className="h-1 bg-slate-800 rounded-full overflow-hidden">
+                       <div className="h-full bg-orange-500 transition-all duration-500" style={{width: `${memoryUsage}%`}}></div>
+                    </div>
                  </div>
               </div>
            </div>
 
-           <div className="glass-card flex-1 p-6 rounded-[2rem] border-slate-800 bg-[#020617] flex flex-col overflow-hidden">
-              <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-4">Moltbot Terminal</h3>
-              <div className="flex-1 overflow-y-auto custom-scrollbar font-mono text-[9px] space-y-2 text-slate-300">
-                 {systemLog.map((log, i) => (
-                   <div key={i} className="break-words border-l-2 border-slate-800 pl-2 opacity-80 hover:opacity-100">
-                     {log}
+           <div className="flex-1 glass-card p-6 rounded-[2.5rem] border-slate-800 bg-[#020617] flex flex-col overflow-hidden">
+              <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-4">Module Status</h3>
+              <div className="flex-1 space-y-3 overflow-y-auto custom-scrollbar pr-2">
+                 {modules.map(mod => (
+                   <div key={mod.id} className="p-4 bg-slate-900/50 border border-slate-800 rounded-2xl flex items-center justify-between group hover:border-emerald-500/30 transition-all">
+                      <div className="flex items-center space-x-3">
+                         <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${mod.status === 'active' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-slate-800 text-slate-600'}`}>
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={mod.icon} /></svg>
+                         </div>
+                         <div>
+                            <div className="text-[10px] font-bold text-white uppercase">{mod.name}</div>
+                            <div className="text-[8px] font-mono text-slate-500">{mod.category.toUpperCase()}</div>
+                         </div>
+                      </div>
+                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_5px_#10b981]"></div>
                    </div>
                  ))}
-                 {isProcessing && <div className="animate-pulse text-rose-400">{'>>'} PROCESSING_LOGIC_CHAIN...</div>}
               </div>
            </div>
         </div>
 
-        {/* CENTER: Main Command Interface */}
+        {/* CENTER: Main Orchestrator Interface */}
         <div className="lg:col-span-6 flex flex-col">
-           <div className="glass-card flex-1 p-8 rounded-[3rem] border-rose-500/20 bg-black/40 relative overflow-hidden shadow-[0_0_50px_rgba(244,63,94,0.05)] flex flex-col">
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-rose-500 to-transparent"></div>
+           <div className="glass-card flex-1 p-1 rounded-[3rem] border-emerald-500/20 bg-black/40 relative overflow-hidden shadow-2xl flex flex-col group">
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-emerald-500 to-transparent opacity-50"></div>
               
-              {/* Visual Feed Simulation */}
-              <div className="h-48 bg-slate-900/50 rounded-3xl border border-slate-800 mb-6 relative overflow-hidden group">
-                 <div className="absolute inset-0 flex items-center justify-center opacity-30 group-hover:opacity-50 transition-opacity">
-                    <svg className="w-16 h-16 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+              {/* Vision Stream */}
+              <div className="flex-1 bg-slate-950 rounded-[2.8rem] relative overflow-hidden m-2 border border-slate-800">
+                 <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072&auto=format&fit=crop')] bg-cover bg-center opacity-20 mix-blend-screen grayscale group-hover:grayscale-0 transition-all duration-1000"></div>
+                 <div className="absolute inset-0 bg-gradient-to-t from-[#020617] via-transparent to-transparent"></div>
+                 
+                 {/* HUD Elements */}
+                 <div className="absolute top-8 left-8 flex flex-col gap-2">
+                    <div className="px-3 py-1 bg-black/50 backdrop-blur border border-emerald-500/30 rounded text-[9px] font-mono text-emerald-400 uppercase">
+                       VISUAL_FEED :: ACTIVE
+                    </div>
+                    <div className="px-3 py-1 bg-black/50 backdrop-blur border border-slate-700 rounded text-[9px] font-mono text-slate-400 uppercase">
+                       TARGET :: DESKTOP
+                    </div>
                  </div>
-                 <div className="absolute top-4 left-4 px-2 py-1 bg-black/60 rounded text-[8px] font-mono text-rose-400 border border-rose-500/30">LIVE FEED: IDLE</div>
-                 <div className="absolute bottom-0 left-0 w-full h-px bg-rose-500/50 animate-[scan_2s_linear_infinite]"></div>
+
+                 {/* Center Graphic */}
+                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div className="relative">
+                       <div className="w-64 h-64 border border-emerald-500/10 rounded-full animate-[spin_10s_linear_infinite]"></div>
+                       <div className="absolute inset-0 w-48 h-48 border border-emerald-500/20 rounded-full m-auto animate-[spin_15s_linear_infinite_reverse]"></div>
+                       <div className="absolute inset-0 w-32 h-32 bg-emerald-500/5 rounded-full m-auto backdrop-blur-sm flex items-center justify-center border border-emerald-500/30">
+                          <svg className="w-12 h-12 text-emerald-500 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
+                       </div>
+                    </div>
+                 </div>
+
+                 {/* Logic Stream Overlay */}
+                 <div className="absolute bottom-8 left-8 right-8 space-y-2">
+                    {visualStream.slice(-3).map((line, i) => (
+                       <div key={i} className="text-[10px] font-mono text-emerald-400/80 bg-black/60 px-3 py-1 rounded w-fit animate-in slide-in-from-bottom-2">
+                          {line}
+                       </div>
+                    ))}
+                 </div>
               </div>
 
-              {/* Response Area */}
-              <div className="flex-1 mb-6 flex flex-col justify-end">
-                 {response ? (
-                   <div className="p-6 bg-rose-500/10 border border-rose-500/30 rounded-3xl animate-in zoom-in-95">
-                      <p className="text-[10px] font-black text-rose-400 uppercase tracking-widest mb-2">Moltbot Response</p>
-                      <p className="text-white text-lg font-medium italic leading-relaxed">"{response}"</p>
-                   </div>
-                 ) : (
-                   <div className="text-center opacity-40">
-                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em]">Awaiting Instruction</p>
-                   </div>
-                 )}
-              </div>
-
-              {/* Input Area */}
-              <div className="relative">
+              {/* Input Command Line */}
+              <div className="p-6 relative">
                  <input 
                    value={input}
                    onChange={(e) => setInput(e.target.value)}
                    onKeyDown={(e) => e.key === 'Enter' && handleCommand(e)}
-                   placeholder="Command the Moltbot Core..."
-                   className="w-full bg-slate-950 border-2 border-slate-800 rounded-[2rem] py-6 pl-8 pr-32 text-white font-outfit text-lg focus:border-rose-500 focus:outline-none transition-all shadow-inner"
+                   placeholder="Inject command into NOEsis cortex..."
+                   className="w-full bg-slate-900/50 border border-slate-700 rounded-2xl py-5 pl-6 pr-20 text-white font-mono text-sm focus:border-emerald-500 focus:bg-slate-900 transition-all outline-none"
                  />
-                 <div className="absolute right-3 top-1/2 -translate-y-1/2 flex space-x-2">
-                    <button 
-                      onClick={() => setIsVoiceOpen(true)}
-                      className="w-10 h-10 rounded-full bg-slate-900 border border-slate-800 text-slate-400 hover:text-rose-400 hover:border-rose-500/50 flex items-center justify-center transition-all"
-                    >
-                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
-                    </button>
-                    <button 
-                      onClick={(e) => handleCommand(e)}
-                      disabled={!input.trim() || isProcessing}
-                      className={`w-10 h-10 rounded-full flex items-center justify-center transition-all shadow-lg ${isProcessing ? 'bg-slate-800 cursor-wait' : 'bg-rose-600 text-white hover:bg-rose-500'}`}
-                    >
-                       {isProcessing ? (
-                         <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                       ) : (
-                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 10l7-7m0 0l7 7m-7-7v18" /></svg>
-                       )}
-                    </button>
-                 </div>
+                 <button 
+                   onClick={(e) => handleCommand(e)}
+                   disabled={!input.trim() || isProcessing}
+                   className="absolute right-8 top-1/2 -translate-y-1/2 text-slate-500 hover:text-emerald-400 transition-colors"
+                 >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" /></svg>
+                 </button>
               </div>
            </div>
         </div>
 
-        {/* RIGHT: ClawdHub Skills */}
+        {/* RIGHT: System Log */}
         <div className="lg:col-span-3 flex flex-col">
-           <div className="glass-card flex-1 p-6 rounded-[2.5rem] border-slate-800 bg-slate-900/20 flex flex-col">
-              <div className="flex items-center justify-between mb-6">
-                 <h3 className="text-[10px] font-black text-white uppercase tracking-[0.3em]">ClawdHub Skills</h3>
-                 <a href="https://clawdhub.com" target="_blank" rel="noreferrer" className="text-[9px] font-bold text-rose-400 hover:underline">Visit Store</a>
+           <div className="glass-card flex-1 p-8 rounded-[2.5rem] border-slate-800 bg-slate-950 flex flex-col relative overflow-hidden">
+              <div className="absolute top-0 right-0 p-6 opacity-20">
+                 <svg className="w-24 h-24 text-emerald-900" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
               </div>
+              <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-6">System Log</h3>
               
-              <div className="flex-1 overflow-y-auto custom-scrollbar space-y-4 pr-1">
-                 {skills.map(skill => (
-                   <div 
-                     key={skill.id} 
-                     className={`p-4 rounded-2xl border transition-all ${skill.active ? 'bg-slate-800 border-rose-500/30' : 'bg-slate-950 border-slate-800 opacity-60'}`}
-                   >
-                      <div className="flex items-center justify-between mb-2">
-                         <div className="flex items-center space-x-3">
-                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${skill.active ? 'bg-rose-500 text-white' : 'bg-slate-900 text-slate-600'}`}>
-                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={skill.icon} /></svg>
-                            </div>
-                            <div>
-                               <p className="text-xs font-bold text-white uppercase">{skill.name}</p>
-                               <p className="text-[8px] text-slate-500 font-mono">v{skill.version}</p>
-                            </div>
-                         </div>
-                         <button 
-                           onClick={() => toggleSkill(skill.id)}
-                           className={`w-8 h-4 rounded-full relative transition-colors ${skill.active ? 'bg-rose-500' : 'bg-slate-700'}`}
-                         >
-                            <div className={`absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-transform ${skill.active ? 'translate-x-4' : 'translate-x-0'}`}></div>
-                         </button>
-                      </div>
-                      <p className="text-[9px] text-slate-400 leading-relaxed">{skill.description}</p>
+              <div className="flex-1 overflow-y-auto custom-scrollbar font-mono text-[9px] space-y-3 relative z-10">
+                 {logs.map((log, i) => (
+                   <div key={i} className={`pl-3 border-l-2 py-1 leading-relaxed ${
+                     log.includes('INFO') ? 'border-slate-700 text-slate-400' :
+                     log.includes('WARN') ? 'border-orange-500 text-orange-300' :
+                     'border-emerald-500 text-emerald-300'
+                   }`}>
+                     {log}
                    </div>
                  ))}
-                 
-                 <div className="p-4 border-2 border-dashed border-slate-800 rounded-2xl text-center">
-                    <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest mb-2">More Skills Available</p>
-                    <a href="https://clawdhub.com" target="_blank" rel="noreferrer" className="text-[9px] font-bold text-rose-500 hover:text-white transition-colors">Browse Marketplace &rarr;</a>
+                 <div className="h-4"></div>
+              </div>
+
+              <div className="mt-6 pt-6 border-t border-slate-800">
+                 <div className="flex justify-between items-center text-[8px] font-black uppercase tracking-widest text-slate-600">
+                    <span>Protocol: Secure</span>
+                    <span>Enc: AES-256</span>
                  </div>
               </div>
            </div>
         </div>
 
       </div>
-      
-      <style>{`
-        @keyframes scan {
-          0% { top: 0%; opacity: 0; }
-          50% { opacity: 1; }
-          100% { top: 100%; opacity: 0; }
-        }
-      `}</style>
     </div>
   );
 };
 
-export default PersonalAssistant;
+export default NOEsisAgent;

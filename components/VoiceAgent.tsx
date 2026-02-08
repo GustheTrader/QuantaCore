@@ -176,7 +176,15 @@ export const VoiceAgent: React.FC<VoiceAgentProps> = ({
       setCurrentOutput('');
       
       try {
-        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        // Safe API Key Retrieval
+        const apiKey = (typeof process !== 'undefined' && process.env?.API_KEY) || 
+                       ((window as any).process?.env?.API_KEY);
+        
+        if (!apiKey) {
+          throw new Error("API Key not detected. Please verify Neural Link credentials.");
+        }
+
+        const ai = new GoogleGenAI({ apiKey });
         const inputCtx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
         const outputCtx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
         audioContextRef.current = outputCtx;
@@ -201,7 +209,6 @@ export const VoiceAgent: React.FC<VoiceAgentProps> = ({
         }
 
         const sessionPromise = ai.live.connect({
-          // Updated to correct native audio model per latest guidelines
           model: 'gemini-2.5-flash-native-audio-preview-12-2025',
           config: { 
             responseModalities: [Modality.AUDIO], 
@@ -278,14 +285,15 @@ export const VoiceAgent: React.FC<VoiceAgentProps> = ({
             onclose: () => onClose(),
             onerror: (e) => {
               console.error('Voice error:', e);
-              setConnectionError("Neural bridge synchronization failed.");
+              setConnectionError("Neural bridge synchronization failed. Check API key permissions.");
               setIsConnecting(false);
             },
           }
         });
         sessionRef.current = await sessionPromise;
-      } catch (e) {
-        setConnectionError("Microphone access denied.");
+      } catch (e: any) {
+        console.error("Connection failed", e);
+        setConnectionError(e.message || "Microphone access denied or API Error.");
         setIsConnecting(false);
       }
     };
@@ -316,10 +324,15 @@ export const VoiceAgent: React.FC<VoiceAgentProps> = ({
           <h2 className="text-4xl font-outfit font-black mt-8 uppercase tracking-tighter text-white italic">
             {isConnecting ? 'Syncing...' : connectionError ? 'Sync Failed' : `${agentName}`}
           </h2>
-          <div className="flex items-center space-x-2 mt-2">
-            <div className={`w-2 h-2 rounded-full ${isConnecting ? 'bg-orange-500 animate-pulse' : 'bg-emerald-500 shadow-[0_0_10px_#10b981]'}`}></div>
-            <span className="text-emerald-400 font-black text-[10px] uppercase tracking-[0.4em]">{profile.personality} Active</span>
-          </div>
+          {connectionError && (
+            <p className="text-rose-500 font-bold text-[10px] uppercase tracking-widest mt-2">{connectionError}</p>
+          )}
+          {!connectionError && (
+            <div className="flex items-center space-x-2 mt-2">
+              <div className={`w-2 h-2 rounded-full ${isConnecting ? 'bg-orange-500 animate-pulse' : 'bg-emerald-500 shadow-[0_0_10px_#10b981]'}`}></div>
+              <span className="text-emerald-400 font-black text-[10px] uppercase tracking-[0.4em]">{profile.personality} Active</span>
+            </div>
+          )}
         </div>
 
         <div className="flex-1 w-full max-w-2xl overflow-y-auto custom-scrollbar space-y-6 my-10 px-6 py-4 bg-slate-900/20 rounded-[2.5rem] border border-slate-800/50 shadow-inner">

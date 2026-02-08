@@ -8,6 +8,7 @@ import { NeuralOptimizationWindow } from './NeuralOptimizationWindow';
 import { ActionHub } from './ActionHub';
 import { ContextOptimizerBar } from './ContextOptimizerBar';
 import { FPTOverlay } from './FPTOverlay';
+import { ContextOptimizerModal } from './ContextOptimizerModal';
 import { syncChatHistoryToSupabase, fetchChatHistoryFromSupabase } from '../services/supabaseService';
 
 interface ChatInterfaceProps {
@@ -16,7 +17,7 @@ interface ChatInterfaceProps {
 
 const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile }) => {
   const location = useLocation();
-  const activeAgent = (location.state as { agent?: string } | null)?.agent || "Quanta Core";
+  const activeAgent = (location.state as any)?.agent || "Quanta Core";
   const storageKey = `quanta_chat_history_${activeAgent.replace(/\s+/g, '_').toLowerCase()}`;
   
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -34,6 +35,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile }) => {
   const [isAmbientActive, setIsAmbientActive] = useState(false);
   const [useFPT, setUseFPT] = useState(false); // First Principles Toggle
   const [showFPTOverlay, setShowFPTOverlay] = useState(false);
+  const [showOptimizerModal, setShowOptimizerModal] = useState(false);
   const [expandedAudits, setExpandedAudits] = useState<Record<number, boolean>>({});
   
   const [agentConfig, setAgentConfig] = useState<{ prompt: string | null, skills: string[] }>({ prompt: null, skills: ['search'] });
@@ -83,35 +85,27 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile }) => {
 
   useEffect(() => {
     syncHistory();
-    try {
-      const savedConfigs = JSON.parse(localStorage.getItem('quanta_agent_configs') || '{}');
-      if (savedConfigs[activeAgent]) {
-        setAgentConfig({
-          prompt: savedConfigs[activeAgent].prompt,
-          skills: savedConfigs[activeAgent].skills || ['search']
-        });
-      }
-    } catch (e) {
-      console.error('Failed to parse agent configs:', e);
+    const savedConfigs = JSON.parse(localStorage.getItem('quanta_agent_configs') || '{}');
+    if (savedConfigs[activeAgent]) {
+      setAgentConfig({ 
+        prompt: savedConfigs[activeAgent].prompt, 
+        skills: savedConfigs[activeAgent].skills || ['search'] 
+      });
     }
-
+    
     const savedProvider = localStorage.getItem('quanta_preferred_provider');
     if (savedProvider) setComputeProvider(savedProvider as ComputeProvider);
 
-    try {
-      const savedSources = localStorage.getItem('quanta_notebook');
-      if (savedSources) {
-        const sources: SourceNode[] = JSON.parse(savedSources);
-        const relevantCount = sources.filter(m =>
-          !m.assignedAgents ||
-          m.assignedAgents.length === 0 ||
-          m.assignedAgents.includes(activeAgent) ||
-          m.assignedAgents.includes("All Agents")
-        ).length;
-        setActiveContextCount(relevantCount);
-      }
-    } catch (e) {
-      console.error('Failed to parse notebook sources:', e);
+    const savedSources = localStorage.getItem('quanta_notebook');
+    if (savedSources) {
+      const sources: SourceNode[] = JSON.parse(savedSources);
+      const relevantCount = sources.filter(m => 
+        !m.assignedAgents || 
+        m.assignedAgents.length === 0 || 
+        m.assignedAgents.includes(activeAgent) || 
+        m.assignedAgents.includes("All Agents")
+      ).length;
+      setActiveContextCount(relevantCount);
     }
 
     window.addEventListener('storage', syncHistory);
@@ -122,8 +116,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile }) => {
   }, [activeAgent, storageKey]);
 
   const startAmbient = () => {
-    const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-    if (!ambientAudioCtx.current) ambientAudioCtx.current = new AudioCtx();
+    if (!ambientAudioCtx.current) ambientAudioCtx.current = new (window.AudioContext || (window as any).webkitAudioContext)();
     if (ambientAudioCtx.current.state === 'suspended') ambientAudioCtx.current.resume();
     const ctx = ambientAudioCtx.current;
     const gainNode = ctx.createGain();
@@ -149,18 +142,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile }) => {
       const ctx = ambientAudioCtx.current;
       ambientGain.current.gain.linearRampToValueAtTime(0, ctx.currentTime + 1);
       setTimeout(() => {
-        ambientOscillators.current.forEach(osc => {
-          try { osc.stop(); osc.disconnect(); } catch(e) { /* already stopped */ }
-        });
+        ambientOscillators.current.forEach(osc => { try { osc.stop(); } catch(e) {} });
         ambientOscillators.current = [];
-        if (ambientGain.current) {
-          ambientGain.current.disconnect();
-          ambientGain.current = null;
-        }
-        if (ambientAudioCtx.current) {
-          ambientAudioCtx.current.close().catch(() => {});
-          ambientAudioCtx.current = null;
-        }
         setIsAmbientActive(false);
       }, 1100);
     } else {
@@ -258,13 +241,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile }) => {
       if (reflection.suggestedPrompt && reflection.score < 4) {
         const updatedPrompt = reflection.suggestedPrompt;
         setAgentConfig(prev => ({ ...prev, prompt: updatedPrompt }));
-        try {
-          const savedConfigs = JSON.parse(localStorage.getItem('quanta_agent_configs') || '{}');
-          savedConfigs[activeAgent] = { ...savedConfigs[activeAgent], prompt: updatedPrompt };
-          localStorage.setItem('quanta_agent_configs', JSON.stringify(savedConfigs));
-        } catch (e) {
-          console.error('Failed to save agent config:', e);
-        }
+        const savedConfigs = JSON.parse(localStorage.getItem('quanta_agent_configs') || '{}');
+        savedConfigs[activeAgent] = { ...savedConfigs[activeAgent], prompt: updatedPrompt };
+        localStorage.setItem('quanta_agent_configs', JSON.stringify(savedConfigs));
       }
     } catch (e) { console.error(e); } finally { setIsReflecting(false); }
   };
@@ -272,20 +251,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile }) => {
   const switchProvider = (p: ComputeProvider) => {
     setComputeProvider(p);
     localStorage.setItem('quanta_preferred_provider', p);
-  };
-
-  const toggleSearchSkill = () => {
-    const newSkills = agentConfig.skills.includes('search')
-      ? agentConfig.skills.filter(s => s !== 'search')
-      : [...agentConfig.skills, 'search'];
-    setAgentConfig(prev => ({ ...prev, skills: newSkills }));
-    try {
-      const savedConfigs = JSON.parse(localStorage.getItem('quanta_agent_configs') || '{}');
-      savedConfigs[activeAgent] = { ...savedConfigs[activeAgent], skills: newSkills };
-      localStorage.setItem('quanta_agent_configs', JSON.stringify(savedConfigs));
-    } catch (e) {
-      console.error('Failed to save skill config:', e);
-    }
   };
 
   const toggleAudit = (index: number) => {
@@ -303,6 +268,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile }) => {
     <div className="flex flex-col h-[calc(100vh-160px)] glass-card rounded-[3rem] overflow-hidden shadow-2xl animate-in slide-in-from-bottom-4 duration-700 relative border-emerald-500/20">
       <VoiceAgent isActive={isVoiceActive} agentName={activeAgent} systemInstruction={agentConfig.prompt || `You are ${activeAgent}.`} onClose={() => setIsVoiceActive(false)} profile={profile} />
       <FPTOverlay isOpen={showFPTOverlay} onClose={() => setShowFPTOverlay(false)} />
+      <ContextOptimizerModal isOpen={showOptimizerModal} onClose={() => setShowOptimizerModal(false)} initialText={input} onInsert={setInput} />
       
       <NeuralOptimizationWindow 
         isOpen={isNeuralLinkActive} 
@@ -471,8 +437,17 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile }) => {
             onApply={handleApplyOptimization}
           />
           
-          <form onSubmit={handleSubmit} className="flex items-center space-x-6">
-            <div className={`flex-1 bg-[#020617] border rounded-full py-2 px-10 shadow-inner group transition-all focus-within:border-emerald-500/40 ${useFPT ? 'border-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.1)]' : 'border-emerald-500/20'}`}>
+          <form onSubmit={handleSubmit} className="flex items-center space-x-6 relative">
+            <button 
+              type="button" 
+              onClick={() => setShowOptimizerModal(true)}
+              className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400 hover:text-white hover:bg-indigo-500 hover:shadow-[0_0_15px_#6366f1] transition-all z-10"
+              title="Open Context Refinery"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
+            </button>
+
+            <div className={`flex-1 bg-[#020617] border rounded-full py-2 pl-16 pr-10 shadow-inner group transition-all focus-within:border-emerald-500/40 ${useFPT ? 'border-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.1)]' : 'border-emerald-500/20'}`}>
               <input 
                 type="text" 
                 value={input} 

@@ -34,6 +34,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, onLogout, track, p
     { name: 'Deep Agent', icon: 'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z', path: '/deep-agent' },
     { name: 'Deep Diver', icon: 'M19 14l-7 7m0 0l-7-7m7 7V3', path: '/deep-diver' },
     { name: 'Agent Zero', icon: 'M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4', path: '/agent-zero' },
+    { name: 'Edge Mech Network', icon: 'M13 10V3L4 14h7v7l9-11h-7z', path: '/edge-mech' }, // Reusing bolt icon but will style red
     { name: 'SME Council', icon: 'M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2', path: '/council' },
     { name: 'Projects', icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 v2M7 7h10', path: '/projects' },
     { name: 'Sovereign Knowledge', icon: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5', path: '/notebook' },
@@ -46,29 +47,50 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, onLogout, track, p
     const isActive = location.pathname === item.path;
     const isOrange = ['SME Council', 'Projects', 'Deep Agent', 'Deep Diver', 'Neural Settings', 'MCP Connectors', 'Cinematic Forge', 'Agent Zero', 'Personal Assistant', 'Unified Gateway'].includes(item.name);
     const isCyan = item.name === 'Deep Diver';
+    const isRed = item.name === 'Edge Mech Network';
     const isAssistant = item.name === 'Personal Assistant';
     
+    // Default Styling
+    let activeClass = 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.1)]';
+    let iconClass = 'text-emerald-400';
+    let dotClass = 'bg-emerald-400';
+    let textHoverClass = 'group-hover:text-emerald-400';
+
+    if (isCyan) {
+        activeClass = 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30 shadow-[0_0_20px_rgba(6,182,212,0.1)]';
+        iconClass = 'text-cyan-400';
+        dotClass = 'bg-cyan-400';
+    } else if (isAssistant) {
+        activeClass = 'bg-rose-500/10 text-rose-400 border-rose-500/30 shadow-[0_0_20px_rgba(244,63,94,0.1)]';
+        iconClass = 'text-rose-400';
+        dotClass = 'bg-rose-400';
+    } else if (isRed) {
+        activeClass = 'bg-red-600/10 text-red-500 border-red-500/30 shadow-[0_0_20px_rgba(239,68,68,0.15)]';
+        iconClass = 'text-red-500';
+        dotClass = 'bg-red-500';
+        textHoverClass = 'group-hover:text-red-500';
+    } else if (isOrange) {
+        activeClass = 'text-orange-400 border-orange-500/10 bg-orange-500/5';
+        iconClass = 'text-orange-400';
+    }
+
     return (
       <Link
         key={item.name}
         to={item.path}
         className={`flex items-center p-2.5 rounded-xl transition-all group relative border ${
           isActive 
-            ? (isCyan ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30 shadow-[0_0_20px_rgba(6,182,212,0.1)]' : isAssistant ? 'bg-rose-500/10 text-rose-400 border-rose-500/30 shadow-[0_0_20px_rgba(244,63,94,0.1)]' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.1)]')
-            : isCyan
-              ? 'text-cyan-400/70 hover:text-cyan-400 border-cyan-500/10 bg-cyan-500/5'
-              : isAssistant
-                ? 'text-rose-400/70 hover:text-rose-400 border-rose-500/10 bg-rose-500/5'
-                : isOrange
-                  ? 'text-orange-400/70 hover:text-orange-400 border-orange-500/10 bg-orange-500/5'
-                  : 'text-slate-500 hover:bg-slate-800/50 hover:text-slate-200 border-transparent'
+            ? activeClass
+            : isRed 
+              ? 'text-red-900/70 hover:text-red-500 border-transparent hover:bg-red-900/10'
+              : 'text-slate-500 hover:bg-slate-800/50 hover:text-slate-200 border-transparent'
         }`}
       >
-        <svg className={`w-5 h-5 min-w-[20px] ${isActive ? (isCyan ? 'text-cyan-400' : isAssistant ? 'text-rose-400' : 'text-emerald-400') : isCyan ? 'text-cyan-400' : isAssistant ? 'text-rose-400' : isOrange ? 'text-orange-400' : 'text-slate-600 group-hover:text-emerald-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className={`w-5 h-5 min-w-[20px] ${isActive ? iconClass : isRed ? 'text-red-900/80 group-hover:text-red-500' : 'text-slate-600 ' + textHoverClass}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d={item.icon} />
         </svg>
-        {isOpen && <span className={`ml-3 font-black text-[11px] tracking-[0.1em] uppercase transition-all whitespace-nowrap ${isCyan ? 'text-cyan-100' : isAssistant ? 'text-rose-100' : isOrange ? 'text-orange-100' : ''}`}>{item.name}</span>}
-        {isActive && isOpen && <div className={`absolute right-2.5 w-1 h-1 rounded-full shadow-[0_0_8px_currentColor] ${isCyan ? 'bg-cyan-400' : isAssistant ? 'bg-rose-400' : 'bg-emerald-400'}`}></div>}
+        {isOpen && <span className={`ml-3 font-black text-[11px] tracking-[0.1em] uppercase transition-all whitespace-nowrap ${isRed && !isActive ? 'text-red-900 group-hover:text-red-500' : ''}`}>{item.name}</span>}
+        {isActive && isOpen && <div className={`absolute right-2.5 w-1 h-1 rounded-full shadow-[0_0_8px_currentColor] ${dotClass}`}></div>}
       </Link>
     );
   };

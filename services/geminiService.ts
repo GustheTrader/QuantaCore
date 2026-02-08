@@ -1,12 +1,23 @@
 
 import { GoogleGenAI, Type, FunctionDeclaration } from "@google/genai";
-import { SourceNode, ChatMessage, ReflectionResult, ComputeProvider } from "../types";
+import { SourceNode, ChatMessage, ReflectionResult, ComputeProvider, ContextOptimizationData } from "../types";
 import { syncMemoryToSupabase, logReflection, archiveAndActivatePrompt, fetchMemoriesFromSupabase } from "./supabaseService";
 import { chatWithOpenAICompatible } from "./groqService";
 import { deductCloudCredits, checkHasCredits } from "./creditService";
 import { FPT_SYSTEM_PROMPT } from "./fptContent";
+import { createTrace, scoreTrace } from "./langfuseService";
 
-const getAI = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
+const getApiKey = () => {
+  return (typeof process !== 'undefined' && process.env?.API_KEY) || 
+         ((window as any).process?.env?.API_KEY) || 
+         '';
+};
+
+const getAI = () => {
+  const apiKey = getApiKey();
+  if (!apiKey) throw new Error("API Key missing. Please check your configuration.");
+  return new GoogleGenAI({ apiKey });
+};
 
 const gmailTool: FunctionDeclaration = {
   name: "interact_with_gmail",
@@ -26,7 +37,7 @@ const gmailTool: FunctionDeclaration = {
  * SOURCE GROUNDING SERVICE
  * Implementation of NotebookLM-style RAG.
  */
-export const performSourceGrounding = async (query: string, agentName: string): Promise<{ context: string, citations: { sourceId: string; sourceTitle: string; snippet: string }[] }> => {
+export const performSourceGrounding = async (query: string, agentName: string): Promise<{ context: string, citations: any[] }> => {
   try {
     const memories = await fetchMemoriesFromSupabase({ agentName });
     if (!memories || memories.length === 0) return { context: "", citations: [] };
@@ -76,7 +87,7 @@ export const performSourceGrounding = async (query: string, agentName: string): 
 };
 
 export const getSMEContext = async (agentName: string, profile?: { name: string, callsign: string, personality: string }, query?: string) => {
-  let groundingData: { context: string; citations: { sourceId: string; sourceTitle: string; snippet: string }[] } = { context: "", citations: [] };
+  let groundingData = { context: "", citations: [] };
   
   if (query) {
     groundingData = await performSourceGrounding(query, agentName);
@@ -133,11 +144,11 @@ export const chatWithSME = async (
   }
 
   const ai = getAI();
-  const tools: Record<string, Record<string, never>>[] = [];
+  const tools: any[] = [];
   if (enabledSkills.includes('search')) tools.push({ googleSearch: {} });
 
   // If FPT is on, we enforce schema. If not, regular text.
-  let config: Record<string, unknown> = {
+  let config: any = {
     tools: tools.length > 0 ? tools : undefined,
     systemInstruction: fullSystemInstruction
   };
@@ -230,22 +241,15 @@ export const distillMemoryFromChat = async (recentMessages: ChatMessage[], agent
         content: data.content,
         category: data.category,
         type: 'distilled',
-        assignedAgents: [agentName, "All Agents"],
+        assignedAgents: [agentName, "All Agents"], 
         timestamp: Date.now()
       };
-      let existing: SourceNode[] = [];
-      try {
-        existing = JSON.parse(localStorage.getItem('quanta_notebook') || "[]");
-      } catch (parseErr) {
-        console.error('Failed to parse notebook from localStorage:', parseErr);
-      }
+      const existing = JSON.parse(localStorage.getItem('quanta_notebook') || "[]");
       localStorage.setItem('quanta_notebook', JSON.stringify([memory, ...existing]));
       await syncMemoryToSupabase(memory);
       return memory;
     }
-  } catch (e) {
-    console.error('Memory distillation failed:', e);
-  }
+  } catch (e) {}
   return null;
 };
 
@@ -286,4 +290,54 @@ export const optimizeTasks = async (tasks: string[]) => {
 export const recallRelevantMemories = async (query: string, agentName: string): Promise<string> => {
     const res = await performSourceGrounding(query, agentName);
     return res.context;
+};
+
+// NEW: Langfuse-Traced Context Optimization
+export const optimizeContextWithLangfuse = async (rawInput: string): Promise<ContextOptimizationData> => {
+  const ai = getAI();
+  const trace = createTrace("Context Optimization", ["context-optimizer", "user-tool"]);
+  const startTime = Date.now();
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: `You are a Context Optimization Engine. Analyze the user's raw thought stream and restructure it into a high-fidelity LLM prompt using the CREATE framework (Character, Request, Examples, Adjustments, Type of Output, Extras).
+      
+      RAW INPUT: "${rawInput}"
+      
+      Identify any missing information that would make the prompt ambiguous.
+      
+      Return JSON:
+      {
+        "optimized": "The fully rewritten, structured prompt",
+        "structure": {
+          "role": "assigned role",
+          "task": "core task",
+          "constraints": ["constraint 1", "constraint 2"],
+          "context": "clarified context"
+        },
+        "missingInfo": ["What is the tone?", "Who is the audience?"],
+        "reasoning": "Explanation of changes made"
+      }`,
+      config: { responseMimeType: 'application/json' }
+    });
+
+    const latency = Date.now() - startTime;
+    const data = JSON.parse(response.text || '{}');
+    
+    scoreTrace(trace.id, "context-quality", 1, "Successful restructuring");
+
+    return {
+      original: rawInput,
+      optimized: data.optimized || rawInput,
+      structure: data.structure || { role: "General", task: "Unknown", constraints: [], context: "" },
+      missingInfo: data.missingInfo || [],
+      traceId: trace.id,
+      latency: latency
+    };
+  } catch (e: any) {
+    console.error("Optimization failed", e);
+    scoreTrace(trace.id, "context-quality", 0, e.message);
+    throw e;
+  }
 };

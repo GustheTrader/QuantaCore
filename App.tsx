@@ -1,3 +1,4 @@
+
 import React, { Component, useState, useEffect, ErrorInfo, ReactNode } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
@@ -6,6 +7,7 @@ import ChatInterface from './components/ChatInterface';
 import DeepAgent from './components/DeepAgent';
 import DeepDiverAgent from './components/DeepDiverAgent';
 import AgentZero from './components/AgentZero';
+import EdgeMechNetwork from './components/EdgeMechNetwork';
 import ImageGenerator from './components/ImageGenerator';
 import VideoGenerator from './components/VideoGenerator';
 import TaskBoard from './components/TaskBoard';
@@ -179,6 +181,7 @@ const App: React.FC = () => {
                     <Route path="/deep-agent" element={<DeepAgent />} />
                     <Route path="/deep-diver" element={<DeepDiverAgent />} />
                     <Route path="/agent-zero" element={<AgentZero />} />
+                    <Route path="/edge-mech" element={<EdgeMechNetwork />} />
                     <Route path="/council" element={<Council />} />
                     <Route path="/projects" element={<Projects />} />
                     <Route path="/mcp" element={<MCPConnectors />} />

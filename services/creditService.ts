@@ -4,18 +4,14 @@ import { UserCredits } from '../types';
 const STORAGE_KEY = 'quanta_user_credits';
 
 export const getCredits = (): UserCredits => {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      // Migration for existing users
-      if (parsed.visualEnergy === undefined) parsed.visualEnergy = 2000;
-      return parsed;
-    }
-  } catch (e) {
-    console.error('Failed to parse credits from storage:', e);
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) {
+    const parsed = JSON.parse(saved);
+    // Migration for existing users
+    if (parsed.visualEnergy === undefined) parsed.visualEnergy = 2000;
+    return parsed;
   }
-
+  
   const initial: UserCredits = {
     cloudTokens: 10000,
     deepAgentTokens: 5000,
@@ -52,16 +48,10 @@ export const deductVisualEnergy = (amount: number = 50) => {
 
 export const checkHasCredits = (type: 'cloud' | 'agent' | 'visual'): boolean => {
   const credits = getCredits();
-
-  try {
-    const settings = JSON.parse(localStorage.getItem('quanta_api_settings') || '{}');
-    // In sovereign mode, user provides their own API keys, so credits don't apply.
-    // Verify they actually have a key configured before bypassing credit check.
-    if (settings.computeMode === 'sovereign' && settings.geminiKey) return true;
-  } catch (e) {
-    console.error('Failed to parse API settings:', e);
-  }
-
+  const settings = JSON.parse(localStorage.getItem('quanta_api_settings') || '{}');
+  
+  if (settings.computeMode === 'sovereign') return true;
+  
   if (type === 'cloud') return credits.cloudTokens > 0;
   if (type === 'agent') return credits.deepAgentTokens > 0;
   return credits.visualEnergy > 0;

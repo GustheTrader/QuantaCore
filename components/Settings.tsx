@@ -43,43 +43,35 @@ const Settings: React.FC = () => {
   
   const [isProbing, setIsProbing] = useState(false);
   const [probeLogs, setProbeLogs] = useState<string[]>([]);
-  const [probeResult, setProbeResult] = useState<Record<string, unknown> | null>(null);
+  const [probeResult, setProbeResult] = useState<any>(null);
 
   useEffect(() => {
-    try {
-      const savedApi = localStorage.getItem('quanta_api_settings');
-      if (savedApi) {
-        const parsed = JSON.parse(savedApi);
-        // Auto-migrate to moonshotai if previous attempts were 404ing or incorrect
-        if (!parsed.novitaModel || parsed.novitaModel === 'deepseek/deepseek-r1' || parsed.novitaModel === 'deepseek/deepseek-v3') {
-          parsed.novitaModel = 'moonshotai/kimi-k2-thinking';
-        }
-        if (!parsed.storage) {
-          parsed.storage = {
-            provider: 'local',
-            supabaseUrl: '',
-            supabaseAnonKey: '',
-            bucketName: 'quanta-vault',
-            syncPrompts: true,
-            syncOutputs: true,
-            localPath: './quanta-backups'
-          };
-        }
-        setSettings(parsed);
+    const savedApi = localStorage.getItem('quanta_api_settings');
+    if (savedApi) {
+      const parsed = JSON.parse(savedApi);
+      // Auto-migrate to moonshotai if previous attempts were 404ing or incorrect
+      if (!parsed.novitaModel || parsed.novitaModel === 'deepseek/deepseek-r1' || parsed.novitaModel === 'deepseek/deepseek-v3') {
+        parsed.novitaModel = 'moonshotai/kimi-k2-thinking';
       }
-    } catch (e) {
-      console.error('Failed to parse API settings:', e);
+      if (!parsed.storage) {
+        parsed.storage = {
+          provider: 'local',
+          supabaseUrl: '',
+          supabaseAnonKey: '',
+          bucketName: 'quanta-vault',
+          syncPrompts: true,
+          syncOutputs: true,
+          localPath: './quanta-backups'
+        };
+      }
+      setSettings(parsed);
     }
 
-    try {
-      const savedCredits = localStorage.getItem('quanta_user_credits');
-      if (savedCredits) {
-        setCredits(JSON.parse(savedCredits));
-      } else {
-        localStorage.setItem('quanta_user_credits', JSON.stringify(credits));
-      }
-    } catch (e) {
-      console.error('Failed to parse credits:', e);
+    const savedCredits = localStorage.getItem('quanta_user_credits');
+    if (savedCredits) {
+      setCredits(JSON.parse(savedCredits));
+    } else {
+      localStorage.setItem('quanta_user_credits', JSON.stringify(credits));
     }
   }, []);
 

@@ -12,10 +12,7 @@ export default defineConfig(({ mode }) => {
       plugins: [react()],
       define: {
         'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-        'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-        'process.env.GROQ_API_KEY': JSON.stringify(env.GROQ_API_KEY),
-        'process.env.NOVITA_API_KEY': JSON.stringify(env.NOVITA_API_KEY),
-        'process.env.SUPABASE_KEY': JSON.stringify(env.SUPABASE_KEY),
+        'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY)
       },
       resolve: {
         alias: {
