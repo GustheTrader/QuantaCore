@@ -19,7 +19,13 @@ export const chatWithOpenAICompatible = async (
 ) => {
   const url = provider === 'local' ? LOCAL_API_URL : GROQ_API_URL;
   // Use user-provided key or fallback to env
-  const apiKey = provider === 'local' ? 'ollama' : (process.env.GROQ_API_KEY || "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");
+  let settings: Record<string, string> = {};
+  try {
+    settings = JSON.parse(localStorage.getItem('quanta_api_settings') || '{}');
+  } catch (e) {
+    console.error('Failed to parse API settings:', e);
+  }
+  const apiKey = provider === 'local' ? 'ollama' : (settings.groqKey || process.env.GROQ_API_KEY || '');
   
   // Selection of premium inference models
   const activeModel = model || (provider === 'local' ? "llama3" : "llama-3.3-70b-versatile");
@@ -48,7 +54,7 @@ export const chatWithOpenAICompatible = async (
     });
 
     if (!response.ok) {
-      const err = await response.json();
+      const err = await response.json().catch(() => ({}));
       throw new Error(err.error?.message || `Inference Engine [${provider.toUpperCase()}] Offline`);
     }
 

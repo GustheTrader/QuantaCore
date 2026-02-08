@@ -26,7 +26,7 @@ const gmailTool: FunctionDeclaration = {
  * SOURCE GROUNDING SERVICE
  * Implementation of NotebookLM-style RAG.
  */
-export const performSourceGrounding = async (query: string, agentName: string): Promise<{ context: string, citations: any[] }> => {
+export const performSourceGrounding = async (query: string, agentName: string): Promise<{ context: string, citations: { sourceId: string; sourceTitle: string; snippet: string }[] }> => {
   try {
     const memories = await fetchMemoriesFromSupabase({ agentName });
     if (!memories || memories.length === 0) return { context: "", citations: [] };
@@ -76,7 +76,7 @@ export const performSourceGrounding = async (query: string, agentName: string): 
 };
 
 export const getSMEContext = async (agentName: string, profile?: { name: string, callsign: string, personality: string }, query?: string) => {
-  let groundingData = { context: "", citations: [] };
+  let groundingData: { context: string; citations: { sourceId: string; sourceTitle: string; snippet: string }[] } = { context: "", citations: [] };
   
   if (query) {
     groundingData = await performSourceGrounding(query, agentName);
@@ -133,11 +133,11 @@ export const chatWithSME = async (
   }
 
   const ai = getAI();
-  const tools: any[] = [];
+  const tools: Record<string, Record<string, never>>[] = [];
   if (enabledSkills.includes('search')) tools.push({ googleSearch: {} });
 
   // If FPT is on, we enforce schema. If not, regular text.
-  let config: any = {
+  let config: Record<string, unknown> = {
     tools: tools.length > 0 ? tools : undefined,
     systemInstruction: fullSystemInstruction
   };
@@ -230,15 +230,22 @@ export const distillMemoryFromChat = async (recentMessages: ChatMessage[], agent
         content: data.content,
         category: data.category,
         type: 'distilled',
-        assignedAgents: [agentName, "All Agents"], 
+        assignedAgents: [agentName, "All Agents"],
         timestamp: Date.now()
       };
-      const existing = JSON.parse(localStorage.getItem('quanta_notebook') || "[]");
+      let existing: SourceNode[] = [];
+      try {
+        existing = JSON.parse(localStorage.getItem('quanta_notebook') || "[]");
+      } catch (parseErr) {
+        console.error('Failed to parse notebook from localStorage:', parseErr);
+      }
       localStorage.setItem('quanta_notebook', JSON.stringify([memory, ...existing]));
       await syncMemoryToSupabase(memory);
       return memory;
     }
-  } catch (e) {}
+  } catch (e) {
+    console.error('Memory distillation failed:', e);
+  }
   return null;
 };
 

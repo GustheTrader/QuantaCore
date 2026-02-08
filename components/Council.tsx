@@ -15,7 +15,7 @@ const Council: React.FC = () => {
   const [debateLog, setDebateLog] = useState<CouncilTurn[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isOptimizing, setIsOptimizing] = useState(false);
-  const [availableAgents, setAvailableAgents] = useState<any[]>([]);
+  const [availableAgents, setAvailableAgents] = useState<{ name: string; icon: string }[]>([]);
   const [expandedAudits, setExpandedAudits] = useState<Record<string, boolean>>({});
   const [activeContextCount, setActiveContextCount] = useState(0);
   
@@ -28,64 +28,82 @@ const Council: React.FC = () => {
   } | null>(null);
   
   const logEndRef = useRef<HTMLDivElement>(null);
-  const [operatorProfile, setOperatorProfile] = useState<any>(null);
+  const [operatorProfile, setOperatorProfile] = useState<{ name: string; callsign: string; personality: string } | null>(null);
 
   useEffect(() => {
-    const sessionStr = localStorage.getItem('quanta_session');
-    if (sessionStr) {
-      const { email, track } = JSON.parse(sessionStr);
-      
-      const savedProfile = localStorage.getItem(`quanta_profile_${email}`);
-      if (savedProfile) setOperatorProfile(JSON.parse(savedProfile));
+    try {
+      const sessionStr = localStorage.getItem('quanta_session');
+      if (sessionStr) {
+        const { email, track } = JSON.parse(sessionStr);
 
-      const personalAgents = [
-        { name: "QAssistant", icon: "M16 7a4 4 0 11-8 0" },
-        { name: "QWealth", icon: "M12 8c-1.657 0-3 .895-3 2" },
-        { name: "QHealth", icon: "M4.318 6.318a4.5 4.5 0 000 6.364" },
-        { name: "QCreative", icon: "M7 21a4 4 0 01-4-4" },
-        { name: "QLegacy", icon: "M19 21V5a2 2 0 00-2-2" },
-        { name: "QMind", icon: "M12 15v2m-6 4" },
-        { name: "QNomad", icon: "M3.055 11H5" },
-        { name: "QSocial", icon: "M17 20h5" },
-        { name: "QSpeculator", icon: "M13 10V3L4 14h7v7l9-11h-7z" }
-      ];
+        try {
+          const savedProfile = localStorage.getItem(`quanta_profile_${email}`);
+          if (savedProfile) setOperatorProfile(JSON.parse(savedProfile));
+        } catch (e) {
+          console.error('Failed to parse operator profile:', e);
+        }
 
-      const businessAgents = [
-        { name: "QStrategy", icon: "M16 8v8" },
-        { name: "QGrowth", icon: "M11 5.882" },
-        { name: "QFinance", icon: "M12 8c-1.657 0-3" },
-        { name: "QSales", icon: "M13 7h8" },
-        { name: "QOps", icon: "M4 6h16" },
-        { name: "QLegal", icon: "M9 12" },
-        { name: "QTalent", icon: "M17 20h5" },
-        { name: "QProduct", icon: "M10 20" },
-        { name: "QSuccess", icon: "M14 10h2" }
-      ];
+        const personalAgents = [
+          { name: "QAssistant", icon: "M16 7a4 4 0 11-8 0" },
+          { name: "QWealth", icon: "M12 8c-1.657 0-3 .895-3 2" },
+          { name: "QHealth", icon: "M4.318 6.318a4.5 4.5 0 000 6.364" },
+          { name: "QCreative", icon: "M7 21a4 4 0 01-4-4" },
+          { name: "QLegacy", icon: "M19 21V5a2 2 0 00-2-2" },
+          { name: "QMind", icon: "M12 15v2m-6 4" },
+          { name: "QNomad", icon: "M3.055 11H5" },
+          { name: "QSocial", icon: "M17 20h5" },
+          { name: "QSpeculator", icon: "M13 10V3L4 14h7v7l9-11h-7z" }
+        ];
 
-      const tradingAgents = [
-        { name: "QTradeAnalyst", icon: "M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18v16H3V4z" },
-        { name: "QNewsSentry", icon: "M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10l4 4v10a2 2 0 01-2 2zM7 8h5m-5 4h5m-5 4h10" },
-        { name: "QSentimentEngine", icon: "M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" },
-        { name: "QRiskQuant", icon: "M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" },
-        { name: "QVolExpert", icon: "M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" },
-        { name: "QOptionStrategist", icon: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" },
-        { name: "QThetaBurn", icon: "M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" },
-        { name: "QYieldHunter", icon: "M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2" },
-        { name: "QMacroEdge", icon: "M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9" }
-      ];
+        const businessAgents = [
+          { name: "QStrategy", icon: "M16 8v8" },
+          { name: "QGrowth", icon: "M11 5.882" },
+          { name: "QFinance", icon: "M12 8c-1.657 0-3" },
+          { name: "QSales", icon: "M13 7h8" },
+          { name: "QOps", icon: "M4 6h16" },
+          { name: "QLegal", icon: "M9 12" },
+          { name: "QTalent", icon: "M17 20h5" },
+          { name: "QProduct", icon: "M10 20" },
+          { name: "QSuccess", icon: "M14 10h2" }
+        ];
 
-      const standard = track === 'personal' ? personalAgents : track === 'business' ? businessAgents : tradingAgents;
-      const savedCustom = localStorage.getItem(`quanta_custom_agents_${track}`);
-      const custom = savedCustom ? JSON.parse(savedCustom).map((a: any) => ({ name: a.name, icon: a.icon })) : [];
-      
-      setAvailableAgents([...standard, ...custom]);
+        const tradingAgents = [
+          { name: "QTradeAnalyst", icon: "M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18v16H3V4z" },
+          { name: "QNewsSentry", icon: "M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10l4 4v10a2 2 0 01-2 2zM7 8h5m-5 4h5m-5 4h10" },
+          { name: "QSentimentEngine", icon: "M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" },
+          { name: "QRiskQuant", icon: "M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" },
+          { name: "QVolExpert", icon: "M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" },
+          { name: "QOptionStrategist", icon: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" },
+          { name: "QThetaBurn", icon: "M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" },
+          { name: "QYieldHunter", icon: "M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2" },
+          { name: "QMacroEdge", icon: "M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9" }
+        ];
 
-      const savedMemories = localStorage.getItem('quanta_notebook');
-      if (savedMemories) {
-        // Corrected type name: MemoryBlock -> SourceNode
-        const memories: SourceNode[] = JSON.parse(savedMemories);
-        setActiveContextCount(memories.length);
+        const standard = track === 'personal' ? personalAgents : track === 'business' ? businessAgents : tradingAgents;
+        let custom: { name: string; icon: string }[] = [];
+        try {
+          const savedCustom = localStorage.getItem(`quanta_custom_agents_${track}`);
+          if (savedCustom) {
+            custom = JSON.parse(savedCustom).map((a: { name: string; icon: string }) => ({ name: a.name, icon: a.icon }));
+          }
+        } catch (e) {
+          console.error('Failed to parse custom agents:', e);
+        }
+
+        setAvailableAgents([...standard, ...custom]);
+
+        try {
+          const savedMemories = localStorage.getItem('quanta_notebook');
+          if (savedMemories) {
+            const memories: SourceNode[] = JSON.parse(savedMemories);
+            setActiveContextCount(memories.length);
+          }
+        } catch (e) {
+          console.error('Failed to parse notebook memories:', e);
+        }
       }
+    } catch (e) {
+      console.error('Failed to parse session data:', e);
     }
   }, []);
 
