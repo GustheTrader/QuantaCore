@@ -1,6 +1,6 @@
 
 import { SemanticPage, SPT } from "../../types";
-import { syncMemoryToSupabase } from "../supabaseService";
+import { syncMemoryToSupabase, fetchMemoriesFromSupabase } from "../supabaseService";
 
 export class SemanticMMU {
   private l1Cache: SemanticPage[] = [];
@@ -77,11 +77,29 @@ export class SemanticMMU {
     if (location === 'L2') {
       // Page Fault! Swap back to L1
       const pageIdx = this.l2RAM.findIndex(p => p.id === pageId);
-      const page = this.l2RAM.splice(pageIdx, 1)[0];
-      await this.manageMemory(page);
-      return page;
+      if (pageIdx !== -1) {
+        const page = this.l2RAM.splice(pageIdx, 1)[0];
+        await this.manageMemory(page);
+        return page;
+      }
     }
-    // L3 Recall would involve a vector search (omitted for brevity but logic exists in supabaseService)
+    if (location === 'L3') {
+      // L3 Recall: Fetch from Supabase
+      console.log(`[S-MMU] L3 Page Fault! Recalling ${pageId} from Vector KB...`);
+      const memories = await fetchMemoriesFromSupabase();
+      const memory = memories?.find(m => m.id === pageId);
+      if (memory) {
+        const page: SemanticPage = {
+          id: memory.id,
+          content: memory.content,
+          importance: 50, // Re-entry importance
+          lastAccessed: Date.now(),
+          tags: memory.assignedAgents
+        };
+        await this.manageMemory(page);
+        return page;
+      }
+    }
     return null;
   }
 

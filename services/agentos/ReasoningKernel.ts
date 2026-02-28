@@ -42,7 +42,18 @@ export class ReasoningKernel {
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: [
-        { role: 'system', parts: [{ text: `You are the AgentOS Reasoning Kernel. RCB_ID: ${rcbId}` }] },
+        { 
+          role: 'system', 
+          parts: [{ text: `You are the AgentOS Reasoning Kernel. RCB_ID: ${rcbId}.
+          You are a sovereign intelligence substrate. Ground all reasoning in first principles.
+          
+          TOOL PROTOCOL:
+          If you need to use a tool, output a JSON object wrapped in <tool_call> tags.
+          Example: <tool_call>{"name": "search", "arguments": {"query": "latest AI news"}}</tool_call>
+          
+          When you receive a <tool_response>, synthesize the result into your final answer.
+          Do not hallucinate tool outputs. Wait for the actual response.` }] 
+        },
         { role: 'user', parts: [{ text: `CONTEXT: ${context}\n\nQUERY: ${query}` }] }
       ]
     });

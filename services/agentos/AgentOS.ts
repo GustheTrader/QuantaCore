@@ -3,6 +3,7 @@ import { kernel } from "./ReasoningKernel";
 import { smmu } from "./SemanticMMU";
 import { hermes } from "./HermesProtocol";
 import { scheduler } from "./CognitiveScheduler";
+import { agentTools } from "./tools";
 import { AgentOSState, SemanticPage } from "../../types";
 
 export class AgentOS {
@@ -15,7 +16,7 @@ export class AgentOS {
   /**
    * The main entry point for a sovereign agentic task.
    */
-  async runTask(agentId: string, query: string, tools: any[] = []) {
+  async runTask(agentId: string, query: string, tools: any[] = agentTools) {
     console.log(`[AgentOS] Initializing Sovereign Reasoning for ${agentId}...`);
 
     // 1. Memory Recall (L1/L2/L3)
