@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { GoogleGenAI } from "@google/genai";
 import { SourceNode } from '../types';
 import { syncMemoryToSupabase, fetchMemoriesFromSupabase, deleteMemoryFromSupabase } from '../services/supabaseService';
+import { ConfirmationModal } from './ConfirmationModal';
 
 const SOURCE_LIMIT = 50;
 
@@ -14,6 +15,7 @@ const Notebook: React.FC = () => {
   const [guideSummary, setGuideSummary] = useState<string | null>(null);
   const [isGeneratingGuide, setIsGeneratingGuide] = useState(false);
   const [isCompacting, setIsCompacting] = useState(false);
+  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean, id?: string } | null>(null);
   
   // Specific Upload Sub-modes
   const [uploadMode, setUploadMode] = useState<'main' | 'link' | 'text'>('main');
@@ -360,7 +362,7 @@ const Notebook: React.FC = () => {
                    </div>
 
                    <button 
-                     onClick={(e) => { e.stopPropagation(); deleteSource(source.id); }}
+                     onClick={(e) => { e.stopPropagation(); setDeleteModal({ isOpen: true, id: source.id }); }}
                      className="absolute top-4 right-4 p-1 opacity-0 group-hover:opacity-100 text-slate-600 hover:text-rose-500 transition-all"
                    >
                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
@@ -369,6 +371,20 @@ const Notebook: React.FC = () => {
                ))
              )}
            </div>
+
+           {deleteModal && (
+             <ConfirmationModal
+               isOpen={deleteModal.isOpen}
+               onClose={() => setDeleteModal(null)}
+               onConfirm={() => {
+                 if (deleteModal.id) deleteSource(deleteModal.id);
+               }}
+               title="Delete Knowledge Source?"
+               message="This source will be permanently removed from the neural archive."
+               confirmLabel="Delete"
+               isDestructive={true}
+             />
+           )}
 
            <div className="pt-6 border-t border-slate-800">
               <button 

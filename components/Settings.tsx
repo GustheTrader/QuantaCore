@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { ApiSettings, UserCredits } from '../types';
 import { invokeEdgeFunction } from '../services/supabaseService';
+import { ConfirmationModal } from './ConfirmationModal';
 
 const VERIFIED_NOVITA_MODELS = [
   { id: 'moonshotai/kimi-k2-thinking', name: 'Kimi K2 (Thinking Core)', desc: 'Primary reasoning substrate' },
@@ -44,6 +45,7 @@ const Settings: React.FC = () => {
   const [isProbing, setIsProbing] = useState(false);
   const [probeLogs, setProbeLogs] = useState<string[]>([]);
   const [probeResult, setProbeResult] = useState<any>(null);
+  const [isResetModalOpen, setIsResetModalOpen] = useState(false);
 
   useEffect(() => {
     const savedApi = localStorage.getItem('quanta_api_settings');
@@ -105,8 +107,23 @@ const Settings: React.FC = () => {
     setSettings(prev => ({ ...prev, computeMode: mode }));
   };
 
+  const handleResetSystem = () => {
+    localStorage.clear();
+    window.location.reload();
+  };
+
   return (
     <div className="animate-in fade-in duration-700 max-w-5xl mx-auto space-y-12 pb-32">
+      <ConfirmationModal 
+        isOpen={isResetModalOpen}
+        title="Purge System Substrate?"
+        message="This action will permanently delete all local settings, custom agents, and neural memories. This cannot be undone."
+        confirmLabel="Initiate Purge"
+        cancelLabel="Abort Mission"
+        onConfirm={handleResetSystem}
+        onCancel={() => setIsResetModalOpen(false)}
+        isDestructive={true}
+      />
       <header className="text-center mb-16">
         <div className="inline-block px-6 py-2 rounded-full border border-orange-500/30 bg-orange-500/10 text-orange-400 text-[10px] font-black uppercase tracking-[0.5em] mb-6 shadow-2xl animate-pulse">
           Neural Architecture Console
@@ -168,6 +185,16 @@ const Settings: React.FC = () => {
             <button onClick={handleSaveSettings} className="w-full py-10 quanta-btn-orange text-white rounded-[2.5rem] font-black uppercase tracking-[0.5em] text-[13px] transition-all">
               {saveStatus || "Commit Architecture Changes"}
             </button>
+
+            <div className="pt-12 border-t border-slate-800/50">
+               <button 
+                 onClick={() => setIsResetModalOpen(true)}
+                 className="w-full py-6 bg-rose-900/10 border-2 border-rose-500/30 hover:bg-rose-600 hover:text-white text-rose-500 rounded-[2rem] font-black uppercase tracking-widest text-[11px] transition-all flex items-center justify-center space-x-3"
+               >
+                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                 <span>Purge Local Substrate</span>
+               </button>
+            </div>
           </div>
         ) : activeTab === 'infra' ? (
           <div className="space-y-12 animate-in slide-in-from-bottom-4 duration-500">

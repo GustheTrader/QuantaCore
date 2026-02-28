@@ -7,6 +7,8 @@ import { getSMEContext, optimizePrompt } from '../services/geminiService';
 import { ActionHub } from './ActionHub';
 import { ContextOptimizerBar } from './ContextOptimizerBar';
 import { exportToBrowser } from '../services/utils';
+import { useFileIngestion } from '../hooks/useFileIngestion';
+import { FileIngestionZone } from './FileIngestionZone';
 
 const Council: React.FC = () => {
   const [sessionActive, setSessionActive] = useState(false);
@@ -18,6 +20,15 @@ const Council: React.FC = () => {
   const [availableAgents, setAvailableAgents] = useState<any[]>([]);
   const [expandedAudits, setExpandedAudits] = useState<Record<string, boolean>>({});
   const [activeContextCount, setActiveContextCount] = useState(0);
+  const { 
+    isDragging, 
+    ingestedFiles, 
+    handleDragOver, 
+    handleDragLeave, 
+    handleDrop, 
+    removeFile, 
+    clearFiles 
+  } = useFileIngestion();
   
   const [optimizationResult, setOptimizationResult] = useState<{
     optimizedPrompt: string;
@@ -142,16 +153,20 @@ const Council: React.FC = () => {
   };
 
   const runCouncilProtocol = async () => {
-    if (selectedAgents.length < 2 || !prompt.trim()) return;
+    if (selectedAgents.length < 2 || (!prompt.trim() && ingestedFiles.length === 0)) return;
     setSessionActive(true);
     setIsProcessing(true);
+    const currentFiles = [...ingestedFiles];
     setDebateLog([]);
+    clearFiles();
 
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const FPT_OMEGA_PROTOCOL = `You are a high-performance SME agent using First Principles Thinking (FPT-OMEGA). You MUST structure your output using deconstruction (analogies removed), atomic axioms (fundamental truths), and reconstruction (advice).`;
 
       const globalCtx = await getSMEContext("All Agents", operatorProfile);
+      const fileContext = currentFiles.map(f => `[FILE: ${f.name}]: ${f.content}`).join('\n\n');
+      
       let cumulativeDebate = "";
       let judgeSynthesis = "";
 
@@ -159,7 +174,7 @@ const Council: React.FC = () => {
         setDebateLog(prev => [...prev, { agentName: agent, role: 'proposer', content: 'Analyzing first principles...', status: 'processing' }]);
         
         const agentCtx = await getSMEContext(agent, operatorProfile);
-        const combinedKnowledge = `${globalCtx.knowledgeContext}\n\n${agentCtx.knowledgeContext}`;
+        const combinedKnowledge = `${globalCtx.knowledgeContext}\n\n${agentCtx.knowledgeContext}\n\n${fileContext}`;
 
         const response = await ai.models.generateContent({
           model: 'gemini-3-flash-preview',
@@ -309,10 +324,18 @@ const Council: React.FC = () => {
   };
 
   const isSelectionFull = selectedAgents.length === 3;
-  const canAssemble = selectedAgents.length >= 2 && prompt.trim().length > 0;
+  const canAssemble = selectedAgents.length >= 2 && (prompt.trim().length > 0 || ingestedFiles.length > 0);
 
   return (
-    <div className="animate-in fade-in duration-1000 max-w-7xl mx-auto group/council">
+    <FileIngestionZone
+      isDragging={isDragging}
+      ingestedFiles={ingestedFiles}
+      onRemoveFile={removeFile}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      <div className="animate-in fade-in duration-1000 max-w-7xl mx-auto group/council">
       <header className="mb-16">
         <p className="text-orange-500 font-black uppercase tracking-[0.5em] text-[10px] mb-4">SME Council Activation</p>
         <h1 className="text-6xl md:text-9xl font-outfit font-black text-white uppercase tracking-tighter leading-none">Deliberation <span className="quantum-gradient-text italic">Forge</span></h1>
@@ -557,7 +580,8 @@ const Council: React.FC = () => {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </FileIngestionZone>
   );
 };
 

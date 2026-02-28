@@ -10,6 +10,7 @@ import { ContextOptimizerBar } from './ContextOptimizerBar';
 import { FPTOverlay } from './FPTOverlay';
 import { ContextOptimizerModal } from './ContextOptimizerModal';
 import { syncChatHistoryToSupabase, fetchChatHistoryFromSupabase } from '../services/supabaseService';
+import { ConfirmationModal } from './ConfirmationModal';
 
 interface ChatInterfaceProps {
   profile: { name: string, callsign: string, personality: string };
@@ -37,6 +38,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile }) => {
   const [showFPTOverlay, setShowFPTOverlay] = useState(false);
   const [showOptimizerModal, setShowOptimizerModal] = useState(false);
   const [expandedAudits, setExpandedAudits] = useState<Record<number, boolean>>({});
+  const [isClearModalOpen, setIsClearModalOpen] = useState(false);
   
   const [agentConfig, setAgentConfig] = useState<{ prompt: string | null, skills: string[] }>({ prompt: null, skills: ['search'] });
   
@@ -426,15 +428,25 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile }) => {
             onOptimize={handleOptimizeContext}
             isOptimizing={isOptimizing}
             activeContextCount={activeContextCount}
-            onClearContext={() => {
+            onClearContext={() => setIsClearModalOpen(true)}
+            optimizationResult={optimizationResult}
+            onApply={handleApplyOptimization}
+          />
+          
+          <ConfirmationModal
+            isOpen={isClearModalOpen}
+            onClose={() => setIsClearModalOpen(false)}
+            onConfirm={() => {
               setActiveContextCount(0);
               setMessages([]);
               localStorage.removeItem(storageKey);
               syncChatHistoryToSupabase(activeAgent, []);
               setDefaultMessage();
             }}
-            optimizationResult={optimizationResult}
-            onApply={handleApplyOptimization}
+            title="Purge Neural Context?"
+            message="This will wipe all active short-term memory and chat history for this agent. This action cannot be undone."
+            confirmLabel="Purge Memory"
+            isDestructive={true}
           />
           
           <form onSubmit={handleSubmit} className="flex items-center space-x-6 relative">

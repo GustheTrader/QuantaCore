@@ -7,6 +7,7 @@ import ChatInterface from './components/ChatInterface';
 import DeepAgent from './components/DeepAgent';
 import DeepDiverAgent from './components/DeepDiverAgent';
 import AgentZero from './components/AgentZero';
+import IronClawAgent from './components/IronClawAgent';
 import EdgeMechNetwork from './components/EdgeMechNetwork';
 import ImageGenerator from './components/ImageGenerator';
 import VideoGenerator from './components/VideoGenerator';
@@ -18,7 +19,8 @@ import Council from './components/Council';
 import Projects from './components/Projects';
 import Settings from './components/Settings';
 import MCPConnectors from './components/MCPConnectors';
-import PersonalAssistant from './components/PersonalAssistant';
+import AgenticOS from './components/AgenticOS';
+import HermesAgent from './components/HermesAgent';
 import Gateway from './components/Gateway';
 import { supabase, signOut } from './services/supabaseService';
 
@@ -177,10 +179,12 @@ const App: React.FC = () => {
                     <Route path="/" element={<Dashboard track={session.track} profile={profile} />} />
                     <Route path="/chat" element={<ChatInterface profile={profile} />} />
                     <Route path="/gateway" element={<Gateway />} />
-                    <Route path="/assistant" element={<PersonalAssistant profile={profile} />} />
+                    <Route path="/agentic-os" element={<AgenticOS profile={profile} />} />
+                    <Route path="/hermes" element={<HermesAgent profile={profile} />} />
                     <Route path="/deep-agent" element={<DeepAgent />} />
                     <Route path="/deep-diver" element={<DeepDiverAgent />} />
                     <Route path="/agent-zero" element={<AgentZero />} />
+                    <Route path="/iron-claw" element={<IronClawAgent />} />
                     <Route path="/edge-mech" element={<EdgeMechNetwork />} />
                     <Route path="/council" element={<Council />} />
                     <Route path="/projects" element={<Projects />} />

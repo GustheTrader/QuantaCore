@@ -186,6 +186,37 @@ export interface AbacusStreamChunk {
   error?: string;
 }
 
+// AGENTOS CORE TYPES
+export interface RCB {
+  id: string;
+  agentId: string;
+  attentionFocus: string;
+  activeTool: string | null;
+  semanticStackDepth: number;
+  priority: number;
+  driftMeter: number; // Δψ
+  status: 'active' | 'suspended' | 'interrupt';
+}
+
+export interface SemanticPage {
+  id: string;
+  content: string;
+  importance: number; // I(σ)
+  lastAccessed: number;
+  tags: string[];
+}
+
+export interface SPT {
+  pages: Record<string, 'L1' | 'L2' | 'L3'>;
+}
+
+export interface AgentOSState {
+  rcbs: Record<string, RCB>;
+  spt: SPT;
+  l2Cache: SemanticPage[];
+  globalDrift: number;
+}
+
 export type MCPConnectorType = 'local' | 'docker';
 
 export interface MCPConnector {

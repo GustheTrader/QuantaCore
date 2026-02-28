@@ -4,6 +4,7 @@ import {
   BarChart, XAxis, YAxis, Bar, Cell, AreaChart, CartesianGrid, Tooltip, Area 
 } from 'recharts';
 import { VoiceAgent } from './VoiceAgent';
+import { ConfirmationModal } from './ConfirmationModal';
 
 interface DashboardProps {
   track: 'personal' | 'business' | 'trading';
@@ -49,11 +50,12 @@ const SMEForgeModal = ({ onClose, onForge }: any) => {
 };
 
 const Dashboard: React.FC<DashboardProps> = ({ track, profile }) => {
-  const [selectedMetricAgent, setSelectedMetricAgent] = useState<string>('QAssistant');
+  const [selectedMetricAgent, setSelectedMetricAgent] = useState<string>('Agentic OS');
   const [customAgents, setCustomAgents] = useState<AgentProps[]>([]);
   const [isForgeModalOpen, setIsForgeModalOpen] = useState(false);
   const [editingAgent, setEditingAgent] = useState<AgentProps | null>(null);
   const [allVoiceSettings, setAllVoiceSettings] = useState<Record<string, VoiceSettings>>({});
+  const [agentToDelete, setAgentToDelete] = useState<string | null>(null);
   
   const [voiceConfig, setVoiceConfig] = useState<{
     active: boolean;
@@ -66,16 +68,18 @@ const Dashboard: React.FC<DashboardProps> = ({ track, profile }) => {
   }>({ active: false, agentName: '', prompt: '', skills: [] });
 
   const allAgentsList: AgentProps[] = [
-    { name: 'QAssistant', subhead: 'Personal Aide', icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z', systemPrompt: 'You are a helpful assistant.' },
+    { name: 'Agentic OS', subhead: 'Cognitive Kernel', icon: 'M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z', systemPrompt: 'You are the AgentOS Reasoning Kernel.' },
+    { name: 'Hermes', subhead: 'Tool Specialist', icon: 'M13 10V3L4 14h7v7l9-11h-7z', systemPrompt: 'You are the Hermes Tool Specialist.' },
     { name: 'QStrategy', subhead: 'Strategic Ops', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z', systemPrompt: 'You are a strategic advisor.' },
     { name: 'QCreative', subhead: 'Idea Engine', icon: 'M7 21a4 4 0 01-4-4c0-1.473 1.333-2.656 4-2.656 2.667 0 4 1.183 4 2.656a4 4 0 01-4 4zm0-10a4 4 0 100-8 4 4 0 000 8z', systemPrompt: 'You are a creative muse.' },
     ...customAgents
   ];
 
   const performanceData = [
-    { name: 'QAssistant', val: 92, lat: 120, sat: 98, comp: 95, learn: 88 },
-    { name: 'QStrategy', val: 89, lat: 180, sat: 94, comp: 92, learn: 85 },
-    { name: 'QCreative', val: 95, lat: 150, sat: 96, comp: 88, learn: 92 },
+    { name: 'Agentic OS', val: 98, lat: 80, sat: 99, comp: 97, learn: 95, sync: 99, fidelity: 98 },
+    { name: 'Hermes', val: 96, lat: 110, sat: 97, comp: 98, learn: 90, sync: 95, fidelity: 96 },
+    { name: 'QStrategy', val: 89, lat: 180, sat: 94, comp: 92, learn: 85, sync: 88, fidelity: 90 },
+    { name: 'QCreative', val: 95, lat: 150, sat: 96, comp: 88, learn: 92, sync: 90, fidelity: 94 },
   ];
 
   const saveVoiceSettings = (agentName: string, settings: VoiceSettings) => {
@@ -113,6 +117,17 @@ const Dashboard: React.FC<DashboardProps> = ({ track, profile }) => {
     setIsForgeModalOpen(false);
   };
 
+  const handleDeleteAgent = () => {
+    if (!agentToDelete) return;
+    const updated = customAgents.filter(a => a.name !== agentToDelete);
+    setCustomAgents(updated);
+    localStorage.setItem(`quanta_custom_agents_${track}`, JSON.stringify(updated));
+    if (selectedMetricAgent === agentToDelete) {
+      setSelectedMetricAgent('Agentic OS');
+    }
+    setAgentToDelete(null);
+  };
+
   const getVoiceSettings = (agent: AgentProps): VoiceSettings => {
     return allVoiceSettings[agent.name] || { voiceName: 'Zephyr', inputTranscription: true, outputTranscription: true, systemPromptOverride: agent.systemPrompt, enabledSkills: ['search'] };
   };
@@ -124,6 +139,16 @@ const Dashboard: React.FC<DashboardProps> = ({ track, profile }) => {
 
   return (
     <div className="animate-in fade-in duration-1000 pb-32">
+      <ConfirmationModal 
+        isOpen={!!agentToDelete}
+        title="Decommission SME?"
+        message={`Are you sure you want to permanently delete ${agentToDelete}? All custom neural parameters for this agent will be lost.`}
+        confirmLabel="Decommission"
+        cancelLabel="Keep Active"
+        onConfirm={handleDeleteAgent}
+        onCancel={() => setAgentToDelete(null)}
+        isDestructive={true}
+      />
       <VoiceAgent isActive={voiceConfig.active} agentName={voiceConfig.agentName} systemInstruction={voiceConfig.prompt} enabledSkills={voiceConfig.skills} voiceName={voiceConfig.voiceName} inputTranscription={voiceConfig.inputTranscription} outputTranscription={voiceConfig.outputTranscription} onClose={() => setVoiceConfig({ ...voiceConfig, active: false })} profile={profile} />
       {editingAgent && <VoiceConfigModal agent={editingAgent} settings={getVoiceSettings(editingAgent)} onSave={(s: VoiceSettings) => saveVoiceSettings(editingAgent.name, s)} onClose={() => setEditingAgent(null)} />}
       {isForgeModalOpen && <SMEForgeModal onClose={() => setIsForgeModalOpen(false)} onForge={handleForge} />}
@@ -173,8 +198,18 @@ const Dashboard: React.FC<DashboardProps> = ({ track, profile }) => {
                       <h4 className="text-sm font-black text-white uppercase tracking-tighter">{agent.name}</h4>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className={`text-lg font-outfit font-black ${isSelected ? 'text-emerald-400' : 'text-slate-400'}`}>{metrics.val}%</p>
+                  <div className="flex items-center space-x-4">
+                    <div className="text-right">
+                      <p className={`text-lg font-outfit font-black ${isSelected ? 'text-emerald-400' : 'text-slate-400'}`}>{metrics.val}%</p>
+                    </div>
+                    {customAgents.some(ca => ca.name === agent.name) && (
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); setAgentToDelete(agent.name); }}
+                        className="p-2 text-slate-600 hover:text-rose-500 transition-colors"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                      </button>
+                    )}
                   </div>
                 </button>
               );

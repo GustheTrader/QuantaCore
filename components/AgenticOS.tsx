@@ -1,9 +1,11 @@
 
-import React, { useState, useEffect, useRef } from 'react';
-import { GoogleGenAI } from "@google/genai";
+import React, { useState, useEffect } from 'react';
+import { agentOS } from '../services/agentos/AgentOS';
 import { VoiceAgent } from './VoiceAgent';
+import { useFileIngestion } from '../hooks/useFileIngestion';
+import { FileIngestionZone } from './FileIngestionZone';
 
-interface PersonalAssistantProps {
+interface AgenticOSProps {
   profile: { name: string, callsign: string, personality: string };
 }
 
@@ -16,10 +18,20 @@ interface NoesisModule {
   icon: string;
 }
 
-const NOEsisAgent: React.FC<PersonalAssistantProps> = ({ profile }) => {
+const AgenticOS: React.FC<AgenticOSProps> = ({ profile }) => {
   const [input, setInput] = useState('');
   const [isVoiceActive, setIsVoiceActive] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [telemetry, setTelemetry] = useState<any>(agentOS.getTelemetry());
+  const { 
+    isDragging, 
+    ingestedFiles, 
+    handleDragOver, 
+    handleDragLeave, 
+    handleDrop, 
+    removeFile, 
+    clearFiles 
+  } = useFileIngestion();
   
   // Simulated System State
   const [visionLatency, setVisionLatency] = useState(12);
@@ -27,15 +39,15 @@ const NOEsisAgent: React.FC<PersonalAssistantProps> = ({ profile }) => {
   const [visualStream, setVisualStream] = useState<string[]>([]);
   
   const [modules, setModules] = useState<NoesisModule[]>([
-    { id: 'vis_cortex', name: 'Omni-Vision', category: 'perception', status: 'active', load: 45, icon: 'M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z' },
-    { id: 'aud_cortex', name: 'Echo-Locate', category: 'perception', status: 'standby', load: 12, icon: 'M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z' },
+    { id: 'vis_cortex', name: 'Omni-Vision', category: 'perception', status: 'active', load: 45, icon: 'M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7' },
+    { id: 'aud_cortex', name: 'Echo-Locate', category: 'perception', status: 'standby', load: 12, icon: 'M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3' },
     { id: 'act_driver', name: 'Kinetic Driver', category: 'action', status: 'active', load: 8, icon: 'M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122' },
-    { id: 'sys_core', name: 'Logic Substrate', category: 'core', status: 'active', load: 65, icon: 'M13 10V3L4 14h7v7l9-11h-7z' },
+    { id: 'sys_core', name: 'Reasoning Kernel', category: 'core', status: 'active', load: 65, icon: 'M13 10V3L4 14h7v7l9-11h-7z' },
   ]);
 
   const [logs, setLogs] = useState<string[]>([
-    'NOEsis Kernel v9.0 loaded.',
-    'Multimodal sensors calibrated.',
+    'AgentOS Kernel v2.0 loaded.',
+    'Sovereign Logic Substrate active.',
     'Awaiting operator intent...'
   ]);
 
@@ -43,73 +55,66 @@ const NOEsisAgent: React.FC<PersonalAssistantProps> = ({ profile }) => {
     const interval = setInterval(() => {
       setVisionLatency(prev => Math.max(8, Math.min(40, prev + (Math.random() * 10 - 5))));
       setMemoryUsage(prev => Math.max(20, Math.min(80, prev + (Math.random() * 5 - 2.5))));
+      setTelemetry(agentOS.getTelemetry());
       
       setModules(prev => prev.map(m => ({
         ...m,
         load: Math.max(5, Math.min(95, m.load + (Math.random() * 10 - 5)))
       })));
-    }, 1000);
+    }, 2000);
     return () => clearInterval(interval);
   }, []);
 
-  const addLog = (msg: string, type: 'info' | 'warn' | 'success' = 'info') => {
-    setLogs(prev => [...prev.slice(-8), `[${type.toUpperCase()}] ${msg}`]);
+  const addLog = (msg: string, type: 'info' | 'warn' | 'success' | 'kernel' = 'info') => {
+    setLogs(prev => [...prev.slice(-12), `[${type.toUpperCase()}] ${msg}`]);
   };
 
   const handleCommand = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!input.trim() || isProcessing) return;
+    if ((!input.trim() && ingestedFiles.length === 0) || isProcessing) return;
 
     setIsProcessing(true);
-    addLog(`Operator Input: "${input}"`, 'info');
+    const currentFiles = [...ingestedFiles];
+    addLog(`Operator Intent: "${input}"`, 'info');
+    clearFiles();
     
-    // Simulate thinking process
-    setTimeout(() => {
-        setVisualStream(prev => [...prev, "Analysing Intent..."]);
-        addLog("Deconstructing Logic via FPT...", 'warn');
-    }, 500);
+    setVisualStream(prev => [...prev, "Initializing RCB..."]);
+    addLog("Reasoning Kernel: Allocating RCB...", 'kernel');
 
     try {
-      const apiKey = (typeof process !== 'undefined' && process.env?.API_KEY) || 
-                     ((window as any).process?.env?.API_KEY);
+      const fileContext = currentFiles.map(f => `[FILE: ${f.name}]: ${f.content}`).join('\n\n');
       
-      if (!apiKey) throw new Error("Neural Credentials Missing");
+      // Use AgentOS runTask instead of direct AI call
+      const response = await agentOS.runTask('AgenticOS', `${input}\n\n${fileContext}`);
 
-      const ai = new GoogleGenAI({ apiKey });
-      const res = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: `You are NOEsis, a high-functioning Desktop Orchestrator.
-        USER: "${input}"
-        
-        1. Analyze the request.
-        2. Determine which modules (Vision, Audio, Driver) are needed.
-        3. Provide a tactical response.
-        
-        Output format: JSON { "modules": ["vis_cortex"], "action": "Scanning...", "response": "text" }`,
-        config: { responseMimeType: 'application/json' }
-      });
-
-      const data = JSON.parse(res.text || '{}');
-      setVisualStream(prev => [...prev, `Action: ${data.action}`]);
-      addLog(`Execution Plan: ${data.action}`, 'success');
+      setVisualStream(prev => [...prev, `Synthesis Complete.`]);
+      addLog(`RK Synthesis: ${response?.substring(0, 50)}...`, 'success');
       setInput('');
     } catch (e: any) {
-      addLog(`Neural handshake failed: ${e.message}`, 'warn');
+      addLog(`Kernel Panic: ${e.message}`, 'warn');
     } finally {
-      setTimeout(() => setIsProcessing(false), 2000);
+      setTimeout(() => setIsProcessing(false), 1000);
     }
   };
 
   return (
-    <div className="animate-in fade-in duration-1000 max-w-7xl mx-auto pb-40">
+    <FileIngestionZone
+      isDragging={isDragging}
+      ingestedFiles={ingestedFiles}
+      onRemoveFile={removeFile}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      <div className="animate-in fade-in duration-1000 max-w-7xl mx-auto pb-40">
       <VoiceAgent 
         isActive={isVoiceActive}
-        agentName="NOEsis Prime"
-        systemInstruction={`You are NOEsis, a hyper-intelligent Desktop Orchestrator. You control the user's digital environment. You are precise, high-bandwidth, and multimodal. Address the operator as ${profile.callsign}.`}
+        agentName="AgentOS Prime"
+        systemInstruction={`You are the AgentOS Reasoning Kernel. You are precise, sovereign, and privacy-focused. Address the operator as ${profile.callsign}.`}
         onClose={() => setIsVoiceActive(false)}
         profile={profile}
         enabledSkills={['search', 'calendar', 'docs', 'drive']}
-        voiceName="Fenrir"
+        voiceName="Zephyr"
       />
 
       {/* Header */}
@@ -118,12 +123,12 @@ const NOEsisAgent: React.FC<PersonalAssistantProps> = ({ profile }) => {
           <div className="flex items-center space-x-3 mb-4">
              <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-black uppercase tracking-[0.3em] px-3 py-1.5 rounded-lg flex items-center gap-2">
                 <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
-                System Nominal
+                Kernel Nominal
              </div>
-             <div className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Uptime: 42:19:03</div>
+             <div className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Global Drift: {telemetry.kernel.globalDrift.toFixed(2)}</div>
           </div>
-          <h1 className="text-6xl font-outfit font-black text-white uppercase tracking-tighter italic">NOEsis <span className="quantum-gradient-text">Agent</span></h1>
-          <p className="text-slate-500 font-bold uppercase tracking-[0.4em] text-[10px] mt-2">Neural Operational Engine &bull; Sovereign Instance</p>
+          <h1 className="text-6xl font-outfit font-black text-white uppercase tracking-tighter italic">Agentic <span className="quantum-gradient-text">OS</span></h1>
+          <p className="text-slate-500 font-bold uppercase tracking-[0.4em] text-[10px] mt-2">Sovereign Reasoning Kernel &bull; Privacy-First Substrate</p>
         </div>
         
         <div className="flex items-center gap-4">
@@ -134,7 +139,7 @@ const NOEsisAgent: React.FC<PersonalAssistantProps> = ({ profile }) => {
              <div className="absolute inset-0 bg-emerald-500/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
              <div className="flex items-center space-x-3 relative z-10">
                <svg className="w-5 h-5 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
-               <span className="text-[11px] font-black uppercase tracking-widest">Initialize Voice Link</span>
+               <span className="text-[11px] font-black uppercase tracking-widest">Neural Link</span>
              </div>
            </button>
         </div>
@@ -142,47 +147,56 @@ const NOEsisAgent: React.FC<PersonalAssistantProps> = ({ profile }) => {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 h-[700px]">
         
-        {/* LEFT: Modules & Telemetry */}
+        {/* LEFT: S-MMU & Telemetry */}
         <div className="lg:col-span-3 flex flex-col gap-6">
            <div className="glass-card p-6 rounded-[2.5rem] border-slate-800 bg-slate-900/20">
-              <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-6">Neural Telemetry</h3>
+              <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-6">S-MMU Telemetry</h3>
               <div className="space-y-6">
                  <div>
                     <div className="flex justify-between mb-2 text-[9px] font-black uppercase tracking-widest text-slate-400">
-                       <span>Vision Latency</span>
-                       <span className="text-emerald-400">{Math.round(visionLatency)}ms</span>
+                       <span>L1 Active Cache</span>
+                       <span className="text-emerald-400">{telemetry.mmu.l1Size} / 5</span>
                     </div>
                     <div className="h-1 bg-slate-800 rounded-full overflow-hidden">
-                       <div className="h-full bg-emerald-500 transition-all duration-500" style={{width: `${(visionLatency/50)*100}%`}}></div>
+                       <div className="h-full bg-emerald-500 transition-all duration-500" style={{width: `${(telemetry.mmu.l1Size/5)*100}%`}}></div>
                     </div>
                  </div>
                  <div>
                     <div className="flex justify-between mb-2 text-[9px] font-black uppercase tracking-widest text-slate-400">
-                       <span>Memory Buffer</span>
-                       <span className="text-orange-400">{Math.round(memoryUsage)}%</span>
+                       <span>L2 Semantic RAM</span>
+                       <span className="text-orange-400">{telemetry.mmu.l2Size} Pages</span>
                     </div>
                     <div className="h-1 bg-slate-800 rounded-full overflow-hidden">
-                       <div className="h-full bg-orange-500 transition-all duration-500" style={{width: `${memoryUsage}%`}}></div>
+                       <div className="h-full bg-orange-500 transition-all duration-500" style={{width: `${Math.min(100, telemetry.mmu.l2Size * 5)}%`}}></div>
+                    </div>
+                 </div>
+                 <div>
+                    <div className="flex justify-between mb-2 text-[9px] font-black uppercase tracking-widest text-slate-400">
+                       <span>L3 Vector KB</span>
+                       <span className="text-cyan-400">{telemetry.mmu.l3Size} Archived</span>
+                    </div>
+                    <div className="h-1 bg-slate-800 rounded-full overflow-hidden">
+                       <div className="h-full bg-cyan-500 transition-all duration-500" style={{width: `${Math.min(100, telemetry.mmu.l3Size * 2)}%`}}></div>
                     </div>
                  </div>
               </div>
            </div>
 
            <div className="flex-1 glass-card p-6 rounded-[2.5rem] border-slate-800 bg-[#020617] flex flex-col overflow-hidden">
-              <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-4">Module Status</h3>
+              <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-4">Active RCBs</h3>
               <div className="flex-1 space-y-3 overflow-y-auto custom-scrollbar pr-2">
-                 {modules.map(mod => (
-                   <div key={mod.id} className="p-4 bg-slate-900/50 border border-slate-800 rounded-2xl flex items-center justify-between group hover:border-emerald-500/30 transition-all">
+                 {Object.values(telemetry.kernel.rcbs).map((rcb: any) => (
+                   <div key={rcb.id} className="p-4 bg-slate-900/50 border border-slate-800 rounded-2xl flex items-center justify-between group hover:border-emerald-500/30 transition-all">
                       <div className="flex items-center space-x-3">
-                         <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${mod.status === 'active' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-slate-800 text-slate-600'}`}>
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={mod.icon} /></svg>
+                         <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${rcb.status === 'active' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-slate-800 text-slate-600'}`}>
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                          </div>
                          <div>
-                            <div className="text-[10px] font-bold text-white uppercase">{mod.name}</div>
-                            <div className="text-[8px] font-mono text-slate-500">{mod.category.toUpperCase()}</div>
+                            <div className="text-[10px] font-bold text-white uppercase truncate w-24">{rcb.id}</div>
+                            <div className="text-[8px] font-mono text-slate-500">DRIFT: {rcb.driftMeter.toFixed(2)}</div>
                          </div>
                       </div>
-                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_5px_#10b981]"></div>
+                      <div className={`w-1.5 h-1.5 rounded-full ${rcb.status === 'active' ? 'bg-emerald-500 shadow-[0_0_5px_#10b981]' : 'bg-orange-500'}`}></div>
                    </div>
                  ))}
               </div>
@@ -202,10 +216,10 @@ const NOEsisAgent: React.FC<PersonalAssistantProps> = ({ profile }) => {
                  {/* HUD Elements */}
                  <div className="absolute top-8 left-8 flex flex-col gap-2">
                     <div className="px-3 py-1 bg-black/50 backdrop-blur border border-emerald-500/30 rounded text-[9px] font-mono text-emerald-400 uppercase">
-                       VISUAL_FEED :: ACTIVE
+                       RK_CORE :: EXECUTING
                     </div>
                     <div className="px-3 py-1 bg-black/50 backdrop-blur border border-slate-700 rounded text-[9px] font-mono text-slate-400 uppercase">
-                       TARGET :: DESKTOP
+                       SOVEREIGN_MODE :: ON
                     </div>
                  </div>
 
@@ -236,7 +250,7 @@ const NOEsisAgent: React.FC<PersonalAssistantProps> = ({ profile }) => {
                    value={input}
                    onChange={(e) => setInput(e.target.value)}
                    onKeyDown={(e) => e.key === 'Enter' && handleCommand(e)}
-                   placeholder="Inject command into NOEsis cortex..."
+                   placeholder="Submit intent to Reasoning Kernel..."
                    className="w-full bg-slate-900/50 border border-slate-700 rounded-2xl py-5 pl-6 pr-20 text-white font-mono text-sm focus:border-emerald-500 focus:bg-slate-900 transition-all outline-none"
                  />
                  <button 
@@ -250,19 +264,20 @@ const NOEsisAgent: React.FC<PersonalAssistantProps> = ({ profile }) => {
            </div>
         </div>
 
-        {/* RIGHT: System Log */}
+        {/* RIGHT: Kernel Log */}
         <div className="lg:col-span-3 flex flex-col">
            <div className="glass-card flex-1 p-8 rounded-[2.5rem] border-slate-800 bg-slate-950 flex flex-col relative overflow-hidden">
               <div className="absolute top-0 right-0 p-6 opacity-20">
-                 <svg className="w-24 h-24 text-emerald-900" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                 <svg className="w-24 h-24 text-emerald-900" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
               </div>
-              <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-6">System Log</h3>
+              <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-6">Kernel Log</h3>
               
               <div className="flex-1 overflow-y-auto custom-scrollbar font-mono text-[9px] space-y-3 relative z-10">
                  {logs.map((log, i) => (
                    <div key={i} className={`pl-3 border-l-2 py-1 leading-relaxed ${
                      log.includes('INFO') ? 'border-slate-700 text-slate-400' :
                      log.includes('WARN') ? 'border-orange-500 text-orange-300' :
+                     log.includes('KERNEL') ? 'border-emerald-500 text-emerald-300' :
                      'border-emerald-500 text-emerald-300'
                    }`}>
                      {log}
@@ -273,16 +288,17 @@ const NOEsisAgent: React.FC<PersonalAssistantProps> = ({ profile }) => {
 
               <div className="mt-6 pt-6 border-t border-slate-800">
                  <div className="flex justify-between items-center text-[8px] font-black uppercase tracking-widest text-slate-600">
-                    <span>Protocol: Secure</span>
-                    <span>Enc: AES-256</span>
+                    <span>AgentOS: V2.0</span>
+                    <span>Sovereign: TRUE</span>
                  </div>
               </div>
            </div>
         </div>
 
       </div>
-    </div>
+      </div>
+    </FileIngestionZone>
   );
 };
 
-export default NOEsisAgent;
+export default AgenticOS;

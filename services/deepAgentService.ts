@@ -9,15 +9,17 @@ import { streamAbacusAgent } from "./abacusService";
 const getAI = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 export const runDeepAgentLoop = async (
-  query: string,
+  query: string | { text: string, parts: any[] },
   onUpdate: (session: DeepAgentSession) => void
 ) => {
   const ai = getAI();
   const sessionId = Math.random().toString(36).substr(2, 9);
+  const userText = typeof query === 'string' ? query : query.text;
+  const userParts = typeof query === 'string' ? [{ text: query }] : query.parts;
   
   let session: DeepAgentSession = {
     id: sessionId,
-    query,
+    query: userText,
     steps: [],
     startTime: Date.now()
   };
@@ -36,7 +38,7 @@ export const runDeepAgentLoop = async (
     // 0. RECALL PHASE (LTM Integration)
     const recallId = 'step_recall';
     addStep({ id: recallId, type: 'analyze', status: 'running', label: 'Consulting Long-Term Memory' });
-    const recalledContext = await recallRelevantMemories(query, "Deep Agent");
+    const recalledContext = await recallRelevantMemories(userText, "Deep Agent");
     updateStep(recallId, { 
       status: 'complete', 
       content: recalledContext ? `Recalled ${recalledContext.length} bytes of relevant LTM context.` : "No relevant prior research found in LTM." 
@@ -48,7 +50,10 @@ export const runDeepAgentLoop = async (
     
     const planResponse = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: `User Query: ${query}\n\nRECALLED LTM CONTEXT: ${recalledContext || "None"}\n\nDeconstruct this into 3 investigative sub-goals. Factor in recalled knowledge. Return as JSON.`,
+      contents: [
+        { role: 'user', parts: userParts },
+        { role: 'user', parts: [{ text: `\n\nRECALLED LTM CONTEXT: ${recalledContext || "None"}\n\nDeconstruct this into 3 investigative sub-goals. Factor in recalled knowledge. Return as JSON.` }] }
+      ],
       config: {
         responseMimeType: "application/json",
         responseSchema: {
@@ -117,7 +122,7 @@ export const runDeepAgentLoop = async (
     // Corrected type: MemoryBlock -> SourceNode
     const memory: SourceNode = {
       id: `deep_${sessionId}`,
-      title: `Deep Research: ${query.substring(0, 40)}...`,
+      title: `Deep Research: ${userText.substring(0, 40)}...`,
       content: synthResponse.text || "",
       category: "Strategic",
       assignedAgents: ["Deep Agent", "All Agents"],

@@ -5,6 +5,7 @@ import { NeuralProject, ProjectChat, ProjectFile, ChatMessage } from '../types';
 import { exportToBrowser } from '../services/utils';
 import { chatWithSME } from '../services/geminiService';
 import { syncProjectsToSupabase, fetchProjectsFromSupabase } from '../services/supabaseService';
+import { ConfirmationModal } from './ConfirmationModal';
 
 const Projects: React.FC = () => {
   const [projects, setProjects] = useState<NeuralProject[]>([]);
@@ -15,6 +16,7 @@ const Projects: React.FC = () => {
   const [isEditingInstructions, setIsEditingInstructions] = useState(false);
   const [searchEnabled, setSearchEnabled] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean, type: 'project' | 'file', id?: string } | null>(null);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const projectUploadRef = useRef<HTMLInputElement>(null);
@@ -271,14 +273,43 @@ const Projects: React.FC = () => {
                <div>
                   <div className="flex items-center space-x-3">
                     <h2 className="text-4xl font-outfit font-black text-white uppercase tracking-tighter italic">Project: <span className="quantum-gradient-text">{activeProject.title}</span></h2>
-                    <button onClick={() => setActiveProjectId(null)} className="text-slate-600 hover:text-white transition-colors">
-                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                    </button>
+                    <div className="flex items-center space-x-2">
+                      <button 
+                        onClick={() => setDeleteModal({ isOpen: true, type: 'project', id: activeProject.id })}
+                        className="text-slate-600 hover:text-rose-500 transition-colors p-2"
+                        title="Delete Project"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                      </button>
+                      <button onClick={() => setActiveProjectId(null)} className="text-slate-600 hover:text-white transition-colors p-2">
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                      </button>
+                    </div>
                   </div>
                   <p className="text-slate-500 font-bold uppercase tracking-[0.3em] text-[10px] mt-1">{activeProject.description}</p>
                </div>
             </div>
           </div>
+
+          {deleteModal && (
+            <ConfirmationModal
+              isOpen={deleteModal.isOpen}
+              onClose={() => setDeleteModal(null)}
+              onConfirm={() => {
+                if (deleteModal.type === 'project') {
+                  const updated = projects.filter(p => p.id !== deleteModal.id);
+                  setProjects(updated);
+                  setActiveProjectId(null);
+                } else {
+                  setProjects(prev => prev.map(p => p.id === activeProjectId ? { ...p, files: p.files.filter(f => f.id !== deleteModal.id) } : p));
+                }
+              }}
+              title={deleteModal.type === 'project' ? "Delete Project?" : "Delete File?"}
+              message={deleteModal.type === 'project' ? "This will permanently erase the project and all associated data." : "This file will be removed from the project context."}
+              confirmLabel="Delete"
+              isDestructive={true}
+            />
+          )}
 
           {/* Central Input Block */}
           <div className="max-w-4xl mx-auto space-y-6">
@@ -459,9 +490,7 @@ const Projects: React.FC = () => {
                               </div>
                            </div>
                            <button 
-                             onClick={() => {
-                               setProjects(prev => prev.map(p => p.id === activeProjectId ? { ...p, files: p.files.filter(f => f.id !== file.id) } : p));
-                             }}
+                             onClick={() => setDeleteModal({ isOpen: true, type: 'file', id: file.id })}
                              className="text-slate-700 hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100"
                            >
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862" /></svg>
