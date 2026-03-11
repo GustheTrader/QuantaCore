@@ -21,6 +21,7 @@ import SMEBuilder from './components/SMEBuilder';
 import PersistentMemory from './components/PersistentMemory';
 import Settings from './components/Settings';
 import MCPConnectors from './components/MCPConnectors';
+import { NotebookLMPanel } from './components/NotebookLMPanel';
 import AgenticOS from './components/AgenticOS';
 import HermesAgent from './components/HermesAgent';
 import Gateway from './components/Gateway';
@@ -199,6 +200,7 @@ const App: React.FC = () => {
                     <Route path="/videos" element={<VideoGenerator />} />
                     <Route path="/tasks" element={<TaskBoard />} />
                     <Route path="/notebook" element={<Notebook />} />
+                    <Route path="/notebooklm" element={<NotebookLMPanel agentName={profile.callsign || 'User'} />} />
                     <Route path="/sme-builder" element={<SMEBuilder />} />
                     <Route path="/memory" element={<PersistentMemory />} />
                     <Route path="/settings" element={<Settings />} />
