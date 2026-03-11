@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 
 interface ProfileSetupProps {
   onComplete: (data: { name: string, callsign: string, personality: string }) => void;
@@ -48,6 +49,20 @@ const PERSONALITIES = [
     icon: 'M13 10V3L4 14h7v7l9-11h-7z M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9',
     color: 'text-cyan-400',
     bg: 'bg-cyan-600/10'
+  },
+  { 
+    name: 'Education/Learning', 
+    desc: 'Focused on knowledge acquisition, synthesis, and skill development.', 
+    icon: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253',
+    color: 'text-amber-400',
+    bg: 'bg-amber-600/10'
+  },
+  { 
+    name: 'Guest', 
+    desc: 'Limited access mode for quick exploration and testing.', 
+    icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z',
+    color: 'text-slate-400',
+    bg: 'bg-slate-600/10'
   }
 ];
 
@@ -93,85 +108,101 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ onComplete, email }) => {
         <div className="glass-card p-10 md:p-16 rounded-[4rem] border-slate-800 shadow-2xl relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-indigo-500 to-transparent"></div>
           
-          {step === 1 ? (
-            <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <div className="space-y-8">
-                <div>
-                  <label className="block text-indigo-400 text-[10px] font-black uppercase tracking-[0.2em] mb-4 px-1">Legal Designation (Name)</label>
-                  <input 
-                    type="text" 
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Enter your full name"
-                    className="w-full bg-slate-900/50 border-2 border-slate-800 text-white rounded-2xl py-6 px-8 focus:outline-none focus:border-indigo-500 transition-all font-outfit font-bold text-xl shadow-inner"
-                    autoFocus
-                  />
-                </div>
-                <div>
-                  <label className="block text-indigo-400 text-[10px] font-black uppercase tracking-[0.2em] mb-4 px-1">Neural Callsign (Preferred Address)</label>
-                  <input 
-                    type="text" 
-                    value={callsign}
-                    onChange={(e) => setCallsign(e.target.value)}
-                    placeholder="e.g. Commander, Operator, or Nickname"
-                    className="w-full bg-slate-900/50 border-2 border-slate-800 text-white rounded-2xl py-6 px-8 focus:outline-none focus:border-indigo-500 transition-all font-outfit font-bold text-xl shadow-inner"
-                  />
-                  <p className="text-[10px] text-slate-500 mt-4 uppercase font-bold tracking-widest text-center">Your agents will use this callsign in all vocal and textual transmissions.</p>
-                </div>
-              </div>
-
-              <button 
-                onClick={() => setStep(2)}
-                disabled={!name}
-                className="w-full py-6 bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-800 text-white rounded-2xl font-black uppercase tracking-[0.3em] text-xs shadow-xl transition-all active:scale-95 flex items-center justify-center space-x-3"
+          <AnimatePresence mode="wait">
+            {step === 1 ? (
+              <motion.div 
+                key="step1"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 1.5, filter: 'blur(20px)' }}
+                className="space-y-12"
               >
-                <span>Define Personality Matrix</span>
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-12 animate-in fade-in slide-in-from-right-4 duration-500">
-              <div className="space-y-6">
-                <label className="block text-indigo-400 text-[10px] font-black uppercase tracking-[0.2em] mb-4 px-1 text-center">Core Neural Temperament</label>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {PERSONALITIES.map((p) => (
-                    <button
-                      key={p.name}
-                      onClick={() => setPersonality(p.name)}
-                      className={`p-6 rounded-3xl border-2 transition-all text-left flex flex-col h-full group ${personality === p.name ? 'border-indigo-500 bg-indigo-500/10 shadow-lg shadow-indigo-500/20' : 'border-slate-800 bg-slate-900/40 hover:border-slate-700'}`}
-                    >
-                      <div className={`w-10 h-10 rounded-xl mb-6 flex items-center justify-center ${p.bg} ${p.color} transition-transform group-hover:scale-110`}>
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={p.icon} /></svg>
-                      </div>
-                      <h3 className="font-outfit font-black text-white text-sm uppercase tracking-tighter mb-2">{p.name}</h3>
-                      <p className="text-[10px] text-slate-500 leading-relaxed font-bold uppercase tracking-tight opacity-70">{p.desc}</p>
-                    </button>
-                  ))}
+                <div className="space-y-8">
+                  <div>
+                    <label className="block text-indigo-400 text-[10px] font-black uppercase tracking-[0.2em] mb-4 px-1">Legal Designation (Name)</label>
+                    <input 
+                      type="text" 
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="Enter your full name"
+                      className="w-full bg-slate-900/50 border-2 border-slate-800 text-white rounded-2xl py-6 px-8 focus:outline-none focus:border-indigo-500 transition-all font-outfit font-bold text-xl shadow-inner"
+                      autoFocus
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-indigo-400 text-[10px] font-black uppercase tracking-[0.2em] mb-4 px-1">Neural Callsign (Preferred Address)</label>
+                    <input 
+                      type="text" 
+                      value={callsign}
+                      onChange={(e) => setCallsign(e.target.value)}
+                      placeholder="e.g. Commander, Operator, or Nickname"
+                      className="w-full bg-slate-900/50 border-2 border-slate-800 text-white rounded-2xl py-6 px-8 focus:outline-none focus:border-indigo-500 transition-all font-outfit font-bold text-xl shadow-inner"
+                    />
+                    <p className="text-[10px] text-slate-500 mt-4 uppercase font-bold tracking-widest text-center">Your agents will use this callsign in all vocal and textual transmissions.</p>
+                  </div>
                 </div>
-              </div>
 
-              <div className="flex space-x-4">
                 <button 
-                  onClick={() => setStep(1)}
-                  disabled={isFinalizing}
-                  className="flex-1 py-6 bg-slate-900 text-slate-500 border border-slate-800 rounded-2xl font-black uppercase tracking-[0.3em] text-[10px] hover:text-white transition-all disabled:opacity-50"
+                  onClick={() => setStep(2)}
+                  disabled={!name}
+                  className="w-full py-6 bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-800 text-white rounded-2xl font-black uppercase tracking-[0.3em] text-xs shadow-xl transition-all active:scale-95 flex items-center justify-center space-x-3"
                 >
-                  Back
+                  <span>Define Personality Matrix</span>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
                 </button>
-                <button 
-                  onClick={handleFinalize}
-                  disabled={isFinalizing}
-                  className="flex-[2] py-6 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-black uppercase tracking-[0.3em] text-xs shadow-xl transition-all active:scale-95 flex items-center justify-center"
-                >
-                  {isFinalizing ? (
-                    <div className="w-5 h-5 border-3 border-white/20 border-t-white rounded-full animate-spin"></div>
-                  ) : (
-                    "Finalize Neural Sync"
-                  )}
-                </button>
-              </div>
-            </div>
-          )}
+              </motion.div>
+            ) : (
+              <motion.div 
+                key="step2"
+                initial={{ opacity: 0, scale: 0.5 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 1.5, filter: 'blur(20px)' }}
+                className="space-y-12"
+              >
+                <div className="space-y-6">
+                  <label className="block text-indigo-400 text-[10px] font-black uppercase tracking-[0.2em] mb-4 px-1 text-center">Core Neural Temperament</label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {PERSONALITIES.map((p) => (
+                      <motion.button
+                        key={p.name}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.95, y: 6 }}
+                        onClick={() => setPersonality(p.name)}
+                        className={`p-6 rounded-3xl border-2 transition-all text-left flex flex-col h-full group ${personality === p.name ? 'border-indigo-500 bg-indigo-500/10 shadow-lg shadow-indigo-500/20' : 'border-slate-800 bg-slate-900/40 hover:border-slate-700'} shadow-[0_8px_0_0_rgba(30,41,59,1)] ${personality === p.name ? 'shadow-[0_2px_0_0_rgba(30,41,59,1)]' : ''}`}
+                      >
+                        <div className={`w-10 h-10 rounded-xl mb-6 flex items-center justify-center ${p.bg} ${p.color} transition-transform group-hover:scale-110`}>
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={p.icon} /></svg>
+                        </div>
+                        <h3 className="font-outfit font-black text-white text-sm uppercase tracking-tighter mb-2">{p.name}</h3>
+                        <p className="text-[10px] text-slate-500 leading-relaxed font-bold uppercase tracking-tight opacity-70">{p.desc}</p>
+                      </motion.button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex space-x-4">
+                  <button 
+                    onClick={() => setStep(1)}
+                    disabled={isFinalizing}
+                    className="flex-1 py-6 bg-slate-900 text-slate-500 border border-slate-800 rounded-2xl font-black uppercase tracking-[0.3em] text-[10px] hover:text-white transition-all disabled:opacity-50"
+                  >
+                    Back
+                  </button>
+                  <button 
+                    onClick={handleFinalize}
+                    disabled={isFinalizing}
+                    className="flex-[2] py-6 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-black uppercase tracking-[0.3em] text-xs shadow-xl transition-all active:scale-95 flex items-center justify-center"
+                  >
+                    {isFinalizing ? (
+                      <div className="w-5 h-5 border-3 border-white/20 border-t-white rounded-full animate-spin"></div>
+                    ) : (
+                      "Finalize Neural Sync"
+                    )}
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
         <p className="text-center text-slate-600 text-[9px] font-black uppercase tracking-[0.5em]">Identity synchronized to local edge &bull; {email}</p>
       </div>

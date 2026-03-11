@@ -1,12 +1,12 @@
-# 🌌 QuantaAI Agents: Sovereign Polymath OS
+# 🌌 Quanta-OS Agentic System: Sovereign Polymath OS
 
-**QuantaAI** is a high-performance, private-first intelligence system designed to serve as a decentralized "Subject Matter Expert" (SME) orchestration layer. Built on the **FPT-Omega** (First Principles Thinking) framework, it allows operators to manage complex life, business, and trading architectures through a suite of specialized neural cores.
+**Quanta-OS** is a high-performance, private-first intelligence system designed to serve as a decentralized "Subject Matter Expert" (SME) orchestration layer. Built on the **FPT-Omega** (First Principles Thinking) framework, it allows operators to manage complex life, business, and trading architectures through a suite of specialized neural cores.
 
 ---
 
 ## 🛰️ Tracks & Neural Architecture
 
-QuantaAI operates across three distinct logic tracks, each housing a suite of specialized SMEs:
+Quanta-OS operates across three distinct logic tracks, each housing a suite of specialized SMEs:
 
 ### 1. 👤 Personal Track
 Designed for holistic life optimization.
@@ -21,7 +21,7 @@ A specialized derivative deconstruction suite for market analysis.
 
 ## 🚀 Hybrid Inference Engine (New)
 
-QuantaAI now supports **Multi-Source Compute** for the perfect balance of reasoning, speed, and privacy:
+Quanta-OS now supports **Multi-Source Compute** for the perfect balance of reasoning, speed, and privacy:
 
 *   **Deep Reasoning (Gemini 3 Pro)**: Default engine for complex SME Council debates and search-grounded research.
 *   **Hyper-Speed (Groq API)**: Near-instantaneous inference using Llama-3.3-70b and Mixtral. Ideal for rapid brainstorming.

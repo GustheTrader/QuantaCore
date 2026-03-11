@@ -11,6 +11,8 @@ export interface Task {
   coverImage?: string; // URL
   attachments: TaskAttachment[];
   timestamp: number;
+  dueDate?: number;
+  reminderDate?: number;
 }
 
 export interface TaskAttachment {
@@ -195,7 +197,7 @@ export interface RCB {
   semanticStackDepth: number;
   priority: number;
   driftMeter: number; // Δψ
-  status: 'active' | 'suspended' | 'interrupt';
+  status: 'active' | 'suspended' | 'interrupt' | 'error';
 }
 
 export interface SemanticPage {
@@ -294,4 +296,13 @@ export interface EdgeSession {
     hitRate: number;
     memoryUsage: string;
   };
+}
+
+export interface ChatWindowSession {
+  id: string;
+  agentName: string;
+  messages: ChatMessage[];
+  isOpen: boolean;
+  isMinimized: boolean;
+  zIndex: number;
 }

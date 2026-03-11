@@ -42,12 +42,12 @@ export const FPT_RESEARCH_DATA = {
       content: "95% of human thought is analogical. We do things because 'that's how they are done'. This creates a 'Derivative Efficiency'—we optimize existing systems rather than inventing new ones. FPT creates 'Fundamental Efficiency'. By rejecting the analogy, we escape the limitations of the current paradigm."
     },
     {
-      heading: "3. The Quanta Engine Protocol",
+      heading: "3. The Quanta-OS Engine Protocol",
       content: "The FPT-Omega Engine in this application enforces a strict 3-step neural pathway:\n\nA. DECONSTRUCTION: The query is exploded into component parts. Cultural bias is flagged as 'Noise'.\n\nB. AXIOM ISOLATION: We search for the 'Non-Negotiables'—math, physics, code, or verified data.\n\nC. RECONSTRUCTION: The solution is compiled solely from these axioms, often resulting in novel, non-obvious strategies."
     },
     {
       heading: "4. Auditable Intelligence",
-      content: "Sovereign Intelligence requires trust. The Quanta FPT Engine provides a transparent 'Audit Trace' for every major decision. You can see exactly which assumptions were discarded and which axioms formed the bedrock of the advice. This ensures the AI serves your specific reality, not a generalized average."
+      content: "Sovereign Intelligence requires trust. The Quanta-OS FPT Engine provides a transparent 'Audit Trace' for every major decision. You can see exactly which assumptions were discarded and which axioms formed the bedrock of the advice. This ensures the AI serves your specific reality, not a generalized average."
     }
   ]
 };

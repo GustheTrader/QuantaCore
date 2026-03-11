@@ -1,18 +1,13 @@
 
-import { GoogleGenAI, Type } from "@google/genai";
-// Corrected import: MemoryBlock does not exist in types.ts, using SourceNode instead
 import { DeepStep, DeepAgentSession, SourceNode } from "../types";
-import { recallRelevantMemories, distillMemoryFromChat } from "./geminiService";
+import { recallRelevantMemories, distillMemoryFromChat, safeGenerateContent } from "./geminiService";
 import { syncMemoryToSupabase } from "./supabaseService";
 import { streamAbacusAgent } from "./abacusService";
-
-const getAI = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 export const runDeepAgentLoop = async (
   query: string | { text: string, parts: any[] },
   onUpdate: (session: DeepAgentSession) => void
 ) => {
-  const ai = getAI();
   const sessionId = Math.random().toString(36).substr(2, 9);
   const userText = typeof query === 'string' ? query : query.text;
   const userParts = typeof query === 'string' ? [{ text: query }] : query.parts;
@@ -48,24 +43,24 @@ export const runDeepAgentLoop = async (
     const planId = 'step_plan';
     addStep({ id: planId, type: 'plan', status: 'running', label: 'Developing Neural Logic Plan' });
     
-    const planResponse = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: [
+    const planResponse = await safeGenerateContent(
+      'gemini-3-flash-preview',
+      [
         { role: 'user', parts: userParts },
         { role: 'user', parts: [{ text: `\n\nRECALLED LTM CONTEXT: ${recalledContext || "None"}\n\nDeconstruct this into 3 investigative sub-goals. Factor in recalled knowledge. Return as JSON.` }] }
       ],
-      config: {
+      {
         responseMimeType: "application/json",
         responseSchema: {
-          type: Type.OBJECT,
+          type: 'OBJECT',
           properties: {
-            goals: { type: Type.ARRAY, items: { type: Type.STRING } },
-            strategy: { type: Type.STRING }
+            goals: { type: 'ARRAY', items: { type: 'STRING' } },
+            strategy: { type: 'STRING' }
           },
           required: ["goals", "strategy"]
         }
       }
-    });
+    );
 
     const plan = JSON.parse(planResponse.text || '{"goals":[], "strategy":""}');
     updateStep(planId, { status: 'complete', content: plan.strategy });
@@ -79,11 +74,11 @@ export const runDeepAgentLoop = async (
       const searchId = `search_${i}`;
       addStep({ id: searchId, type: 'search', status: 'running', label: `Investigating Node ${i+1}: ${goal}` });
 
-      const searchResponse = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: `Execute deep research into: ${goal}. FACTOR IN PRIOR KNOWLEDGE: ${globalContext}`,
-        config: { tools: [{ googleSearch: {} }] }
-      });
+      const searchResponse = await safeGenerateContent(
+        'gemini-3-flash-preview',
+        `Execute deep research into: ${goal}. FACTOR IN PRIOR KNOWLEDGE: ${globalContext}`,
+        { tools: [{ googleSearch: {} }] }
+      );
 
       const sources = searchResponse.candidates?.[0]?.groundingMetadata?.groundingChunks
         ?.filter(chunk => chunk.web)
@@ -98,20 +93,20 @@ export const runDeepAgentLoop = async (
     const critiqueId = 'step_critique';
     addStep({ id: critiqueId, type: 'critique', status: 'running', label: 'Self-Reflecting on Collected Data' });
     
-    const critiqueResponse = await ai.models.generateContent({
-      model: 'gemini-3-pro-preview',
-      contents: `CONTEXT:\n${globalContext}\n\nCRITIQUE: Does this sufficiently address: "${query}"?`,
-    });
+    const critiqueResponse = await safeGenerateContent(
+      'gemini-3-pro-preview',
+      `CONTEXT:\n${globalContext}\n\nCRITIQUE: Does this sufficiently address: "${query}"?`,
+    );
     updateStep(critiqueId, { status: 'complete', content: critiqueResponse.text });
 
     // 4. SYNTHESIS PHASE
     const synthId = 'step_synth';
     addStep({ id: synthId, type: 'synthesize', status: 'running', label: 'Synthesizing Final Neural Report' });
     
-    const synthResponse = await ai.models.generateContent({
-      model: 'gemini-3-pro-preview',
-      contents: `Final Task: Comprehensive synthesis report.\n\nRESEARCH:\n${globalContext}\n\nCRITIQUE:\n${critiqueResponse.text}\n\nUSER QUERY:\n${query}`,
-    });
+    const synthResponse = await safeGenerateContent(
+      'gemini-3-pro-preview',
+      `Final Task: Comprehensive synthesis report.\n\nRESEARCH:\n${globalContext}\n\nCRITIQUE:\n${critiqueResponse.text}\n\nUSER QUERY:\n${query}`,
+    );
 
     updateStep(synthId, { status: 'complete', content: 'Synthesis complete.' });
     
@@ -133,9 +128,13 @@ export const runDeepAgentLoop = async (
     
     onUpdate({ ...session });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error("Deep Agent Loop Failure:", error);
-    addStep({ id: 'error', type: 'critique', status: 'error', label: 'Neural Connection Lost' });
+    let label = 'Neural Connection Lost';
+    if (error.message?.includes('QUOTA_EXCEEDED')) {
+      label = 'Neural Energy Depleted (Quota Exceeded)';
+    }
+    addStep({ id: 'error', type: 'critique', status: 'error', label });
   }
 };
 

@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { ActionHub } from './ActionHub';
 import { agentOS } from '../services/agentos/AgentOS';
 import { VoiceAgent } from './VoiceAgent';
 import { useFileIngestion } from '../hooks/useFileIngestion';
@@ -7,6 +8,7 @@ import { FileIngestionZone } from './FileIngestionZone';
 
 interface AgenticOSProps {
   profile: { name: string, callsign: string, personality: string };
+  onOpenChat: (agentName: string) => void;
 }
 
 interface NoesisModule {
@@ -18,7 +20,7 @@ interface NoesisModule {
   icon: string;
 }
 
-const AgenticOS: React.FC<AgenticOSProps> = ({ profile }) => {
+const AgenticOS: React.FC<AgenticOSProps> = ({ profile, onOpenChat }) => {
   const [input, setInput] = useState('');
   const [isVoiceActive, setIsVoiceActive] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -135,6 +137,13 @@ const AgenticOS: React.FC<AgenticOSProps> = ({ profile }) => {
         
         <div className="flex items-center gap-4">
            <button 
+             onClick={() => onOpenChat('AgentOS Prime')}
+             className="px-6 py-4 bg-slate-900 border border-indigo-500/30 hover:border-indigo-500 text-indigo-400 rounded-2xl transition-all flex items-center space-x-3"
+           >
+             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+             <span className="text-[11px] font-black uppercase tracking-widest">Neural Terminal</span>
+           </button>
+           <button 
              onClick={() => setIsVoiceActive(true)}
              className="group relative px-8 py-4 bg-slate-900 border-2 border-emerald-500/30 hover:border-emerald-500 text-emerald-400 rounded-2xl transition-all shadow-[0_0_30px_rgba(16,185,129,0.1)] hover:shadow-[0_0_50px_rgba(16,185,129,0.3)] overflow-hidden"
            >
@@ -238,6 +247,7 @@ const AgenticOS: React.FC<AgenticOSProps> = ({ profile }) => {
                         <div className="text-slate-300 text-sm font-mono leading-relaxed whitespace-pre-wrap">
                            {synthesisResult}
                         </div>
+                        <ActionHub content={synthesisResult} agentName="Agentic OS" title="Synthesis Output" />
                       </div>
                     ) : (
                       <div className="relative">

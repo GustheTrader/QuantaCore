@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { GoogleGenAI, Type } from "@google/genai";
-// Corrected import: MemoryBlock does not exist in types.ts, using SourceNode instead
+import { safeGenerateContent } from '../services/geminiService';
 import { CouncilTurn, SourceNode } from '../types';
 import { getSMEContext, optimizePrompt } from '../services/geminiService';
 import { ActionHub } from './ActionHub';
@@ -161,7 +160,6 @@ const Council: React.FC = () => {
     clearFiles();
 
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const FPT_OMEGA_PROTOCOL = `You are a high-performance SME agent using First Principles Thinking (FPT-OMEGA). You MUST structure your output using deconstruction (analogies removed), atomic axioms (fundamental truths), and reconstruction (advice).`;
 
       const globalCtx = await getSMEContext("All Agents", operatorProfile);
@@ -176,24 +174,24 @@ const Council: React.FC = () => {
         const agentCtx = await getSMEContext(agent, operatorProfile);
         const combinedKnowledge = `${globalCtx.knowledgeContext}\n\n${agentCtx.knowledgeContext}\n\n${fileContext}`;
 
-        const response = await ai.models.generateContent({
-          model: 'gemini-3-flash-preview',
-          contents: `SME Challenge: ${prompt}\n\nYou are ${agent}.\n${combinedKnowledge ? `RELEVANT KNOWLEDGE:\n${combinedKnowledge}` : ''}\n\nProvide strategic advice as JSON with deconstruction, axioms, and reconstruction.`,
-          config: { 
+        const response = await safeGenerateContent(
+          'gemini-3-flash-preview',
+          `SME Challenge: ${prompt}\n\nYou are ${agent}.\n${combinedKnowledge ? `RELEVANT KNOWLEDGE:\n${combinedKnowledge}` : ''}\n\nProvide strategic advice as JSON with deconstruction, axioms, and reconstruction.`,
+          { 
             systemInstruction: FPT_OMEGA_PROTOCOL,
             responseMimeType: "application/json",
             responseSchema: {
-              type: Type.OBJECT,
+              type: 'OBJECT',
               properties: {
-                content: { type: Type.STRING, description: "The full strategic advice text." },
-                deconstruction: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Analogies and assumptions removed." },
-                axioms: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Atomic logic units identified." },
-                reconstruction: { type: Type.STRING, description: "Synthesis summary." }
+                content: { type: 'STRING', description: "The full strategic advice text." },
+                deconstruction: { type: 'ARRAY', items: { type: 'STRING' }, description: "Analogies and assumptions removed." },
+                axioms: { type: 'ARRAY', items: { type: 'STRING' }, description: "Atomic logic units identified." },
+                reconstruction: { type: 'STRING', description: "Synthesis summary." }
               },
               required: ["content", "deconstruction", "axioms", "reconstruction"]
             }
           }
-        });
+        );
 
         try {
           const data = JSON.parse(response.text || '{}');
@@ -217,25 +215,25 @@ const Council: React.FC = () => {
 
       setDebateLog(prev => [...prev, { agentName: 'NEURAL JUDGE', role: 'judge', content: 'Synthesizing dominant logic...', status: 'processing' }]);
       
-      const judgeResponse = await ai.models.generateContent({
-        model: 'gemini-3-pro-preview',
-        contents: `Strategic Debate Context:\n${cumulativeDebate}\n\nProblem: ${prompt}\n\nSynthesize the most logical path forward based on deliberation and search data. Return JSON with audit trail.`,
-        config: { 
+      const judgeResponse = await safeGenerateContent(
+        'gemini-3-pro-preview',
+        `Strategic Debate Context:\n${cumulativeDebate}\n\nProblem: ${prompt}\n\nSynthesize the most logical path forward based on deliberation and search data. Return JSON with audit trail.`,
+        { 
           tools: [{ googleSearch: {} }],
           systemInstruction: `You are the Neural Judge. Synthesize SME input with total logical purity.\n${globalCtx.fullHeader}`,
           responseMimeType: "application/json",
           responseSchema: {
-            type: Type.OBJECT,
+            type: 'OBJECT',
             properties: {
-              synthesis: { type: Type.STRING },
-              audit_deconstruction: { type: Type.ARRAY, items: { type: Type.STRING } },
-              audit_axioms: { type: Type.ARRAY, items: { type: Type.STRING } },
-              audit_reconstruction: { type: Type.STRING }
+              synthesis: { type: 'STRING' },
+              audit_deconstruction: { type: 'ARRAY', items: { type: 'STRING' } },
+              audit_axioms: { type: 'ARRAY', items: { type: 'STRING' } },
+              audit_reconstruction: { type: 'STRING' }
             },
             required: ["synthesis", "audit_deconstruction", "audit_axioms", "audit_reconstruction"]
           }
         }
-      });
+      );
 
       try {
         const judgeData = JSON.parse(judgeResponse.text || '{}');
@@ -264,24 +262,24 @@ const Council: React.FC = () => {
 
       setDebateLog(prev => [...prev, { agentName: 'BOARD OF DIRECTORS', role: 'board', content: 'Issuing directive...', status: 'processing' }]);
       
-      const boardResponse = await ai.models.generateContent({
-        model: 'gemini-3-pro-preview',
-        contents: `Judge Synthesis: ${judgeSynthesis}\n\nOriginal Problem: ${prompt}\n\nYou are the Board of Directors. Review the Judge's synthesis and issue a structured executive directive.`,
-        config: {
+      const boardResponse = await safeGenerateContent(
+        'gemini-3-pro-preview',
+        `Judge Synthesis: ${judgeSynthesis}\n\nOriginal Problem: ${prompt}\n\nYou are the Board of Directors. Review the Judge's synthesis and issue a structured executive directive.`,
+        {
           responseMimeType: "application/json",
           responseSchema: {
-            type: Type.OBJECT,
+            type: 'OBJECT',
             properties: {
-              summary: { type: Type.STRING, description: "Executive summary of the council's findings." },
-              decision: { type: Type.STRING, description: "The final strategic path or decision." },
-              confidenceScore: { type: Type.NUMBER, description: "Confidence in this decision (0-100)." },
-              actionItems: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Exactly 3 immediate, high-impact tasks." },
-              references: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Key agent insights or axioms cited." }
+              summary: { type: 'STRING', description: "Executive summary of the council's findings." },
+              decision: { type: 'STRING', description: "The final strategic path or decision." },
+              confidenceScore: { type: 'NUMBER', description: "Confidence in this decision (0-100)." },
+              actionItems: { type: 'ARRAY', items: { type: 'STRING' }, description: "Exactly 3 immediate, high-impact tasks." },
+              references: { type: 'ARRAY', items: { type: 'STRING' }, description: "Key agent insights or axioms cited." }
             },
             required: ["summary", "decision", "confidenceScore", "actionItems", "references"]
           }
         }
-      });
+      );
 
       try {
         const boardData = JSON.parse(boardResponse.text || '{}');

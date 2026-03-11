@@ -17,11 +17,15 @@ import ProfileSetup from './components/ProfileSetup';
 import Notebook from './components/Notebook';
 import Council from './components/Council';
 import Projects from './components/Projects';
+import SMEBuilder from './components/SMEBuilder';
+import PersistentMemory from './components/PersistentMemory';
 import Settings from './components/Settings';
 import MCPConnectors from './components/MCPConnectors';
 import AgenticOS from './components/AgenticOS';
 import HermesAgent from './components/HermesAgent';
 import Gateway from './components/Gateway';
+import { FloatingChatManager } from './components/FloatingChatManager';
+import { useChatWindows } from './hooks/useChatWindows';
 import { supabase, signOut } from './services/supabaseService';
 
 interface ErrorBoundaryProps {
@@ -61,7 +65,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
             <svg className="w-12 h-12 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
           </div>
           <h1 className="text-4xl font-outfit font-black text-white mb-4 uppercase tracking-tighter">Neural Link Severed</h1>
-          <p className="text-slate-500 max-w-md mb-8 font-mono text-xs leading-relaxed uppercase tracking-widest">{this.state.error?.message || "Internal Kernel Panic within Quanta Engine."}</p>
+          <p className="text-slate-500 max-w-md mb-8 font-mono text-xs leading-relaxed uppercase tracking-widest">{this.state.error?.message || "Internal Kernel Panic within Quanta-OS Engine."}</p>
           <button 
             onClick={() => { localStorage.clear(); window.location.reload(); }}
             className="px-10 py-5 bg-indigo-600 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-2xl active:scale-95 transition-all"
@@ -80,6 +84,7 @@ const App: React.FC = () => {
   const [session, setSession] = useState<{ email: string, track: 'personal' | 'business' | 'trading' } | null>(null);
   const [profile, setProfile] = useState<{ name: string, callsign: string, personality: string } | null>(null);
   const [loading, setLoading] = useState(true);
+  const { windows, openChat, closeChat, toggleMinimize, focusWindow, addMessage } = useChatWindows();
 
   useEffect(() => {
     const initApp = async () => {
@@ -139,7 +144,7 @@ const App: React.FC = () => {
           </svg>
         </div>
         <div className="flex flex-col items-center space-y-2">
-          <p className="text-slate-500 font-black uppercase tracking-[0.5em] text-[10px] italic">Synchronizing Quanta Core...</p>
+          <p className="text-slate-500 font-black uppercase tracking-[0.5em] text-[10px] italic">Synchronizing Quanta-OS Core...</p>
           <div className="w-32 h-0.5 bg-slate-800 rounded-full overflow-hidden">
             <div className="h-full bg-indigo-500 animate-[loading_2s_ease-in-out_infinite]"></div>
           </div>
@@ -163,6 +168,7 @@ const App: React.FC = () => {
               onLogout={handleLogout} 
               track={session.track} 
               profile={profile} 
+              onOpenChat={openChat}
             />
             <main className={`flex-1 flex flex-col h-full transition-all duration-500 ease-in-out ${isSidebarOpen ? 'lg:ml-64' : 'lg:ml-20'}`}>
               <div className="lg:hidden h-20 bg-[#020617]/95 backdrop-blur-xl border-b border-slate-800 flex items-center px-8 z-50">
@@ -171,19 +177,19 @@ const App: React.FC = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" />
                   </svg>
                 </button>
-                <span className="ml-4 font-outfit font-black text-2xl tracking-tighter quantum-gradient-text uppercase italic">QUANTA AGENTS</span>
+                <span className="ml-4 font-outfit font-black text-2xl tracking-tighter quantum-gradient-text uppercase italic">QUANTA-OS AGENTS</span>
               </div>
               <div className="flex-1 overflow-y-auto p-6 lg:p-14 custom-scrollbar">
                 <div className="max-w-7xl mx-auto w-full h-full relative">
                   <Routes>
-                    <Route path="/" element={<Dashboard track={session.track} profile={profile} />} />
+                    <Route path="/" element={<Dashboard track={session.track} profile={profile} onOpenChat={openChat} />} />
                     <Route path="/chat" element={<ChatInterface profile={profile} />} />
                     <Route path="/gateway" element={<Gateway />} />
-                    <Route path="/agentic-os" element={<AgenticOS profile={profile} />} />
-                    <Route path="/hermes" element={<HermesAgent profile={profile} />} />
+                    <Route path="/agentic-os" element={<AgenticOS profile={profile} onOpenChat={openChat} />} />
+                    <Route path="/hermes" element={<HermesAgent profile={profile} onOpenChat={openChat} />} />
                     <Route path="/deep-agent" element={<DeepAgent />} />
                     <Route path="/deep-diver" element={<DeepDiverAgent />} />
-                    <Route path="/agent-zero" element={<AgentZero />} />
+                    <Route path="/agent-zero" element={<AgentZero profile={profile} onOpenChat={openChat} />} />
                     <Route path="/iron-claw" element={<IronClawAgent />} />
                     <Route path="/edge-mech" element={<EdgeMechNetwork />} />
                     <Route path="/council" element={<Council />} />
@@ -193,6 +199,8 @@ const App: React.FC = () => {
                     <Route path="/videos" element={<VideoGenerator />} />
                     <Route path="/tasks" element={<TaskBoard />} />
                     <Route path="/notebook" element={<Notebook />} />
+                    <Route path="/sme-builder" element={<SMEBuilder />} />
+                    <Route path="/memory" element={<PersistentMemory />} />
                     <Route path="/settings" element={<Settings />} />
                     <Route path="*" element={<Navigate to="/" />} />
                   </Routes>

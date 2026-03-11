@@ -1,10 +1,15 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { ZeroLogEntry, AgentZeroSession } from '../types';
-import { GoogleGenAI } from "@google/genai";
+import { safeGenerateContent } from '../services/geminiService';
 import { ActionHub } from './ActionHub';
 
-const AgentZero: React.FC = () => {
+interface AgentZeroProps {
+  profile: { name: string, callsign: string, personality: string };
+  onOpenChat: (agentName: string) => void;
+}
+
+const AgentZero: React.FC<AgentZeroProps> = ({ profile, onOpenChat }) => {
   const [input, setInput] = useState('');
   const [isExecuting, setIsExecuting] = useState(false);
   const [session, setSession] = useState<AgentZeroSession>({
@@ -71,22 +76,20 @@ const AgentZero: React.FC = () => {
     addLog('agent', cmd, 'ROOT_USER');
 
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      
       addLog('info', 'Acquiring visual target...');
       addLog('info', 'Generating Action Chain...');
       
-      const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: `You are Agent Zero (Root Level Computer Agency). Execute logic for: "${cmd}". 
+      const response = await safeGenerateContent(
+        'gemini-3-flash-preview',
+        `You are Agent Zero (Root Level Computer Agency). Execute logic for: "${cmd}". 
         CONTEXT: Full Desktop Access. 
         WORKSPACE: ${session.workspace}.
         
         Simulate a low-level action log including mouse clicks, typing, and terminal commands.`,
-        config: {
+        {
           systemInstruction: "You are the Root Computer Agent. You control the OS directly. Output logs that look like automated computer actions (e.g., [MOUSE_MOVE], [CLICK], [TYPE])."
         }
-      });
+      );
 
       const output = response.text || "Action complete.";
       
@@ -102,7 +105,12 @@ const AgentZero: React.FC = () => {
       addLog('info', 'Resources released to OS.');
       
     } catch (error: any) {
-      addLog('error', `Kernel Exception: ${error.message}`);
+      console.error("Agent Zero Error:", error);
+      let content = `Kernel Exception: ${error.message}`;
+      if (error.message?.includes('QUOTA_EXCEEDED')) {
+        content = "Neural Energy Depleted: You've exceeded your Gemini API quota. Please check your billing details or wait a moment before trying again.";
+      }
+      addLog('error', content);
     } finally {
       setIsExecuting(false);
       setSession(prev => ({ ...prev, status: 'idle' }));
@@ -145,6 +153,13 @@ const AgentZero: React.FC = () => {
         <div className="glass-card p-8 rounded-[3rem] border-slate-800 shadow-2xl flex flex-col bg-[#020617]/50 flex-1">
            <div className="flex items-center justify-between mb-8">
               <h2 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em]">Root Status</h2>
+              <button 
+                onClick={() => onOpenChat('Agent Zero')}
+                className="p-2 text-slate-600 hover:text-indigo-400 transition-colors"
+                title="Pop-out Neural Terminal"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+              </button>
               <div className={`px-3 py-1 rounded-full border text-[8px] font-black uppercase ${session.dockerStatus === 'connected' ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-400' : 'bg-rose-500/10 border-rose-500/50 text-rose-400'}`}>
                 {session.dockerStatus === 'connected' ? 'ONLINE' : 'OFFLINE'}
               </div>
@@ -175,7 +190,7 @@ const AgentZero: React.FC = () => {
 
       {/* RIGHT: TERMINAL FEED */}
       <div className="flex-1 flex flex-col space-y-6">
-        <div className="glass-card flex-1 p-10 rounded-[3.5rem] border-slate-800 shadow-2xl relative overflow-hidden flex flex-col bg-[#010409]">
+        <div className="glass-card flex-1 p-10 rounded-[3.5rem] border-slate-800 shadow-2xl relative overflow-hidden flex flex-col bg-[#010409] group">
            <div className="flex items-center space-x-4 mb-6 pb-4 border-b border-white/5">
               <div className="flex space-x-1.5">
                  <div className="w-2.5 h-2.5 rounded-full bg-rose-500/50"></div>
@@ -210,6 +225,12 @@ const AgentZero: React.FC = () => {
               )}
               <div ref={terminalEndRef} />
            </div>
+
+           {session.logs.length > 0 && (
+             <div className="px-10 pb-4">
+               <ActionHub content={session.logs.map(l => `[${new Date(l.timestamp).toISOString()}] ${l.agentName ? l.agentName + ': ' : ''}${l.content}`).join('\n')} agentName="Agent Zero" title="Terminal Log" />
+             </div>
+           )}
 
            <form onSubmit={handleCommand} className="mt-8 pt-6 border-t border-white/5">
               <div className="relative group">

@@ -159,8 +159,13 @@ const TaskBoard: React.FC = () => {
               draggable
               onDragStart={(e) => handleDragStart(e, task.id)}
               onClick={() => setActiveTask(task)}
-              className={`group bg-slate-900 border border-slate-800 rounded-xl p-3 cursor-pointer hover:bg-slate-800 transition-all shadow-sm hover:shadow-lg active:scale-[0.98] ${draggedTaskId === task.id ? 'opacity-50' : ''}`}
+              className={`group bg-slate-900 border border-slate-800 rounded-xl p-3 cursor-pointer hover:bg-slate-800 transition-all shadow-sm hover:shadow-lg active:scale-[0.98] relative ${draggedTaskId === task.id ? 'opacity-50' : ''}`}
             >
+              {task.reminderDate && (
+                <div className="absolute top-2 right-2 text-orange-500">
+                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" /></svg>
+                </div>
+              )}
               {task.coverImage && (
                 <div className="h-20 w-full rounded-lg mb-3 overflow-hidden">
                   <img src={task.coverImage} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" alt="cover" />
@@ -294,6 +299,32 @@ const TaskBoard: React.FC = () => {
                     <input 
                       value={activeTask.category} 
                       onChange={(e) => updateTask(activeTask.id, { category: e.target.value })}
+                      className="bg-transparent text-white border-b border-transparent hover:border-slate-700 focus:border-orange-500 outline-none px-1"
+                    />
+                  </div>
+
+                  <div className="text-slate-500 font-medium flex items-center space-x-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                    <span>Due Date</span>
+                  </div>
+                  <div>
+                    <input 
+                      type="date"
+                      value={activeTask.dueDate ? new Date(activeTask.dueDate).toISOString().split('T')[0] : ''}
+                      onChange={(e) => updateTask(activeTask.id, { dueDate: new Date(e.target.value).getTime() })}
+                      className="bg-transparent text-white border-b border-transparent hover:border-slate-700 focus:border-orange-500 outline-none px-1"
+                    />
+                  </div>
+                  
+                  <div className="text-slate-500 font-medium flex items-center space-x-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
+                    <span>Reminder</span>
+                  </div>
+                  <div>
+                    <input 
+                      type="datetime-local"
+                      value={activeTask.reminderDate ? new Date(activeTask.reminderDate).toISOString().slice(0, 16) : ''}
+                      onChange={(e) => updateTask(activeTask.id, { reminderDate: new Date(e.target.value).getTime() })}
                       className="bg-transparent text-white border-b border-transparent hover:border-slate-700 focus:border-orange-500 outline-none px-1"
                     />
                   </div>

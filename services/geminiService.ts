@@ -33,6 +33,23 @@ const gmailTool: FunctionDeclaration = {
   }
 };
 
+const handleGeminiError = (e: any) => {
+  console.error("Gemini API Error:", e);
+  if (e.message?.includes('429') || e.status === 429 || e.message?.includes('RESOURCE_EXHAUSTED')) {
+    throw new Error("QUOTA_EXCEEDED: You've exceeded your Gemini API quota. Please check your billing details or wait a moment before trying again.");
+  }
+  throw e;
+};
+
+export const safeGenerateContent = async (model: string, contents: any, config?: any) => {
+  const ai = getAI();
+  return await ai.models.generateContent({
+    model,
+    contents,
+    config
+  }).catch(handleGeminiError);
+};
+
 /**
  * SOURCE GROUNDING SERVICE
  * Implementation of NotebookLM-style RAG.
@@ -76,11 +93,12 @@ export const performSourceGrounding = async (query: string, agentName: string): 
           }
         }
       }
-    });
+    }).catch(handleGeminiError);
 
     const result = JSON.parse(response.text || '{"context":"", "citations":[]}');
     return result;
-  } catch (e) {
+  } catch (e: any) {
+    if (e.message?.includes('QUOTA_EXCEEDED')) throw e;
     console.error("Source Grounding Error:", e);
     return { context: "", citations: [] };
   }
@@ -138,7 +156,9 @@ export const chatWithSME = async (
   const fullSystemInstruction = `${systemBase}\n\n${ctx.fullHeader}`;
 
   if (provider === 'groq' || provider === 'local') {
-    const response = await chatWithOpenAICompatible(message, history, fullSystemInstruction, provider);
+    const settings = JSON.parse(localStorage.getItem('quanta_api_settings') || '{}');
+    const groqKey = settings.groqKey;
+    const response = await chatWithOpenAICompatible(message, history, fullSystemInstruction, provider, undefined, groqKey);
     deductCloudCredits(12);
     return { ...response, citations: ctx.citations };
   }
@@ -174,7 +194,7 @@ export const chatWithSME = async (
       { role: 'user', parts: [{ text: message }] }
     ],
     config: config
-  });
+  }).catch(handleGeminiError);
 
   let finalText = response.text || "";
   let fptAudit = undefined;
@@ -220,7 +240,7 @@ export const reflectAndRefine = async (history: ChatMessage[], currentPrompt: st
     model: 'gemini-3-pro-preview',
     contents: `Evaluate the SME Agent: ${agentName}.\n\nPROMPT: ${currentPrompt}\n\nHISTORY: ${context}`,
     config: { responseMimeType: "application/json" }
-  });
+  }).catch(handleGeminiError);
   try { return JSON.parse(response.text || "{}"); } catch (e) { return { score: 5, analysis: "Bypassed", suggestedPrompt: null, weaknesses: [], strengths: ["Stability"] }; }
 };
 
@@ -231,7 +251,7 @@ export const distillMemoryFromChat = async (recentMessages: ChatMessage[], agent
     model: 'gemini-3-flash-preview',
     contents: `Distill critical knowledge as Source Node: \n${chatContext}`,
     config: { responseMimeType: 'application/json' }
-  });
+  }).catch(handleGeminiError);
   try {
     const data = JSON.parse(response.text || "{}");
     if (data.hasKnowledge) {
@@ -259,7 +279,7 @@ export const optimizePrompt = async (rawInput: string, agentName: string) => {
     model: 'gemini-3-flash-preview',
     contents: `Optimize context budget for ${agentName}: "${rawInput}"`,
     config: { responseMimeType: 'application/json' }
-  });
+  }).catch(handleGeminiError);
   try { return JSON.parse(response.text || "{}"); } catch (e) { return { optimizedPrompt: rawInput, improvements: [], traceScore: 0.5, compressionRatio: 1, intelligenceDensity: 0.5 }; }
 };
 
@@ -268,7 +288,7 @@ export const generateImage = async (prompt: string) => {
   const response = await ai.models.generateContent({
     model: 'gemini-2.5-flash-image',
     contents: { parts: [{ text: prompt }] }
-  });
+  }).catch(handleGeminiError);
   if (response.candidates?.[0]?.content?.parts) {
     for (const part of response.candidates[0].content.parts) {
       if (part.inlineData) return `data:image/png;base64,${part.inlineData.data}`;
@@ -283,7 +303,7 @@ export const optimizeTasks = async (tasks: string[]) => {
     model: 'gemini-3-flash-preview',
     contents: `Optimize tasks: ${tasks.join(', ')}`,
     config: { responseMimeType: "application/json" }
-  });
+  }).catch(handleGeminiError);
   try { return JSON.parse(response.text || '{"suggestions":[]}').suggestions; } catch (e) { return []; }
 };
 
@@ -320,7 +340,7 @@ export const optimizeContextWithLangfuse = async (rawInput: string): Promise<Con
         "reasoning": "Explanation of changes made"
       }`,
       config: { responseMimeType: 'application/json' }
-    });
+    }).catch(handleGeminiError);
 
     const latency = Date.now() - startTime;
     const data = JSON.parse(response.text || '{}');

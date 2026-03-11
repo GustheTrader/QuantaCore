@@ -15,11 +15,16 @@ export const chatWithOpenAICompatible = async (
   history: { role: string, content: string }[],
   systemInstruction: string,
   provider: 'groq' | 'local' = 'groq',
-  model?: string
+  model?: string,
+  apiKeyOverride?: string
 ) => {
   const url = provider === 'local' ? LOCAL_API_URL : GROQ_API_URL;
   // Use user-provided key or fallback to env
-  const apiKey = provider === 'local' ? 'ollama' : (process.env.GROQ_API_KEY || "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");
+  const apiKey = apiKeyOverride || (provider === 'local' ? 'ollama' : process.env.GROQ_API_KEY);
+  
+  if (provider === 'groq' && !apiKey) {
+    throw new Error("GROQ_API_KEY environment variable is missing.");
+  }
   
   // Selection of premium inference models
   const activeModel = model || (provider === 'local' ? "llama3" : "llama-3.3-70b-versatile");

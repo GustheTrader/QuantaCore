@@ -1,7 +1,7 @@
 
 import { TaskAttachment } from "../types";
 
-const DB_NAME = 'QuantaStorageBucket';
+const DB_NAME = 'QuantaOSStorageBucket';
 const STORE_NAME = 'files';
 
 // Initialize IndexedDB

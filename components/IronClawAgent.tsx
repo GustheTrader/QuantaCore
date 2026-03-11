@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { ActionHub } from './ActionHub';
 
 interface SecurityLog {
   id: string;
@@ -146,7 +147,7 @@ const IronClawAgent: React.FC = () => {
 
         {/* Right Panel: Security Logs & Visualization */}
         <div className="lg:col-span-5 space-y-6">
-          <div className="glass-card h-[600px] rounded-[3rem] border-slate-800 bg-black/80 p-8 flex flex-col relative overflow-hidden">
+          <div className="glass-card h-[600px] rounded-[3rem] border-slate-800 bg-black/80 p-8 flex flex-col relative overflow-hidden group">
             <div className="absolute top-0 right-0 p-6 opacity-20">
               <svg className="w-32 h-32 text-orange-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zm0 9l2.5-1.25L12 8.5l-2.5 1.25L12 11zm0 2.5l-5-2.5-5 2.5L12 22l10-8.5-5-2.5-5 2.5z"/></svg>
             </div>
@@ -183,6 +184,12 @@ const IronClawAgent: React.FC = () => {
               )}
               <div ref={logsEndRef} />
             </div>
+
+            {logs.length > 0 && (
+              <div className="mt-4 pt-4 border-t border-slate-800">
+                <ActionHub content={logs.map(l => `[${new Date(l.timestamp).toISOString()}] ${l.type.toUpperCase()}: ${l.message}`).join('\n')} agentName="IronClaw Agent" title="Security Audit Log" />
+              </div>
+            )}
 
             {/* Status Bar */}
             <div className="mt-6 pt-6 border-t border-slate-800 flex items-center justify-between">

@@ -11,9 +11,10 @@ interface SidebarProps {
   onLogout: () => void;
   track: 'personal' | 'business' | 'trading';
   profile: { name: string, callsign: string, personality: string };
+  onOpenChat: (agentName: string) => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, onLogout, track, profile }) => {
+const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, onLogout, track, profile, onOpenChat }) => {
   const location = useLocation();
   const [provider, setProvider] = useState('Gemini');
   const [credits, setCredits] = useState<UserCredits>(getCredits());
@@ -29,8 +30,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, onLogout, track, p
   }, [location.pathname]);
 
   const navItems = [
-    { name: 'Quanta Core', icon: 'M13 10V3L4 14h7v7l9-11h-7z', path: '/' },
-    { name: 'Unified Gateway', icon: 'M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z', path: '/gateway' },
+    { name: 'Quanta-OS Core', icon: 'M13 10V3L4 14h7v7l9-11h-7z', path: '/' },
     { name: 'Neural Chat', icon: 'M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z', path: '/chat' },
     { name: 'Agentic OS', icon: 'M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z', path: '/agentic-os' },
     { name: 'Hermes Protocol', icon: 'M13 10V3L4 14h7v7l9-11h-7z', path: '/hermes' },
@@ -38,18 +38,21 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, onLogout, track, p
     { name: 'Deep Diver', icon: 'M19 14l-7 7m0 0l-7-7m7 7V3', path: '/deep-diver' },
     { name: 'Agent Zero', icon: 'M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4', path: '/agent-zero' },
     { name: 'Iron Claw', icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z', path: '/iron-claw' },
-    { name: 'Edge Mech Network', icon: 'M13 10V3L4 14h7v7l9-11h-7z', path: '/edge-mech' }, // Reusing bolt icon but will style red
     { name: 'SME Council', icon: 'M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2', path: '/council' },
+    { name: 'SME Builder', icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z', path: '/sme-builder' },
+    { name: 'Unified Gateway', icon: 'M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z', path: '/gateway' },
+    { name: 'Edge Mech Network', icon: 'M13 10V3L4 14h7v7l9-11h-7z', path: '/edge-mech' }, // Reusing bolt icon but will style red
     { name: 'Projects', icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 v2M7 7h10', path: '/projects' },
-    { name: 'Sovereign Knowledge', icon: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5', path: '/notebook' },
     { name: 'Visual Forge', icon: 'M4 16l4.586-4.586a2 2 0 012.828 0L16 16', path: '/images' },
     { name: 'Cinematic Forge', icon: 'M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z', path: '/videos' },
     { name: 'Process Flow', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2', path: '/tasks' },
+    { name: 'Persistent Memory', icon: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5', path: '/memory' },
+    { name: 'Sovereign Knowledge', icon: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5', path: '/notebook' },
   ];
 
   const renderNavLink = (item: { name: string, icon: string, path: string }) => {
     const isActive = location.pathname === item.path;
-    const isOrange = ['SME Council', 'Projects', 'Deep Agent', 'Deep Diver', 'Neural Settings', 'MCP Connectors', 'Cinematic Forge', 'Agent Zero', 'Agentic OS', 'Hermes Protocol', 'Unified Gateway', 'Iron Claw'].includes(item.name);
+    const isOrange = ['SME Council', 'Projects', 'Deep Agent', 'Deep Diver', 'Neural Settings', 'MCP Connectors', 'Cinematic Forge', 'Agent Zero', 'Agentic OS', 'Hermes Protocol', 'Unified Gateway', 'Iron Claw', 'SME Builder', 'Persistent Memory'].includes(item.name);
     const isCyan = item.name === 'Deep Diver';
     const isRed = item.name === 'Edge Mech Network';
     const isAssistant = item.name === 'Agentic OS';
@@ -107,7 +110,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, onLogout, track, p
       <ConfirmationModal 
         isOpen={isLogoutModalOpen}
         title="De-sync Neural Link?"
-        message="You are about to terminate your active session. You will need to re-authenticate to access the Quanta substrate."
+        message="You are about to terminate your active session. You will need to re-authenticate to access the Quanta-OS substrate."
         confirmLabel="De-sync"
         cancelLabel="Stay Connected"
         onConfirm={onLogout}
@@ -130,6 +133,16 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, onLogout, track, p
         </div>
 
         <nav className="flex-1 px-4 py-2 space-y-1.5 overflow-y-auto custom-scrollbar">
+          <button 
+            onClick={() => onOpenChat('Neural Terminal')}
+            className={`w-full flex items-center p-2.5 rounded-xl transition-all group relative border border-indigo-500/20 bg-indigo-500/5 text-indigo-400 hover:bg-indigo-500/10 hover:border-indigo-500/40 mb-4`}
+          >
+            <svg className="w-5 h-5 min-w-[20px] text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            {isOpen && <span className="ml-3 font-black text-[11px] tracking-[0.1em] uppercase whitespace-nowrap">Neural Terminal</span>}
+            {isOpen && <div className="absolute right-2.5 w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse shadow-[0_0_8px_#818cf8]"></div>}
+          </button>
           {navItems.map(renderNavLink)}
         </nav>
 

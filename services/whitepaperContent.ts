@@ -1,7 +1,7 @@
 
 /**
  * Compiled Sovereign Intelligence Whitepaper Content
- * Derived from QuantaAI Research Initiative Documents (Dec 2025)
+ * Derived from Quanta-OS Research Initiative Documents (Dec 2025)
  * Enhanced with Sovereign Storage Protocols
  */
 
@@ -11,7 +11,7 @@ BUILDING YOUR PRIVATE AI COUNCIL
 A White Paper on Data Sovereignty, Privacy-First AI, and Localized Foundation Models
 
 Version 1.0 | December 2025
-Author: QuantaAI Research Initiative
+Author: Quanta-OS Research Initiative
 
 ABSTRACT:
 This white paper explores the convergence of data sovereignty, privacy-preserving artificial intelligence, and open-source foundation models to create personalized, localized AI systems that serve as trusted advisors across all domains of life.
@@ -45,7 +45,7 @@ Users face critical concerns with centralized AI:
 6. **Audit Trails**: Comprehensive logs for compliance.
 
 4. SOVEREIGN STORAGE ARCHITECTURE
-To ensure total data dignity, QuantaAI supports dual-path storage:
+To ensure total data dignity, Quanta-OS supports dual-path storage:
 • **Local Drive Integration**: Zero-latency persistence on physical silicon.
 • **Private Cloud Storage Bucket**: Encrypted remote backups controlled by your own API keys.
 

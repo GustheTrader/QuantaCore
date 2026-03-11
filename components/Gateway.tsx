@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { ActionHub } from './ActionHub';
 
 // Mock Data Types
 interface Channel {
@@ -171,7 +172,7 @@ const Gateway: React.FC = () => {
       </div>
 
       {/* 3. ACTIVE CONTROL PLANE (Right) */}
-      <div className="flex-1 flex flex-col bg-slate-950/30 relative">
+      <div className="flex-1 flex flex-col bg-slate-950/30 relative group">
         {/* Background Grid */}
         <div className="absolute inset-0 bg-mesh opacity-30 pointer-events-none"></div>
 
@@ -221,6 +222,15 @@ const Gateway: React.FC = () => {
                     ))}
                   </div>
                   <div className="p-6 border-t border-slate-800 bg-[#020617]">
+                    {activeSession.messages.length > 0 && (
+                      <div className="mb-4">
+                        <ActionHub 
+                          content={activeSession.messages.map(m => `${m.role.toUpperCase()} (${new Date(m.time).toLocaleString()}): ${m.content}`).join('\n\n')} 
+                          agentName={`Gateway: ${activeSession.user}`} 
+                          title={`Chat with ${activeSession.user}`} 
+                        />
+                      </div>
+                    )}
                     <div className="relative group">
                       <input 
                         value={input}

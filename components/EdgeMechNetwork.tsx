@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
+import { ActionHub } from './ActionHub';
 import { EdgeDomain, EdgeSession, MechNode } from '../types';
 import { spinUpMechNode, simulateRedisMetrics, generateEdgeLogic } from '../services/edgeService';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
@@ -200,7 +201,7 @@ const EdgeMechNetwork: React.FC = () => {
          </div>
 
          {/* Execution Log */}
-         <div className="glass-card p-8 rounded-[3rem] border-red-900/20 bg-black flex flex-col relative overflow-hidden">
+         <div className="glass-card p-8 rounded-[3rem] border-red-900/20 bg-black flex flex-col relative overflow-hidden group">
             <div className="absolute top-4 right-4 text-[9px] font-mono text-red-900 animate-pulse">LIVE_EXEC_STREAM</div>
             <div className="flex-1 overflow-y-auto custom-scrollbar font-mono text-xs space-y-3 pr-2">
                {session.logs.map(log => (
@@ -215,6 +216,11 @@ const EdgeMechNetwork: React.FC = () => {
                ))}
                <div ref={logEndRef} />
             </div>
+            {session.logs.length > 0 && (
+              <div className="mt-4 pt-4 border-t border-red-900/20">
+                <ActionHub content={session.logs.map(l => `[${new Date(l.timestamp).toISOString()}] ${l.source}: ${l.message}`).join('\n')} agentName="Edge Mech" title="Execution Stream" />
+              </div>
+            )}
          </div>
       </div>
       

@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { GoogleGenAI } from "@google/genai";
+import { safeGenerateContent } from '../services/geminiService';
 import { SourceNode } from '../types';
 import { syncMemoryToSupabase, fetchMemoriesFromSupabase, deleteMemoryFromSupabase } from '../services/supabaseService';
 import { ConfirmationModal } from './ConfirmationModal';
@@ -72,11 +72,10 @@ const Notebook: React.FC = () => {
 
   const processAndAddSource = async (title: string, content: string, type: SourceNode['type'], url?: string) => {
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      const summaryResponse = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: `You are a Source Analyst. Provide a high-density, 3-sentence summary of this knowledge block. TITLE: ${title}. CONTENT: ${content.substring(0, 5000)}`,
-      });
+      const summaryResponse = await safeGenerateContent(
+        'gemini-3-flash-preview',
+        `You are a Source Analyst. Provide a high-density, 3-sentence summary of this knowledge block. TITLE: ${title}. CONTENT: ${content.substring(0, 5000)}`
+      );
 
       const source: SourceNode = {
         id: `src_${Math.random().toString(36).substr(2, 9)}`,
@@ -108,18 +107,17 @@ const Notebook: React.FC = () => {
     if (sources.length === 0) return;
     setIsGeneratingGuide(true);
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const prompt = `You are a Knowledge Architect. Synthesize a "Notebook Guide" for the active sources:
       ${sources.map(s => `[SOURCE: ${s.title}]: ${s.metadata?.summary}`).join('\n')}
       
       Provide themes, suggested inquiries, and key axioms.`;
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: prompt
-      });
+      const response = await safeGenerateContent('gemini-3-flash-preview', prompt);
       setGuideSummary(response.text || "Failed to generate guide.");
-    } catch (e) {
+    } catch (e: any) {
+      if (e.message?.includes('QUOTA_EXCEEDED')) {
+        alert("Neural Energy Depleted: You've exceeded your Gemini API quota. Please check your billing details or wait a moment before trying again.");
+      }
       console.error(e);
     } finally {
       setIsGeneratingGuide(false);
@@ -130,12 +128,11 @@ const Notebook: React.FC = () => {
     if (sources.length < 2) return;
     setIsCompacting(true);
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const contentToCompact = sources.map(s => `[SOURCE: ${s.title}]: ${s.content.substring(0, 3000)}...`).join('\n\n');
       
-      const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: `You are the Sovereign Knowledge Architect. 
+      const response = await safeGenerateContent(
+        'gemini-3-flash-preview',
+        `You are the Sovereign Knowledge Architect. 
         TASK: Compact the following ${sources.length} memory blocks into a SINGLE, high-density "Master Context Block".
         
         RULES:
@@ -145,8 +142,8 @@ const Notebook: React.FC = () => {
         4. Output structure: Markdown with clear headers.
         
         INPUT DATA:
-        ${contentToCompact}`,
-      });
+        ${contentToCompact}`
+      );
 
       const compactedText = response.text;
       if (!compactedText) throw new Error("Compaction failed");
@@ -341,10 +338,10 @@ const Notebook: React.FC = () => {
                </div>
              ) : (
                sources.map(source => (
-                 <button 
+                 <div 
                    key={source.id} 
                    onClick={() => setActiveSourceId(source.id)}
-                   className={`w-full p-4 rounded-2xl border text-left transition-all group relative overflow-hidden flex flex-col gap-2 ${activeSourceId === source.id ? 'bg-emerald-600/10 border-emerald-500 shadow-lg' : 'bg-slate-900 border-slate-800 hover:border-slate-700'}`}
+                   className={`w-full p-4 rounded-2xl border text-left transition-all group relative overflow-hidden flex flex-col gap-2 cursor-pointer ${activeSourceId === source.id ? 'bg-emerald-600/10 border-emerald-500 shadow-lg' : 'bg-slate-900 border-slate-800 hover:border-slate-700'}`}
                  >
                    <div className="flex items-center space-x-3 mb-1">
                       <div className={`w-8 h-8 rounded-lg bg-slate-950 border border-emerald-500/20 flex items-center justify-center text-[10px] font-black shrink-0 ${source.type === 'pdf' ? 'text-rose-400' : source.type === 'url' ? 'text-cyan-400' : 'text-emerald-500'}`}>
@@ -363,11 +360,11 @@ const Notebook: React.FC = () => {
 
                    <button 
                      onClick={(e) => { e.stopPropagation(); setDeleteModal({ isOpen: true, id: source.id }); }}
-                     className="absolute top-4 right-4 p-1 opacity-0 group-hover:opacity-100 text-slate-600 hover:text-rose-500 transition-all"
+                     className="absolute top-4 right-4 p-1 opacity-0 group-hover:opacity-100 text-slate-600 hover:text-rose-500 transition-all z-10"
                    >
                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                    </button>
-                 </button>
+                 </div>
                ))
              )}
            </div>

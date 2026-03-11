@@ -1,6 +1,6 @@
 {
-  "name": "QuantaAI Agents",
-  "description": "Quantum-powered personal AI agents that run locally with complete privacy and self-learning capabilities.",
+  "name": "Quanta - OS - Agentic",
+  "description": "Cognitive, persistent, curious, and compassionate nervous system framework.",
   "requestFramePermissions": [
     "camera",
     "microphone"

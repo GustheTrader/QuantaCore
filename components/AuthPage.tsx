@@ -66,7 +66,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
   };
 
   const downloadWhitepaper = () => {
-    exportToBrowser("QuantaAI_Sovereign_Intelligence_Whitepaper", WHITEPAPER_TEXT);
+    exportToBrowser("QuantaOS_Sovereign_Intelligence_Whitepaper", WHITEPAPER_TEXT);
   };
 
   return (
@@ -83,7 +83,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
           </div>
           
           <h1 className="text-6xl md:text-[9.5rem] font-outfit font-black mb-4 leading-[0.8] tracking-tighter uppercase">
-            Neural <span className="quantum-gradient-text italic">Quanta</span> <br/>
+            Neural <span className="quantum-gradient-text italic">Quanta - OS - Agentic</span> <br/>
             <span className="text-white relative">
               Logic Cores.
               <div className="absolute -right-12 top-1/2 w-8 h-8 bg-orange-500 blur-2xl opacity-40"></div>
@@ -148,7 +148,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
             <form onSubmit={handleAuth} className="space-y-12">
               <div className="flex justify-center">
                 <div className="bg-slate-900 p-2 rounded-2xl border border-slate-800 inline-flex shadow-inner">
-                  {(['personal', 'business', 'trading'] as const).map((t) => (
+                  {(['personal', 'business', 'trading', 'education', 'guest'] as const).map((t) => (
                     <button 
                       key={t}
                       type="button" 
@@ -167,7 +167,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
                   type="email" 
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="operator@quanta.ai"
+                  placeholder="operator@quanta-os.ai"
                   className="w-full bg-slate-950 border-2 border-slate-800 text-white rounded-2xl py-8 px-10 focus:outline-none focus:border-orange-500 transition-all font-mono text-base shadow-inner"
                   required
                 />
@@ -185,7 +185,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
                   </>
                 ) : (
                   <>
-                    <span>Authenticate Quanta Link</span>
+                    <span>Authenticate Quanta-OS Link</span>
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
                   </>
                 )}
