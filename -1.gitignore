@@ -1,0 +1,39 @@
+OpenNoesis -OS/
+├── .env                     # Secret — never commit
+├── .tmp/                    # Regenerable intermediates
+└── *.pyc
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# ML / Models
+checkpoints/
+*.pt
+*.pth
+*.bin
+*.safetensors
+wandb/
+
+# Video processing temp files
+*.frames/
+frame_cache/
+
+# Data
+*.csv
+*.parquet
+*.jsonl
+
+# IDEs
+.vscode/settings.json
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db

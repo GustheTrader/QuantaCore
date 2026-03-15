@@ -48,8 +48,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, onLogout, track, p
     { name: 'Process Flow', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2', path: '/tasks' },
     { name: 'Persistent Memory', icon: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5', path: '/memory' },
     { name: 'Sovereign Knowledge', icon: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5', path: '/notebook' },
-    { name: 'NotebookLM', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z', path: '/notebooklm' },
-    { name: 'MCP Connectors', icon: 'M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z', path: '/mcp' },
   ];
 
   const renderNavLink = (item: { name: string, icon: string, path: string }) => {
@@ -57,7 +55,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, onLogout, track, p
     const isOrange = ['SME Council', 'Projects', 'Deep Agent', 'Deep Diver', 'Neural Settings', 'MCP Connectors', 'Cinematic Forge', 'Agent Zero', 'Agentic OS', 'Hermes Protocol', 'Unified Gateway', 'Iron Claw', 'SME Builder', 'Persistent Memory'].includes(item.name);
     const isCyan = item.name === 'Deep Diver';
     const isRed = item.name === 'Edge Mech Network';
-    const isPurple = item.name === 'NotebookLM';
     const isAssistant = item.name === 'Agentic OS';
     
     // Default Styling
@@ -70,11 +67,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, onLogout, track, p
         activeClass = 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30 shadow-[0_0_20px_rgba(6,182,212,0.1)]';
         iconClass = 'text-cyan-400';
         dotClass = 'bg-cyan-400';
-    } else if (isPurple) {
-        activeClass = 'bg-purple-500/10 text-purple-400 border-purple-500/30 shadow-[0_0_20px_rgba(168,85,247,0.1)]';
-        iconClass = 'text-purple-400';
-        dotClass = 'bg-purple-400';
-        textHoverClass = 'group-hover:text-purple-400';
     } else if (isAssistant) {
         activeClass = 'bg-rose-500/10 text-rose-400 border-rose-500/30 shadow-[0_0_20px_rgba(244,63,94,0.1)]';
         iconClass = 'text-rose-400';

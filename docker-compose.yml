@@ -1,0 +1,65 @@
+version: "3.9"
+
+# ============================================================
+# OpenNoesis — Local Development Stack
+# Run: docker compose up -d
+# ============================================================
+
+services:
+
+  # ─── Redis Stack (L2 Semantic RAM) ───────────────────────
+  redis:
+    image: redis/redis-stack:latest
+    container_name: opennoesis-redis
+    ports:
+      - "6379:6379"   # Redis
+      - "8001:8001"   # RedisInsight GUI
+    volumes:
+      - redis_data:/data
+    environment:
+      REDIS_ARGS: "--appendonly yes"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ─── Memgraph (L3 Knowledge Graph) ───────────────────────
+  memgraph:
+    image: memgraph/memgraph:latest
+    container_name: opennoesis-memgraph
+    ports:
+      - "7687:7687"   # Bolt protocol
+    volumes:
+      - memgraph_data:/var/lib/memgraph
+    healthcheck:
+      test: ["CMD-SHELL", "echo 'RETURN 1;' | mgconsole --use-ssl=false || exit 1"]
+      interval: 20s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+  # ─── Memgraph Lab (Visual Graph UI) ──────────────────────
+  memgraph-lab:
+    image: memgraph/lab:latest
+    container_name: opennoesis-memgraph-lab
+    ports:
+      - "3000:3000"
+    environment:
+      QUICK_CONNECT_MG_HOST: memgraph
+      QUICK_CONNECT_MG_PORT: 7687
+    depends_on:
+      - memgraph
+    restart: unless-stopped
+
+volumes:
+  redis_data:
+    driver: local
+  memgraph_data:
+    driver: local
+
+networks:
+  default:
+    name: opennoesis-network
