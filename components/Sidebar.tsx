@@ -34,6 +34,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, onLogout, track, p
     { name: 'Neural Chat', icon: 'M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z', path: '/chat' },
     { name: 'Agentic OS', icon: 'M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z', path: '/agentic-os' },
     { name: 'Hermes Protocol', icon: 'M13 10V3L4 14h7v7l9-11h-7z', path: '/hermes' },
+    { name: 'Hermes Ops', icon: 'M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z', path: '/hermes-ops' },
     { name: 'Deep Agent', icon: 'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z', path: '/deep-agent' },
     { name: 'Deep Diver', icon: 'M19 14l-7 7m0 0l-7-7m7 7V3', path: '/deep-diver' },
     { name: 'Agent Zero', icon: 'M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4', path: '/agent-zero' },
@@ -52,7 +53,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, onLogout, track, p
 
   const renderNavLink = (item: { name: string, icon: string, path: string }) => {
     const isActive = location.pathname === item.path;
-    const isOrange = ['SME Council', 'Projects', 'Deep Agent', 'Deep Diver', 'Neural Settings', 'MCP Connectors', 'Cinematic Forge', 'Agent Zero', 'Agentic OS', 'Hermes Protocol', 'Unified Gateway', 'Iron Claw', 'SME Builder', 'Persistent Memory'].includes(item.name);
+    const isOrange = ['SME Council', 'Projects', 'Deep Agent', 'Deep Diver', 'Neural Settings', 'MCP Connectors', 'Cinematic Forge', 'Agent Zero', 'Agentic OS', 'Hermes Protocol', 'Hermes Ops', 'Unified Gateway', 'Iron Claw', 'SME Builder', 'Persistent Memory'].includes(item.name);
     const isCyan = item.name === 'Deep Diver';
     const isRed = item.name === 'Edge Mech Network';
     const isAssistant = item.name === 'Agentic OS';

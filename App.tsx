@@ -23,6 +23,7 @@ import Settings from './components/Settings';
 import MCPConnectors from './components/MCPConnectors';
 import AgenticOS from './components/AgenticOS';
 import HermesAgent from './components/HermesAgent';
+import HermesOperations from './components/HermesOperations';
 import Gateway from './components/Gateway';
 import { FloatingChatManager } from './components/FloatingChatManager';
 import { useChatWindows } from './hooks/useChatWindows';
@@ -187,6 +188,7 @@ const App: React.FC = () => {
                     <Route path="/gateway" element={<Gateway />} />
                     <Route path="/agentic-os" element={<AgenticOS profile={profile} onOpenChat={openChat} />} />
                     <Route path="/hermes" element={<HermesAgent profile={profile} onOpenChat={openChat} />} />
+                    <Route path="/hermes-ops" element={<HermesOperations />} />
                     <Route path="/deep-agent" element={<DeepAgent />} />
                     <Route path="/deep-diver" element={<DeepDiverAgent />} />
                     <Route path="/agent-zero" element={<AgentZero profile={profile} onOpenChat={openChat} />} />
