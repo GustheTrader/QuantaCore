@@ -204,8 +204,8 @@ const EdgeMechNetwork: React.FC = () => {
          <div className="glass-card p-8 rounded-[3rem] border-red-900/20 bg-black flex flex-col relative overflow-hidden group">
             <div className="absolute top-4 right-4 text-[9px] font-mono text-red-900 animate-pulse">LIVE_EXEC_STREAM</div>
             <div className="flex-1 overflow-y-auto custom-scrollbar font-mono text-xs space-y-3 pr-2">
-               {session.logs.map(log => (
-                 <div key={log.id} className="animate-in slide-in-from-left-2 duration-100 flex space-x-3">
+               {session.logs.map((log, idx) => (
+                 <div key={`${log.id}_${idx}`} className="animate-in slide-in-from-left-2 duration-100 flex space-x-3">
                     <span className="text-slate-600 shrink-0">[{new Date(log.timestamp).toLocaleTimeString([], {hour12: false, fractionalSecondDigits: 3} as any)}]</span>
                     <span className={`font-bold shrink-0 w-12 ${log.source === 'REDIS' ? 'text-indigo-400' : log.source === 'MECH' ? 'text-red-400' : 'text-slate-400'}`}>{log.source}</span>
                     <span className={`break-all ${log.level === 'exec' ? 'text-white' : 'text-slate-400'}`}>
