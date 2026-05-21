@@ -12,6 +12,7 @@ import { ContextOptimizerModal } from './ContextOptimizerModal';
 import { syncChatHistoryToSupabase, fetchChatHistoryFromSupabase } from '../services/supabaseService';
 import { ConfirmationModal } from './ConfirmationModal';
 import OutputPanel from './OutputPanel';
+import { PanelRightClose, PanelRightOpen } from 'lucide-react';
 
 interface ChatInterfaceProps {
   profile: { name: string, callsign: string, personality: string };
@@ -27,6 +28,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isVoiceActive, setIsVoiceActive] = useState(false);
   const [isNeuralLinkActive, setIsNeuralLinkActive] = useState(false);
+  const [isRightPaneOpen, setIsRightPaneOpen] = useState(true);
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [isLearning, setIsLearning] = useState(false);
   const [isReflecting, setIsReflecting] = useState(false);
@@ -274,7 +276,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile }) => {
   const latestOutput = messages.length > 0 ? messages[messages.length - 1].content : '';
 
   return (
-    <div className="flex h-[calc(100vh-160px)] gap-6">
+    <div className={`flex h-[calc(100vh-160px)] transition-all duration-300 ${isRightPaneOpen ? 'gap-6' : 'gap-0'}`}>
       <div className="flex-1 flex flex-col glass-card rounded-[3rem] overflow-hidden shadow-2xl animate-in slide-in-from-bottom-4 duration-700 relative border-emerald-500/20">
         <VoiceAgent isActive={isVoiceActive} agentName={activeAgent} systemInstruction={agentConfig.prompt || `You are ${activeAgent}.`} onClose={() => setIsVoiceActive(false)} profile={profile} />
         <FPTOverlay isOpen={showFPTOverlay} onClose={() => setShowFPTOverlay(false)} />
@@ -345,13 +347,24 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile }) => {
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 12l2 2 4-4" /></svg>
               <span>Telemetry</span>
             </button>
+
+            <button 
+              onClick={() => setIsRightPaneOpen(!isRightPaneOpen)}
+              className={`px-6 py-3 border rounded-2xl transition-all text-[11px] font-black uppercase tracking-widest flex items-center space-x-3 ${
+                isRightPaneOpen ? 'bg-indigo-600 border-indigo-400 text-white' : 'bg-slate-900 border-slate-800 text-slate-500 hover:text-indigo-400'
+              }`}
+              title={isRightPaneOpen ? "Collapse Output Stream" : "Expand Output Stream"}
+            >
+              {isRightPaneOpen ? <PanelRightClose className="w-4 h-4 text-indigo-400" /> : <PanelRightOpen className="w-4 h-4 text-slate-400" />}
+              <span>{isRightPaneOpen ? 'Hide Stream' : 'Show Stream'}</span>
+            </button>
           </div>
         </div>
 
-        <div className={`flex-1 overflow-y-auto p-10 lg:p-20 space-y-16 bg-slate-950/20 transition-all duration-500 ${isNeuralLinkActive ? 'lg:mr-[450px]' : ''} custom-scrollbar relative`}>
+        <div className={`flex-1 overflow-y-auto p-6 lg:p-10 space-y-10 bg-slate-950/20 transition-all duration-500 ${isNeuralLinkActive ? 'lg:mr-[450px]' : ''} custom-scrollbar relative`}>
           {messages.map((m, idx) => (
             <div key={idx} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-4 group`}>
-              <div className={`w-full max-w-5xl p-10 rounded-[2.5rem] relative shadow-2xl transition-all duration-500 ${
+              <div className={`w-full max-w-6xl lg:max-w-[92%] p-6 lg:p-8 rounded-[2rem] relative shadow-2xl transition-all duration-500 ${
                 m.role === 'user' 
                   ? 'bg-[#020617] border border-emerald-500/20 text-white rounded-tr-none hover:border-emerald-500/40' 
                   : 'bg-slate-900/40 text-slate-100 rounded-tl-none border-orange-500/10 shadow-[0_0_30px_rgba(0,0,0,0.3)] hover:border-orange-500/30'
@@ -488,21 +501,30 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile }) => {
         </div>
       </div>
       
-      {/* Output Panel (33% footprint) */}
-      <div className="w-1/3">
-        <OutputPanel 
-          output={latestOutput} 
-          onSave={() => console.log('Save')} 
-          onPrint={() => window.print()} 
-          onDownload={() => {
-            const blob = new Blob([latestOutput], { type: 'text/plain' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'output.txt';
-            a.click();
-          }}
-        />
+      {/* Output Panel (Sleeker smaller and collapsible footprint) */}
+      <div 
+        className={`transition-all duration-300 ease-in-out h-full shrink-0 flex ${
+          isRightPaneOpen 
+            ? 'w-1/4 lg:w-[22%] min-w-[280px] max-w-[340px] opacity-100' 
+            : 'w-0 min-w-0 max-w-0 opacity-0 overflow-hidden pointer-events-none'
+        }`}
+      >
+        <div className="w-full h-full relative">
+          <OutputPanel 
+            output={latestOutput} 
+            onSave={() => console.log('Save')} 
+            onPrint={() => window.print()} 
+            onDownload={() => {
+              const blob = new Blob([latestOutput], { type: 'text/plain' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = 'output.txt';
+              a.click();
+            }}
+            onCollapse={() => setIsRightPaneOpen(false)}
+          />
+        </div>
       </div>
     </div>
   );

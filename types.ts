@@ -62,7 +62,7 @@ export interface SourceNode {
   id: string;
   title: string;
   content: string;
-  type: 'doc' | 'url' | 'pdf' | 'distilled';
+  type: 'doc' | 'url' | 'pdf' | 'distilled' | 'image';
   category: string;
   assignedAgents: string[]; 
   timestamp: number;

@@ -31,7 +31,7 @@ export const generateEdgeLogic = async (domains: EdgeDomain[], logCallback: (log
   
   // 1. Simulate Redis Subscription
   logCallback({
-    id: `log_${Date.now()}`,
+    id: `log_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
     timestamp: Date.now(),
     level: 'info',
     source: 'REDIS',
@@ -56,7 +56,7 @@ export const generateEdgeLogic = async (domains: EdgeDomain[], logCallback: (log
     logs.forEach((msg, i) => {
       setTimeout(() => {
         logCallback({
-          id: `exec_${Date.now()}_${i}`,
+          id: `exec_${Date.now()}_${i}_${Math.random().toString(36).substring(2, 9)}`,
           timestamp: Date.now(),
           level: 'exec',
           source: 'MECH',
@@ -68,7 +68,7 @@ export const generateEdgeLogic = async (domains: EdgeDomain[], logCallback: (log
 
   } catch (e) {
     logCallback({
-      id: `err_${Date.now()}`,
+      id: `err_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
       timestamp: Date.now(),
       level: 'crit',
       source: 'CORE',

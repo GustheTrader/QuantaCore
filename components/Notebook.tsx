@@ -42,12 +42,20 @@ const Notebook: React.FC = () => {
     setIsProcessingSource(true);
     const reader = new FileReader();
     reader.onload = async (e) => {
-      const text = e.target?.result as string;
-      await processAndAddSource(file.name, text, file.type.includes('pdf') ? 'pdf' : 'doc');
+      const result = e.target?.result as string;
+      let type: SourceNode['type'] = 'doc';
+      if (file.type.includes('pdf')) type = 'pdf';
+      else if (file.type.includes('image')) type = 'image';
+      
+      await processAndAddSource(file.name, result, type);
       setIsUploadPortalOpen(false);
       setUploadMode('main');
     };
-    reader.readAsText(file);
+    if (file.type.includes('image')) {
+        reader.readAsDataURL(file);
+    } else {
+        reader.readAsText(file);
+    }
   };
 
   const handleLinkSubmit = async (type: 'Website' | 'YouTube') => {
@@ -422,7 +430,11 @@ const Notebook: React.FC = () => {
                   <section className="prose prose-invert max-w-none">
                      <h3 className="text-slate-500 text-[10px] font-black uppercase tracking-[0.4em] mb-8">Full Source Content</h3>
                      <div className="whitespace-pre-wrap text-slate-300 font-mono text-sm leading-relaxed bg-slate-950/40 p-8 rounded-3xl border border-slate-800/50">
-                        {activeSource.content}
+                        {activeSource.type === 'image' ? (
+                          <img src={activeSource.content} alt={activeSource.title} className="max-w-full rounded-2xl" referrerPolicy="no-referrer" />
+                        ) : (
+                          activeSource.content
+                        )}
                      </div>
                   </section>
                </div>
