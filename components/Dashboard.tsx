@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { Link } from 'react-router-dom';
+import SystemHealthWidget from './SystemHealthWidget';
 
 interface AgentDetails {
   name: string;
@@ -10,6 +11,12 @@ interface AgentDetails {
   icon: string;
   color: string;
   path: string;
+}
+
+interface DashboardProps {
+  track?: 'personal' | 'business' | 'trading';
+  profile?: { name: string; callsign: string; personality: string } | null;
+  onOpenChat?: (agent: any) => void;
 }
 
 const AGENTS: AgentDetails[] = [
@@ -96,13 +103,42 @@ const AGENTS: AgentDetails[] = [
   }
 ];
 
-const Dashboard: React.FC = () => {
+const Dashboard: React.FC<DashboardProps> = ({ profile }) => {
   return (
-    <div className="p-10 animate-in fade-in duration-1000">
-      <header className="mb-16">
-        <h1 className="text-6xl font-outfit font-black text-white uppercase tracking-tighter italic mb-4">Mission <span className="quantum-gradient-text">Control</span></h1>
-        <p className="text-slate-500 font-bold uppercase tracking-[0.3em] text-xs">Orchestrate your neural network.</p>
+    <div className="p-6 sm:p-10 animate-in fade-in duration-700">
+      <header className="mb-8">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div>
+            <h1 className="text-5xl sm:text-6xl font-outfit font-black text-white uppercase tracking-tighter italic mb-2">
+              Mission <span className="quantum-gradient-text">Control</span>
+            </h1>
+            <p className="text-slate-500 font-bold uppercase tracking-[0.3em] text-xs">
+              Orchestrate your neural network & active agent swarms.
+            </p>
+          </div>
+          {profile && (
+            <div className="font-mono text-xs text-slate-400 bg-slate-900/60 border border-slate-800/80 px-4 py-2 rounded-2xl w-fit">
+              <span className="text-slate-500 uppercase tracking-wider text-[10px]">Operator: </span>
+              <span className="text-emerald-400 font-bold">{profile.callsign || profile.name}</span>
+            </div>
+          )}
+        </div>
       </header>
+
+      {/* Real-time System Health & Telemetry Widget */}
+      <section className="mb-12">
+        <SystemHealthWidget />
+      </section>
+
+      {/* Agents Section Header */}
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="text-sm font-black text-slate-400 uppercase tracking-[0.25em] font-mono">
+            Active Neural Protocols & Agents
+          </h2>
+        </div>
+        <span className="text-[11px] font-mono text-slate-500">{AGENTS.length} Cores Online</span>
+      </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {AGENTS.map((agent) => (
