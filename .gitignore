@@ -12,6 +12,11 @@ dist
 dist-ssr
 *.local
 
+# Environment files can contain provider credentials; keep the example template tracked.
+.env
+.env.*
+!.env.example
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -22,3 +27,12 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Local, separately versioned FPhindsight source checkout
+FPhindsight/
+
+# Machine-specific Obsidian vault mount path
+docker-compose.obsidian.local.yml
+
+# Machine-local encrypted inference credentials and runtime state
+.quanta/

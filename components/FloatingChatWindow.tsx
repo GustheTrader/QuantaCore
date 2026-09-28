@@ -69,7 +69,7 @@ export const FloatingChatWindow: React.FC<FloatingChatWindowProps> = ({
       console.error("Chat Error:", error);
       const errorMessage: ChatMessage = {
         role: 'model',
-        content: "Neural link error. Please retry synchronization.",
+        content: error.message || "The inference request failed. Check your model connection in Settings.",
         timestamp: Date.now()
       };
       onAddMessage(session.id, errorMessage);
@@ -83,7 +83,7 @@ export const FloatingChatWindow: React.FC<FloatingChatWindowProps> = ({
       <motion.div 
         layoutId={session.id}
         onClick={() => onMinimize(session.id)}
-        className="fixed bottom-4 right-4 w-64 h-12 bg-slate-950 border border-slate-800 rounded-xl flex items-center px-4 cursor-pointer hover:border-indigo-500/50 transition-all z-[9999] shadow-2xl"
+        className="pointer-events-auto fixed bottom-4 right-4 w-64 h-12 bg-slate-950 border border-slate-800 rounded-xl flex items-center px-4 cursor-pointer hover:border-indigo-500/50 transition-all z-[9999] shadow-2xl"
         style={{ zIndex: session.zIndex }}
       >
         <div className="w-2 h-2 rounded-full bg-emerald-500 mr-3 animate-pulse"></div>
@@ -103,7 +103,7 @@ export const FloatingChatWindow: React.FC<FloatingChatWindowProps> = ({
       animate={{ opacity: 1, scale: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.9, y: 20 }}
       onMouseDown={() => onFocus(session.id)}
-      className="fixed bottom-20 right-4 w-[400px] h-[550px] bg-slate-950 border border-slate-800 rounded-[2rem] flex flex-col shadow-[0_0_50px_rgba(0,0,0,0.5)] z-[9999] overflow-hidden"
+      className="pointer-events-auto fixed bottom-20 right-4 w-[400px] h-[550px] bg-slate-950 border border-slate-800 rounded-[2rem] flex flex-col shadow-[0_0_50px_rgba(0,0,0,0.5)] z-[9999] overflow-hidden"
       style={{ zIndex: session.zIndex }}
     >
       {/* Header */}

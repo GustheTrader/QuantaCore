@@ -3,13 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { ApiSettings, UserCredits } from '../types';
 import { invokeEdgeFunction } from '../services/supabaseService';
 import { ConfirmationModal } from './ConfirmationModal';
-
-const VERIFIED_NOVITA_MODELS = [
-  { id: 'moonshotai/kimi-k2-thinking', name: 'Kimi K2 (Thinking Core)', desc: 'Primary reasoning substrate' },
-  { id: 'deepseek/deepseek-v3', name: 'DeepSeek V3 (Fast)', desc: 'Stable hyper-performance' },
-  { id: 'deepseek/deepseek-r1', name: 'DeepSeek R1', desc: 'Alternative reasoning model' },
-  { id: 'meta-llama/llama-3.3-70b-instruct', name: 'Llama 3.3 70B', desc: 'Industry standard' }
-];
+import ProviderConnections from './ProviderConnections';
 
 const Settings: React.FC = () => {
   const [settings, setSettings] = useState<ApiSettings>({
@@ -51,10 +45,6 @@ const Settings: React.FC = () => {
     const savedApi = localStorage.getItem('quanta_api_settings');
     if (savedApi) {
       const parsed = JSON.parse(savedApi);
-      // Auto-migrate to moonshotai if previous attempts were 404ing or incorrect
-      if (!parsed.novitaModel || parsed.novitaModel === 'deepseek/deepseek-r1' || parsed.novitaModel === 'deepseek/deepseek-v3') {
-        parsed.novitaModel = 'moonshotai/kimi-k2-thinking';
-      }
       if (!parsed.storage) {
         parsed.storage = {
           provider: 'local',
@@ -162,25 +152,7 @@ const Settings: React.FC = () => {
               <input type="password" disabled={settings.computeMode === 'credits'} value={settings.geminiKey} onChange={(e) => setSettings({...settings, geminiKey: e.target.value})} placeholder={settings.computeMode === 'credits' ? "Using Platform Credits..." : "Enter Personal Gemini API Key..."} className="w-full bg-slate-950 border-2 border-slate-800 rounded-3xl py-8 px-10 text-white font-mono focus:border-emerald-500 transition-all outline-none shadow-inner" />
             </div>
 
-            <div className={`space-y-6 transition-all duration-500 ${settings.computeMode === 'credits' ? 'opacity-40 grayscale' : 'opacity-100'}`}>
-              <label className="text-cyan-400 text-[11px] font-black uppercase tracking-[0.4em] px-2">Novita Core Configuration</label>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <input type="password" disabled={settings.computeMode === 'credits'} value={settings.novitaKey} onChange={(e) => setSettings({...settings, novitaKey: e.target.value})} placeholder={settings.computeMode === 'credits' ? "Shared Substrate Key..." : "sk_************************************"} className="w-full bg-slate-950 border-2 border-slate-800 rounded-3xl py-6 px-10 text-white font-mono focus:border-cyan-500 outline-none shadow-inner" />
-                <div className="relative">
-                  <select disabled={settings.computeMode === 'credits'} value={settings.novitaModel} onChange={(e) => setSettings({...settings, novitaModel: e.target.value})} className="w-full bg-slate-950 border-2 border-slate-800 rounded-3xl py-6 px-10 text-white font-bold appearance-none focus:border-cyan-500 outline-none shadow-inner cursor-pointer">
-                    {VERIFIED_NOVITA_MODELS.map(m => (
-                      <option key={m.id} value={m.id}>{m.name}</option>
-                    ))}
-                  </select>
-                  <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" /></svg>
-                  </div>
-                </div>
-              </div>
-              <p className="text-[9px] text-slate-500 uppercase tracking-widest px-4 italic">
-                Active Selection: <span className="text-cyan-500">{settings.novitaModel}</span>. Kimi K2 is the recommended reasoning engine.
-              </p>
-            </div>
+            <ProviderConnections />
 
             <button onClick={handleSaveSettings} className="w-full py-10 quanta-btn-orange text-white rounded-[2.5rem] font-black uppercase tracking-[0.5em] text-[13px] transition-all">
               {saveStatus || "Commit Architecture Changes"}

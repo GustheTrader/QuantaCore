@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx eve.ts",
+    "cli": "node bin/quanta.mjs",
     "build": "vite build",
     "preview": "vite preview",
     "lint": "tsc --noEmit",

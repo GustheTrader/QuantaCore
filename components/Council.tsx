@@ -8,6 +8,7 @@ import { ContextOptimizerBar } from './ContextOptimizerBar';
 import { exportToBrowser } from '../services/utils';
 import { useFileIngestion } from '../hooks/useFileIngestion';
 import { FileIngestionZone } from './FileIngestionZone';
+import { AGENT_TRACKS, getAgentTrack } from '../lib/agent-tracks';
 
 const Council: React.FC = () => {
   const [sessionActive, setSessionActive] = useState(false);
@@ -84,11 +85,20 @@ const Council: React.FC = () => {
         { name: "QMacroEdge", icon: "M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9" }
       ];
 
-      const standard = track === 'personal' ? personalAgents : track === 'business' ? businessAgents : tradingAgents;
+      const investingAgents = [
+        ...personalAgents.filter(agent => agent.name === 'QWealth'),
+        ...tradingAgents.filter(agent => ['QRiskQuant', 'QMacroEdge', 'QYieldHunter', 'QNewsSentry'].includes(agent.name))
+      ];
+      const growthAgents = personalAgents.filter(agent => ['QAssistant', 'QHealth', 'QMind', 'QCreative', 'QLegacy'].includes(agent.name));
+      const standard = track === 'business' ? businessAgents : track === 'trading' ? tradingAgents
+        : track === 'investing' ? investingAgents : track === 'growth' ? growthAgents : personalAgents;
+      const activeAgent = getAgentTrack(track);
+      const operationAgents = [activeAgent, ...AGENT_TRACKS.filter(agent => agent.id !== activeAgent.id)]
+        .map(agent => ({ name: agent.label, icon: agent.icon }));
       const savedCustom = localStorage.getItem(`quanta_custom_agents_${track}`);
       const custom = savedCustom ? JSON.parse(savedCustom).map((a: any) => ({ name: a.name, icon: a.icon })) : [];
       
-      setAvailableAgents([...standard, ...custom]);
+      setAvailableAgents([...new Map([...operationAgents, ...standard, ...custom].map(agent => [agent.name, agent])).values()]);
 
       const savedMemories = localStorage.getItem('quanta_notebook');
       if (savedMemories) {

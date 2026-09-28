@@ -1,21 +1,19 @@
 
 import { GoogleGenAI, Type, FunctionDeclaration } from "@google/genai";
 import { SourceNode, ChatMessage, ReflectionResult, ComputeProvider, ContextOptimizationData } from "../types";
-import { syncMemoryToSupabase, logReflection, archiveAndActivatePrompt, fetchMemoriesFromSupabase } from "./supabaseService";
+import { syncMemoryToSupabase, logReflection, archiveAndActivatePrompt, fetchMemoriesFromSupabase, cloudStorageEnabled } from "./supabaseService";
 import { chatWithOpenAICompatible } from "./groqService";
 import { deductCloudCredits, checkHasCredits } from "./creditService";
 import { FPT_SYSTEM_PROMPT } from "./fptContent";
 import { createTrace, scoreTrace } from "./langfuseService";
-
-const getApiKey = () => {
-  return (typeof process !== 'undefined' && process.env?.API_KEY) || 
-         ((window as any).process?.env?.API_KEY) || 
-         '';
-};
+import { AGENT_TRACKS, getAgentTrack } from '../lib/agent-tracks';
+import { getPreferredProvider, isCompatibleProvider } from '../lib/inference-providers';
+import { completeWithProvider } from './inferenceService';
+import { getLocalGeminiApiKey } from './browserCredentials';
 
 const getAI = () => {
-  const apiKey = getApiKey();
-  if (!apiKey) throw new Error("API Key missing. Please check your configuration.");
+  const apiKey = getLocalGeminiApiKey();
+  if (!apiKey) throw new Error("Configure Gemini in Settings, or select a configured model connection.");
   return new GoogleGenAI({ apiKey });
 };
 
@@ -41,22 +39,55 @@ const handleGeminiError = (e: any) => {
   throw e;
 };
 
-export const safeGenerateContent = async (model: string, contents: any, config?: any) => {
+export const safeGenerateContent = async (model: string, contents: any, config?: any, provider: ComputeProvider = getPreferredProvider(), signal?: AbortSignal): Promise<any> => {
+  if (isCompatibleProvider(provider)) {
+    if (config?.tools?.length) throw new Error('This route does not implement Gemini tools or Google Search. Attach source material, or explicitly choose Gemini for web research.');
+    const items = typeof contents === 'string' ? [{ role: 'user', parts: [{ text: contents }] }] : Array.isArray(contents) ? contents : [{ role: 'user', ...contents }];
+    const messages = items.map((item: any) => {
+      if (item.parts?.some((part: any) => !('text' in part))) throw new Error('This text connection cannot process image, audio or video parts. Use the dedicated media integration.');
+      return { role: item.role === 'model' ? 'assistant' : item.role || 'user', content: (item.parts || []).map((part: any) => part.text || '').join('\n') };
+    });
+    let instruction = config?.systemInstruction || '';
+    if (config?.responseMimeType === 'application/json') instruction += `\nReturn valid JSON only.${config.responseSchema ? ` Use this JSON schema: ${JSON.stringify(config.responseSchema)}.` : ''}`;
+    if (instruction) messages.unshift({ role: 'system', content: instruction });
+    const response = await completeWithProvider(provider, { messages, ...(config?.temperature !== undefined ? { temperature: config.temperature } : {}) }, signal);
+    const text = response.choices?.[0]?.message?.content;
+    if (typeof text !== 'string') throw new Error('The selected model did not return text. Choose a chat model in Settings.');
+    return { text, usageMetadata: response.usage, candidates: [] };
+  }
+  if (provider !== 'gemini') throw new Error('Choose a supported text provider in Settings.');
   const ai = getAI();
   return await ai.models.generateContent({
     model,
     contents,
-    config
+    config: { ...config, ...(signal ? { abortSignal: signal } : {}) }
   }).catch(handleGeminiError);
 };
+
+const getTextAI = (provider: ComputeProvider = getPreferredProvider()) => ({ models: { generateContent: ({ model, contents, config }: any) => safeGenerateContent(model, contents, config, provider) } });
 
 /**
  * SOURCE GROUNDING SERVICE
  * Implementation of NotebookLM-style RAG.
  */
-export const performSourceGrounding = async (query: string, agentName: string): Promise<{ context: string, citations: any[] }> => {
+export const performSourceGrounding = async (query: string, agentName: string, provider: ComputeProvider = getPreferredProvider(), signal?: AbortSignal, modelOverride?: string): Promise<{ context: string, citations: any[] }> => {
+  signal?.throwIfAborted();
+  if (isCompatibleProvider(provider) || !cloudStorageEnabled()) {
+    let memories: SourceNode[] = [];
+    try { memories = JSON.parse(localStorage.getItem('quanta_notebook') || '[]'); } catch {}
+    if (!Array.isArray(memories)) return { context: '', citations: [] };
+    const words = [...new Set(query.toLowerCase().match(/[a-z0-9]{3,}/g) || [])];
+    const relevant = memories.filter(memory => !memory.assignedAgents?.length || memory.assignedAgents.includes(agentName) || memory.assignedAgents.includes('All Agents'))
+      .map(memory => ({ memory, score: words.reduce((score, word) => score + (String(memory.title).toLowerCase().includes(word) ? 3 : String(memory.content).toLowerCase().includes(word) ? 1 : 0), 0) }))
+      .filter(item => item.score > 0).sort((a, b) => b.score - a.score).slice(0, 6).map(item => item.memory);
+    return {
+      context: relevant.map(memory => `[SOURCE ${memory.id}: ${memory.title}]\n${memory.content.slice(0, 2000)}`).join('\n\n'),
+      citations: relevant.map(memory => ({ sourceId: memory.id, sourceTitle: memory.title, snippet: memory.content.slice(0, 180) }))
+    };
+  }
   try {
-    const memories = await fetchMemoriesFromSupabase({ agentName });
+    const memories = await fetchMemoriesFromSupabase({ agentName }, signal);
+    signal?.throwIfAborted();
     if (!memories || memories.length === 0) return { context: "", citations: [] };
 
     const ai = getAI();
@@ -71,9 +102,10 @@ export const performSourceGrounding = async (query: string, agentName: string): 
     4. Return as JSON with citations.`;
 
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
+      model: modelOverride || 'gemini-3-flash-preview',
       contents: prompt,
       config: {
+        ...(signal ? { abortSignal: signal } : {}),
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
@@ -98,20 +130,33 @@ export const performSourceGrounding = async (query: string, agentName: string): 
     const result = JSON.parse(response.text || '{"context":"", "citations":[]}');
     return result;
   } catch (e: any) {
+    signal?.throwIfAborted();
+    if (e.name === 'AbortError') throw e;
     if (e.message?.includes('QUOTA_EXCEEDED')) throw e;
     console.error("Source Grounding Error:", e);
     return { context: "", citations: [] };
   }
 };
 
-export const getSMEContext = async (agentName: string, profile?: { name: string, callsign: string, personality: string }, query?: string) => {
+export const getSMEContext = async (agentName: string, profile?: { name: string, callsign: string, personality: string }, query?: string, provider: ComputeProvider = getPreferredProvider(), signal?: AbortSignal, modelOverride?: string) => {
+  let activeAgent = AGENT_TRACKS.find(agent => agent.label === agentName);
+  if (!activeAgent && typeof localStorage !== 'undefined') {
+    try {
+      const session = JSON.parse(localStorage.getItem('quanta_session') || 'null');
+      if (session?.track) activeAgent = getAgentTrack(session.track);
+    } catch {
+      // An unreadable local session must not prevent an otherwise valid chat.
+    }
+  }
   let groundingData = { context: "", citations: [] };
   
   if (query) {
-    groundingData = await performSourceGrounding(query, agentName);
+    groundingData = await performSourceGrounding(query, agentName, provider, signal, modelOverride);
   }
+  signal?.throwIfAborted();
 
   const personalityMap: Record<string, string> = {
+    ...Object.fromEntries(AGENT_TRACKS.map(agent => [agent.label, agent.instruction])),
     'Analytic Prime': 'Be highly logical, precise, and first-principles driven.',
     'Aetheris Warmth': 'Be conversational, warm, and focused on polymath well-being.',
     'Minimalist Node': 'Be ultra-concise and impactful.',
@@ -127,7 +172,7 @@ export const getSMEContext = async (agentName: string, profile?: { name: string,
     knowledgeContext: groundingData.context || "(No active sources relevant to this query.)",
     citations: groundingData.citations,
     identityContext: `${userIdentity} ${personalityInstruction}`,
-    fullHeader: `--- SOURCE KNOWLEDGE (GROUNDED) ---\n${groundingData.context || "(No relevant knowledge found.)"}\n\n--- OPERATOR PROFILE ---\n${userIdentity}`
+    fullHeader: `--- SOURCE KNOWLEDGE (GROUNDED) ---\n${groundingData.context || "(No relevant knowledge found.)"}\n\n--- OPERATOR PROFILE ---\n${userIdentity}\n${personalityInstruction}${activeAgent ? `\n\n--- ACTIVE AGENT ROLE ---\n${activeAgent.label}\n${activeAgent.instruction}` : ''}`
   };
 };
 
@@ -138,14 +183,18 @@ export const chatWithSME = async (
   customPrompt?: string,
   enabledSkills: string[] = ['search'],
   profile?: { name: string, callsign: string, personality: string },
-  provider: ComputeProvider = 'gemini',
-  useFPT: boolean = false
+  provider: ComputeProvider = getPreferredProvider(),
+  useFPT: boolean = false,
+  signal?: AbortSignal,
+  includeMemory: boolean = true,
+  modelOverride?: string
 ) => {
-  if (!checkHasCredits('cloud')) {
+  if (provider === 'gemini' && !checkHasCredits('cloud')) {
     throw new Error("Neural Energy Depleted: Refill Cloud Intelligence tokens to continue.");
   }
 
-  const ctx = await getSMEContext(agentName, profile, message);
+  signal?.throwIfAborted();
+  const ctx = await getSMEContext(agentName, profile, includeMemory ? message : undefined, provider, signal, modelOverride);
   let systemBase = customPrompt || `You are ${agentName}, a Subject Matter Expert (SME). Ground all answers in provided source knowledge. ${ctx.identityContext}`;
   
   // FPT Injection
@@ -155,13 +204,16 @@ export const chatWithSME = async (
 
   const fullSystemInstruction = `${systemBase}\n\n${ctx.fullHeader}`;
 
-  if (provider === 'groq' || provider === 'local') {
-    const settings = JSON.parse(localStorage.getItem('quanta_api_settings') || '{}');
-    const groqKey = settings.groqKey;
-    const response = await chatWithOpenAICompatible(message, history, fullSystemInstruction, provider, undefined, groqKey);
-    deductCloudCredits(12);
-    return { ...response, citations: ctx.citations };
+  if (isCompatibleProvider(provider)) {
+    const response = await chatWithOpenAICompatible(message, history, `${fullSystemInstruction}\nNo live web search is available on this connection. Do not claim to have browsed or executed tools.`, provider, modelOverride, signal);
+    let text = response.text;
+    let fptAudit;
+    if (useFPT) {
+      try { const parsed = JSON.parse(text); if (typeof parsed.reconstruction === 'string') { text = parsed.reconstruction; fptAudit = parsed; } } catch {}
+    }
+    return { ...response, text, citations: ctx.citations, fptAudit };
   }
+  if (provider !== 'gemini') throw new Error('Choose a supported text provider in Settings.');
 
   const ai = getAI();
   const tools: any[] = [];
@@ -188,12 +240,12 @@ export const chatWithSME = async (
   }
 
   const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
+    model: modelOverride || 'gemini-3-flash-preview',
     contents: [
       ...history.map(h => ({ role: h.role === 'user' ? 'user' : 'model', parts: [{ text: h.content }] })),
       { role: 'user', parts: [{ text: message }] }
     ],
-    config: config
+    config: { ...config, ...(signal ? { abortSignal: signal } : {}) }
   }).catch(handleGeminiError);
 
   let finalText = response.text || "";
@@ -233,8 +285,8 @@ export const chatWithSME = async (
   };
 };
 
-export const reflectAndRefine = async (history: ChatMessage[], currentPrompt: string, agentName: string): Promise<ReflectionResult> => {
-  const ai = getAI();
+export const reflectAndRefine = async (history: ChatMessage[], currentPrompt: string, agentName: string, provider: ComputeProvider = getPreferredProvider()): Promise<ReflectionResult> => {
+  const ai = getTextAI(provider);
   const context = history.map(m => `${m.role.toUpperCase()}: ${m.content}`).join('\n---\n');
   const response = await ai.models.generateContent({
     model: 'gemini-3-pro-preview',
@@ -244,8 +296,9 @@ export const reflectAndRefine = async (history: ChatMessage[], currentPrompt: st
   try { return JSON.parse(response.text || "{}"); } catch (e) { return { score: 5, analysis: "Bypassed", suggestedPrompt: null, weaknesses: [], strengths: ["Stability"] }; }
 };
 
-export const distillMemoryFromChat = async (recentMessages: ChatMessage[], agentName: string): Promise<SourceNode | null> => {
-  const ai = getAI();
+export const distillMemoryFromChat = async (recentMessages: ChatMessage[], agentName: string, provider: ComputeProvider = getPreferredProvider()): Promise<SourceNode | null> => {
+  const ai = getTextAI(provider);
+  const allowCloudSync = provider !== 'local' && cloudStorageEnabled();
   const chatContext = recentMessages.map(m => `${m.role}: ${m.content}`).join('\n');
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
@@ -266,15 +319,15 @@ export const distillMemoryFromChat = async (recentMessages: ChatMessage[], agent
       };
       const existing = JSON.parse(localStorage.getItem('quanta_notebook') || "[]");
       localStorage.setItem('quanta_notebook', JSON.stringify([memory, ...existing]));
-      await syncMemoryToSupabase(memory);
+      if (allowCloudSync) await syncMemoryToSupabase(memory);
       return memory;
     }
   } catch (e) {}
   return null;
 };
 
-export const optimizePrompt = async (rawInput: string, agentName: string) => {
-  const ai = getAI();
+export const optimizePrompt = async (rawInput: string, agentName: string, provider: ComputeProvider = getPreferredProvider()) => {
+  const ai = getTextAI(provider);
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
     contents: `Optimize context budget for ${agentName}: "${rawInput}"`,
@@ -298,7 +351,7 @@ export const generateImage = async (prompt: string) => {
 };
 
 export const optimizeTasks = async (tasks: string[]) => {
-  const ai = getAI();
+  const ai = getTextAI();
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
     contents: `Optimize tasks: ${tasks.join(', ')}`,
@@ -314,7 +367,7 @@ export const recallRelevantMemories = async (query: string, agentName: string): 
 
 // NEW: Langfuse-Traced Context Optimization
 export const optimizeContextWithLangfuse = async (rawInput: string): Promise<ContextOptimizationData> => {
-  const ai = getAI();
+  const ai = getTextAI();
   const trace = createTrace("Context Optimization", ["context-optimizer", "user-tool"]);
   const startTime = Date.now();
 

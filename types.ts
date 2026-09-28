@@ -25,7 +25,8 @@ export interface TaskAttachment {
   synced: boolean;
 }
 
-export type ComputeProvider = 'gemini' | 'groq' | 'local' | 'abacus' | 'novita';
+export type ComputeProvider = 'gemini' | 'groq' | 'local' | 'abacus' | 'novita' | 'openai-compatible' | 'ollama-cloud' | 'openrouter' | 'fireworks' | 'omniroute';
+export type UserTrack = 'personal' | 'consumer' | 'business' | 'trading' | 'education' | 'guest' | 'investing' | 'growth';
 
 export interface FPTAudit {
   deconstruction: string[]; // Breaking down the problem

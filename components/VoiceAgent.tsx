@@ -4,6 +4,7 @@ import { GoogleGenAI, Modality, LiveServerMessage, FunctionDeclaration, Type } f
 import { NeuralOptimizationWindow } from './NeuralOptimizationWindow';
 import { OptimizationTelemetry, ChatMessage } from '../types';
 import { getSMEContext, distillMemoryFromChat } from '../services/geminiService';
+import { getLocalGeminiApiKey } from '../services/browserCredentials';
 
 interface VoiceAgentProps {
   agentName: string;
@@ -177,8 +178,7 @@ export const VoiceAgent: React.FC<VoiceAgentProps> = ({
       
       try {
         // Safe API Key Retrieval
-        const apiKey = (typeof process !== 'undefined' && process.env?.API_KEY) || 
-                       ((window as any).process?.env?.API_KEY);
+        const apiKey = getLocalGeminiApiKey();
         
         if (!apiKey) {
           throw new Error("API Key not detected. Please verify Neural Link credentials.");

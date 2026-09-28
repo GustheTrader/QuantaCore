@@ -9,7 +9,13 @@ import { AbacusStreamChunk } from '../types';
 // Versioned path /v0 is required for dispatching AI Agent actions
 const ABACUS_BASE_URL = 'https://api.abacus.ai/api/v0';
 
-const getApiKey = () => process.env.API_KEY || '';
+const getApiKey = () => {
+  try {
+    return typeof process !== 'undefined' ? process.env.API_KEY || '' : '';
+  } catch {
+    return '';
+  }
+};
 
 /**
  * Streams an AI Agent response using Abacus.AI's SSE implementation.

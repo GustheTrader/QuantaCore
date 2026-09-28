@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { chatWithSME, optimizePrompt, distillMemoryFromChat, reflectAndRefine } from '../services/geminiService';
 import { ChatMessage, OptimizationTelemetry, ReflectionResult, ComputeProvider, SourceNode } from '../types';
+import { PROVIDER_CHOICES, getPreferredProvider } from '../lib/inference-providers';
 import { VoiceAgent } from './VoiceAgent';
 import { NeuralOptimizationWindow } from './NeuralOptimizationWindow';
 import { ActionHub } from './ActionHub';
@@ -34,7 +35,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile }) => {
   const [isReflecting, setIsReflecting] = useState(false);
   const [isReflectionEnabled, setIsReflectionEnabled] = useState(true);
   const [lastReflection, setLastReflection] = useState<ReflectionResult | null>(null);
-  const [computeProvider, setComputeProvider] = useState<ComputeProvider>('gemini');
+  const [computeProvider, setComputeProvider] = useState<ComputeProvider>(getPreferredProvider);
   const [activeContextCount, setActiveContextCount] = useState(0);
   const [isAmbientActive, setIsAmbientActive] = useState(false);
   const [useFPT, setUseFPT] = useState(false); // First Principles Toggle
@@ -79,7 +80,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile }) => {
       }
     }
     
-    const remote = await fetchChatHistoryFromSupabase(activeAgent);
+    const remote = computeProvider === 'local' ? null : await fetchChatHistoryFromSupabase(activeAgent);
     if (remote && Array.isArray(remote) && remote.length > 0) {
       setMessages(remote);
       localStorage.setItem(storageKey, JSON.stringify(remote));
@@ -171,7 +172,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile }) => {
     if (!input.trim() || isOptimizing) return;
     setIsOptimizing(true);
     try {
-      const result = await optimizePrompt(input, activeAgent);
+      const result = await optimizePrompt(input, activeAgent, computeProvider);
       setOptimizationResult(result);
     } catch (e) { console.error(e); } finally { setIsOptimizing(false); }
   };
@@ -219,19 +220,19 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile }) => {
       setMessages(finalMessages);
       
       localStorage.setItem(storageKey, JSON.stringify(finalMessages));
-      syncChatHistoryToSupabase(activeAgent, finalMessages);
+      if (computeProvider !== 'local') syncChatHistoryToSupabase(activeAgent, finalMessages);
 
       setIsLearning(true);
-      distillMemoryFromChat(finalMessages.slice(-4), activeAgent).then(newMemory => {
+      distillMemoryFromChat(finalMessages.slice(-4), activeAgent, computeProvider).then(newMemory => {
         if (newMemory) setTelemetry(prev => ({ ...prev, optimizations: [...prev.optimizations, `Knowledge Grounding: "${newMemory.title}" archived.`] }));
         setIsLearning(false);
-      });
+      }).catch(() => setIsLearning(false));
 
       if (isReflectionEnabled && finalMessages.length % 14 === 0) {
-        await triggerJudgeLoop(finalMessages);
+        await triggerJudgeLoop(finalMessages, computeProvider);
       }
     } catch (error: any) {
-      let content = "Neural bridge unstable. Synchronizing with Knowledge Substrate...";
+      let content = error.message || "The inference request failed. Check your connection in Settings.";
       if (error.message?.includes('QUOTA_EXCEEDED')) {
         content = "Neural Energy Depleted: You've exceeded your Gemini API quota. Please check your billing details or wait a moment before trying again.";
       }
@@ -242,10 +243,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile }) => {
     } finally { setIsLoading(false); }
   };
 
-  const triggerJudgeLoop = async (currentMessages: ChatMessage[]) => {
+  const triggerJudgeLoop = async (currentMessages: ChatMessage[], provider: ComputeProvider = computeProvider) => {
     setIsReflecting(true);
     try {
-      const reflection = await reflectAndRefine(currentMessages.slice(-10), agentConfig.prompt || "Default SME Logic", activeAgent);
+      const reflection = await reflectAndRefine(currentMessages.slice(-10), agentConfig.prompt || "Default SME Logic", activeAgent, provider);
       setLastReflection(reflection);
       if (reflection.suggestedPrompt && reflection.score < 4) {
         const updatedPrompt = reflection.suggestedPrompt;
@@ -328,15 +329,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile }) => {
             </button>
 
             <div className="bg-slate-950 p-1.5 rounded-2xl border border-slate-800 flex shadow-inner">
-              {(['gemini', 'groq', 'local'] as ComputeProvider[]).map((p) => (
-                <button 
-                  key={p}
-                  onClick={() => switchProvider(p)}
-                  className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${computeProvider === p ? 'bg-emerald-600 text-white shadow-xl' : 'text-slate-600 hover:text-slate-400'}`}
-                >
-                  {p}
-                </button>
-              ))}
+              <select aria-label="Inference provider" value={computeProvider} onChange={event => switchProvider(event.target.value as ComputeProvider)} className="max-w-[180px] rounded-xl bg-slate-950 px-3 py-2 text-xs text-slate-300 outline-none focus:ring-2 focus:ring-blue-400">{PROVIDER_CHOICES.map(provider => <option key={provider.id} value={provider.id}>{provider.label}</option>)}</select>
             </div>
             <button 
               onClick={() => setIsNeuralLinkActive(!isNeuralLinkActive)}
@@ -461,7 +454,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile }) => {
                 setActiveContextCount(0);
                 setMessages([]);
                 localStorage.removeItem(storageKey);
-                syncChatHistoryToSupabase(activeAgent, []);
+                if (computeProvider !== 'local') syncChatHistoryToSupabase(activeAgent, []);
                 setDefaultMessage();
               }}
               title="Purge Neural Context?"

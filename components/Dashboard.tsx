@@ -2,6 +2,11 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { Link } from 'react-router-dom';
 import SystemHealthWidget from './SystemHealthWidget';
+import type { UserTrack } from '../types';
+import AgentActivationSelector from './AgentActivationSelector';
+import { AGENT_TRACKS, getAgentTrack } from '../lib/agent-tracks';
+import SovereignSiHeader from './SovereignSiHeader';
+import { SquareTerminal } from 'lucide-react';
 
 interface AgentDetails {
   name: string;
@@ -14,9 +19,11 @@ interface AgentDetails {
 }
 
 interface DashboardProps {
-  track?: 'personal' | 'business' | 'trading';
+  track?: UserTrack;
   profile?: { name: string; callsign: string; personality: string } | null;
   onOpenChat?: (agent: any) => void;
+  onActivateAgent?: (track: UserTrack) => void;
+  onOpenTerminal?: () => void;
 }
 
 const AGENTS: AgentDetails[] = [
@@ -103,10 +110,13 @@ const AGENTS: AgentDetails[] = [
   }
 ];
 
-const Dashboard: React.FC<DashboardProps> = ({ profile }) => {
+const WORKSPACE_COUNT = new Set(AGENTS.map(agent => agent.path)).size;
+
+const Dashboard: React.FC<DashboardProps> = ({ profile, track = 'personal', onOpenChat, onActivateAgent, onOpenTerminal }) => {
   return (
     <div className="p-6 sm:p-10 animate-in fade-in duration-700">
       <header className="mb-8">
+        <SovereignSiHeader compact />
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
             <h1 className="text-5xl sm:text-6xl font-outfit font-black text-white uppercase tracking-tighter italic mb-2">
@@ -125,6 +135,22 @@ const Dashboard: React.FC<DashboardProps> = ({ profile }) => {
         </div>
       </header>
 
+      <section aria-labelledby="operational-agent-launch" className="mb-12 rounded-3xl border border-blue-400/20 bg-slate-950/50 p-5 sm:p-8">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <h2 id="operational-agent-launch" className="text-xl font-outfit font-bold text-white">Launch an Agent</h2>
+          <div className="flex flex-wrap items-center gap-3"><span className="rounded-full border border-blue-400/25 bg-blue-500/10 px-3 py-1.5 text-[10px] font-semibold tracking-wide text-blue-200">Blue Agent Control Plane · {AGENT_TRACKS.length} operational agents</span>{onOpenTerminal && <button type="button" onClick={onOpenTerminal} className="inline-flex items-center gap-2 rounded-full border border-orange-400/35 bg-orange-400/10 px-3 py-1.5 text-[10px] font-bold text-orange-200 hover:bg-orange-400/20 focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-orange-300"><SquareTerminal size={14} /> Pop out CLI</button>}</div>
+        </div>
+        <p className="text-slate-400 text-sm leading-6 mb-5">Personal and Consumer open the OpenMuse workspace. The other agents open the blue control plane for Chat and Work. Select Mission Control to return here.</p>
+        <AgentActivationSelector
+          value={track}
+          activateOnSelect
+          onChange={nextTrack => {
+            if (onActivateAgent) onActivateAgent(nextTrack);
+            else onOpenChat?.(getAgentTrack(nextTrack).label);
+          }}
+        />
+      </section>
+
       {/* Real-time System Health & Telemetry Widget */}
       <section className="mb-12">
         <SystemHealthWidget />
@@ -134,10 +160,10 @@ const Dashboard: React.FC<DashboardProps> = ({ profile }) => {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-sm font-black text-slate-400 uppercase tracking-[0.25em] font-mono">
-            Active Neural Protocols & Agents
+            Tool Workspaces & Specialist Agents
           </h2>
         </div>
-        <span className="text-[11px] font-mono text-slate-500">{AGENTS.length} Cores Online</span>
+        <span className="text-[11px] font-mono text-slate-500">{WORKSPACE_COUNT} Tool Workspaces</span>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">

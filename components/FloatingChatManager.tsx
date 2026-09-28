@@ -23,7 +23,7 @@ export const FloatingChatManager: React.FC<FloatingChatManagerProps> = ({
 }) => {
   return (
     <div className="fixed inset-0 pointer-events-none z-[9999]">
-      <div className="relative w-full h-full pointer-events-auto">
+      <div className="relative w-full h-full pointer-events-none">
         <AnimatePresence>
           {windows.map((session) => (
             <FloatingChatWindow 

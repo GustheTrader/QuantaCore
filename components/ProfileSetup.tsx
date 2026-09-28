@@ -1,13 +1,23 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { AGENT_TRACKS, getAgentTrack } from '../lib/agent-tracks';
+import type { UserTrack } from '../types';
 
 interface ProfileSetupProps {
   onComplete: (data: { name: string, callsign: string, personality: string }) => void;
   email: string;
+  track?: UserTrack;
 }
 
 const PERSONALITIES = [
+  ...AGENT_TRACKS.filter(agent => ['personal', 'consumer', 'investing', 'growth'].includes(agent.id)).map(agent => ({
+    name: agent.label,
+    desc: agent.description,
+    icon: agent.icon,
+    color: 'text-emerald-300',
+    bg: 'bg-emerald-600/10'
+  })),
   { 
     name: 'Analytic Prime', 
     desc: 'Highly logical, precise, and data-driven. Zero emotional fluff.', 
@@ -66,10 +76,10 @@ const PERSONALITIES = [
   }
 ];
 
-const ProfileSetup: React.FC<ProfileSetupProps> = ({ onComplete, email }) => {
+const ProfileSetup: React.FC<ProfileSetupProps> = ({ onComplete, email, track }) => {
   const [name, setName] = useState('');
   const [callsign, setCallsign] = useState('');
-  const [personality, setPersonality] = useState('Analytic Prime');
+  const [personality, setPersonality] = useState(() => getAgentTrack(track).personality);
   const [step, setStep] = useState(1);
   const [isFinalizing, setIsFinalizing] = useState(false);
 

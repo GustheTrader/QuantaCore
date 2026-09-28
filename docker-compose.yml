@@ -1,5 +1,3 @@
-version: "3.9"
-
 # ============================================================
 # OpenNoesis — Local Development Stack
 # Run: docker compose up -d
@@ -54,10 +52,67 @@ services:
       - memgraph
     restart: unless-stopped
 
+  # ─── Hindsight persistent agent memory ────────────────────
+  hindsight:
+    image: ghcr.io/vectorize-io/hindsight:latest
+    container_name: quanta-hindsight
+    ports:
+      - "127.0.0.1:8888:8888"   # API + MCP
+      - "127.0.0.1:9999:9999"   # Hindsight control plane
+    environment:
+      HINDSIGHT_API_LLM_PROVIDER: ${HINDSIGHT_API_LLM_PROVIDER:-openai}
+      HINDSIGHT_API_LLM_API_KEY: ${HINDSIGHT_API_LLM_API_KEY:-}
+      HINDSIGHT_API_LLM_MODEL: ${HINDSIGHT_API_LLM_MODEL:-gpt-4o-mini}
+    volumes:
+      - hindsight_data:/home/hindsight/.pg0
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8888/health', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 90s
+    restart: unless-stopped
+
+  # ─── Read-only Obsidian vault sync ─────────────────────────
+  # Enable explicitly with --profile obsidian and the local mount overlay.
+  obsidian-sync:
+    profiles: ["obsidian"]
+    build:
+      context: ./docker/obsidian-sync
+    container_name: quanta-obsidian-sync
+    depends_on:
+      hindsight:
+        condition: service_healthy
+    command:
+      - reconcile
+      - --vault
+      - /vault
+      - --bank
+      - quanta-os
+      - --vault-name
+      - Gus
+      - --api-url
+      - http://hindsight:8888
+      - --exclude
+      - .obsidian
+      - --exclude
+      - .trash
+      - --prefix-doc-id
+      - --watch
+    environment:
+      HOME: /home/node
+    volumes:
+      - hindsight_sync_index:/home/node/.hindsight/obsidian
+    restart: unless-stopped
+
 volumes:
   redis_data:
     driver: local
   memgraph_data:
+    driver: local
+  hindsight_data:
+    driver: local
+  hindsight_sync_index:
     driver: local
 
 networks:

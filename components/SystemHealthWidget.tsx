@@ -438,7 +438,7 @@ export const SystemHealthWidget: React.FC<SystemHealthWidgetProps> = ({
           <div>
             <div className="flex items-center gap-3">
               <h3 className="font-outfit font-black text-white text-xl sm:text-2xl uppercase tracking-tighter italic">
-                System Health <span className="quantum-gradient-text">& Telemetry</span>
+                System Health <span className="quantum-gradient-text">& Telemetry Preview</span>
               </h3>
 
               {/* Status Indicator */}
@@ -461,13 +461,13 @@ export const SystemHealthWidget: React.FC<SystemHealthWidgetProps> = ({
                       : 'text-rose-400'
                   }`}
                 >
-                  {isLive ? `${latestMetric.status} · ONLINE` : 'STREAM PAUSED'}
+                  {isLive ? 'SIMULATED · PREVIEW' : 'PREVIEW PAUSED'}
                 </span>
               </div>
             </div>
 
             <p className="text-slate-400 text-xs font-mono flex items-center gap-2 mt-0.5">
-              <span>Uptime: {formattedUptime}</span>
+              <span>Preview time: {formattedUptime}</span>
               <span className="text-slate-600">·</span>
               <span>Buffer: {history.length} samples</span>
               <span className="text-slate-600">·</span>
@@ -725,7 +725,7 @@ export const SystemHealthWidget: React.FC<SystemHealthWidgetProps> = ({
               onClick={handleProbeLatency}
               disabled={isProbing}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 border border-cyan-500/30 hover:border-cyan-500/60 text-cyan-400 hover:text-cyan-300 text-xs font-mono transition-all disabled:opacity-50"
-              title="Send real ICMP/HTTP probe to measure round-trip time"
+              title="Sample a simulated round-trip time for this preview"
             >
               <Radio className={`w-3.5 h-3.5 ${isProbing ? 'animate-spin' : ''}`} />
               <span>{isProbing ? 'Probing...' : 'Ping Probe'}</span>
@@ -967,7 +967,7 @@ export const SystemHealthWidget: React.FC<SystemHealthWidgetProps> = ({
           <div className="flex flex-wrap items-center gap-3">
             <span className="flex items-center gap-1.5 text-slate-300">
               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Telemetry Socket: Active</span>
+              <span>Simulated data · live service status is in Neural Core</span>
             </span>
             <span className="text-slate-600">·</span>
             <span className="text-slate-400">
@@ -980,7 +980,7 @@ export const SystemHealthWidget: React.FC<SystemHealthWidgetProps> = ({
           </div>
 
           <div className="flex items-center gap-2 text-[11px] text-slate-500">
-            <span>Powered by Quanta Telemetry Subsystem</span>
+            <span>Preview data only · inspect Neural Core for live service status</span>
           </div>
         </div>
       </div>

@@ -27,6 +27,12 @@ import Gateway from './components/Gateway';
 import { FloatingChatManager } from './components/FloatingChatManager';
 import { useChatWindows } from './hooks/useChatWindows';
 import { supabase, signOut } from './services/supabaseService';
+import type { UserTrack } from './types';
+import AgentControlPlane from './components/AgentControlPlane';
+import NeuralCoreConsole from './components/NeuralCoreConsole';
+import CodingHarness from './components/CodingHarness';
+import OpenMuseAgent from './components/OpenMuseAgent';
+import QuantaCliTerminal from './components/QuantaCliTerminal';
 
 interface ErrorBoundaryProps {
   children?: ReactNode;
@@ -81,10 +87,18 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
 
 const App: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [session, setSession] = useState<{ email: string, track: 'personal' | 'business' | 'trading' } | null>(null);
+  const [session, setSession] = useState<{ email: string, track: UserTrack } | null>(null);
   const [profile, setProfile] = useState<{ name: string, callsign: string, personality: string } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [terminalOpen, setTerminalOpen] = useState(false);
   const { windows, openChat, closeChat, toggleMinimize, focusWindow, addMessage } = useChatWindows();
+  const openTerminal = () => {
+    const url = new URL(window.location.href);
+    url.hash = '/terminal';
+    const popup = window.open(url.toString(), 'quanta-cli', 'popup=yes,width=960,height=700,resizable=yes,scrollbars=yes');
+    if (popup) popup.focus();
+    else setTerminalOpen(true);
+  };
 
   useEffect(() => {
     const initApp = async () => {
@@ -109,13 +123,22 @@ const App: React.FC = () => {
     initApp();
   }, []);
 
-  const handleLogin = (userData: { email: string, track: 'personal' | 'business' | 'trading' }) => {
+  const handleLogin = (userData: { email: string, track: UserTrack }) => {
     localStorage.setItem('quanta_session', JSON.stringify(userData));
     setSession(userData);
+    window.location.hash = '/';
     const savedProfile = localStorage.getItem(`quanta_profile_${userData.email}`);
     if (savedProfile) {
       setProfile(JSON.parse(savedProfile));
     }
+  };
+
+  const handleActivateAgent = (track: UserTrack) => {
+    if (!session) return;
+    const nextSession = { ...session, track };
+    localStorage.setItem('quanta_session', JSON.stringify(nextSession));
+    setSession(nextSession);
+    window.location.hash = track === 'personal' || track === 'consumer' ? `/openmuse?agent=${track}` : '/agent?mode=work';
   };
 
   const handleLogout = async () => {
@@ -132,6 +155,7 @@ const App: React.FC = () => {
     if (session) {
       localStorage.setItem(`quanta_profile_${session.email}`, JSON.stringify(profileData));
       setProfile(profileData);
+      window.location.hash = '/';
     }
   };
 
@@ -159,9 +183,13 @@ const App: React.FC = () => {
         {!session ? (
           <AuthPage onLogin={handleLogin} />
         ) : !profile ? (
-          <ProfileSetup onComplete={handleProfileComplete} email={session.email} />
+          <ProfileSetup onComplete={handleProfileComplete} email={session.email} track={session.track} />
         ) : (
-          <div className="flex h-screen bg-[#020617] text-gray-100 overflow-hidden selection:bg-indigo-500/30">
+          <>
+          <Routes>
+            <Route path="/terminal" element={<QuantaCliTerminal standalone />} />
+            <Route path="/agent" element={<AgentControlPlane track={session.track} profile={profile} email={session.email} onActivateAgent={handleActivateAgent} onOpenTerminal={openTerminal} />} />
+            <Route path="*" element={<div className="flex h-screen bg-[#020617] text-gray-100 overflow-hidden selection:bg-indigo-500/30">
             <Sidebar 
               isOpen={isSidebarOpen} 
               setIsOpen={setIsSidebarOpen} 
@@ -169,6 +197,7 @@ const App: React.FC = () => {
               track={session.track} 
               profile={profile} 
               onOpenChat={openChat}
+              onOpenTerminal={openTerminal}
             />
             <main className={`flex-1 flex flex-col h-full transition-all duration-500 ease-in-out ${isSidebarOpen ? 'lg:ml-64' : 'lg:ml-20'}`}>
               <div className="lg:hidden h-20 bg-[#020617]/95 backdrop-blur-xl border-b border-slate-800 flex items-center px-8 z-50">
@@ -182,8 +211,11 @@ const App: React.FC = () => {
               <div className="flex-1 overflow-y-auto p-6 lg:p-14 custom-scrollbar">
                 <div className="max-w-7xl mx-auto w-full h-full relative">
                   <Routes>
-                    <Route path="/" element={<Dashboard track={session.track} profile={profile} onOpenChat={openChat} />} />
+                    <Route path="/" element={<Dashboard track={session.track} profile={profile} onOpenChat={openChat} onActivateAgent={handleActivateAgent} onOpenTerminal={openTerminal} />} />
+                    <Route path="/coding-harness" element={<CodingHarness onOpenTerminal={openTerminal} />} />
+                    <Route path="/openmuse" element={<OpenMuseAgent track={session.track} onActivateAgent={handleActivateAgent} />} />
                     <Route path="/chat" element={<ChatInterface profile={profile} />} />
+                    <Route path="/neural-core" element={<NeuralCoreConsole />} />
                     <Route path="/gateway" element={<Gateway />} />
                     <Route path="/agentic-os" element={<AgenticOS profile={profile} onOpenChat={openChat} />} />
                     <Route path="/hermes" element={<HermesAgent profile={profile} onOpenChat={openChat} />} />
@@ -207,7 +239,11 @@ const App: React.FC = () => {
                 </div>
               </div>
             </main>
-          </div>
+            <FloatingChatManager windows={windows} onClose={closeChat} onMinimize={toggleMinimize} onFocus={focusWindow} onAddMessage={addMessage} profile={profile} />
+          </div>} />
+          </Routes>
+          {terminalOpen && <QuantaCliTerminal onClose={() => setTerminalOpen(false)} />}
+          </>
         )}
       </HashRouter>
     </ErrorBoundary>

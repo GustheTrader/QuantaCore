@@ -2,41 +2,53 @@
 import React, { useState, useRef } from 'react';
 import { exportToBrowser } from '../services/utils';
 import { WHITEPAPER_TEXT } from '../services/whitepaperContent';
+import HindsightGnoesisNeuralCore from './HindsightGnoesisNeuralCore';
+import SovereignTrustSection from './SovereignTrustSection';
+import AgentActivationSelector from './AgentActivationSelector';
+import SovereignTokensShowcase from './SovereignTokensShowcase';
+import SovereignSiHeader from './SovereignSiHeader';
+import { getAgentTrack } from '../lib/agent-tracks';
+import type { UserTrack } from '../types';
 
 interface AuthPageProps {
-  onLogin: (data: { email: string, track: 'personal' | 'business' | 'trading' }) => void;
+  onLogin: (data: { email: string, track: UserTrack }) => void;
 }
 
 const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
   const [email, setEmail] = useState('');
-  const [track, setTrack] = useState<'personal' | 'business' | 'trading'>('personal');
+  const [track, setTrack] = useState<UserTrack>('personal');
   const [loading, setLoading] = useState(false);
   const authFormRef = useRef<HTMLDivElement>(null);
+  const selectedAgent = getAgentTrack(track);
 
   const features = [
     {
       title: "Persistent Memory",
-      desc: "A revolutionary vector-embedded knowledge substrate that allows your AI to retain long-term context. It builds a sovereign, localized knowledge base from every interaction, remembering your preferences, documents, and strategic axioms forever without external dependencies.",
+      agent: "Consumer Memory Agent",
+      desc: "Source-linked memory for your preferences, documents and research. The Gnoesis Neural Core architecture connects retrieval, facts, observations and knowledge pages, with an Obsidian ingestion path configured separately.",
       icon: "M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4",
       accent: "text-orange-500",
       border: "border-orange-500/20"
     },
     {
       title: "Sovereign Local AI",
-      desc: "A privacy-first autonomous agent running directly on your local hardware via Ollama bridge. It operates with zero latency and complete data isolation, capable of managing local files and processing sensitive information without a single byte leaving your machine.",
+      agent: "Consumer Privacy Agent",
+      desc: "Choose an installed Ollama model on your own computer for local text inference. Your chosen route controls where submitted context goes; cloud and gateway connections remain explicit choices.",
       icon: "M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z",
       accent: "text-emerald-400",
       border: "border-emerald-500/20"
     },
     {
       title: "FPT-Omega Engine",
-      desc: "First Principles Thinking framework that deconstructs complexity into atomic logic units. It strips away analogical noise to ensure every neural response is grounded in fundamental truths and verifiable axioms.",
+      agent: "Consumer Research Agent",
+      desc: "Production design routes this First Principles Thinking engine into deep research, novel solving, and cross-domain SME work across engineering, physics, quantum physics, or metaphysics. It separates source evidence from assumptions and stages derived claims for review before they update durable knowledge.",
       icon: "M13 10V3L4 14h7v7l9-11h-7z",
       accent: "text-emerald-500",
       border: "border-emerald-500/20"
     },
     {
       title: "Neural Cortex",
+      agent: "Consumer Routing Agent",
       desc: "Centralized orchestration layer for all SME cores. Intelligent task routing and context management ensure that the most qualified specialized agent handles every specific query with maximum precision.",
       icon: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z",
       accent: "text-orange-400",
@@ -44,6 +56,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
     },
     {
       title: "SME Council",
+      agent: "Consumer Review Agent",
       desc: "Multi-agent strategic debate protocol. Specialized agents (Proposer, Critic, Judge) autonomously debate problems, check logic chains, and synthesize outcomes to provide board-level executive direction.",
       icon: "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857",
       accent: "text-emerald-400",
@@ -51,7 +64,8 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
     },
     {
       title: "Hybrid Inference",
-      desc: "Adaptive compute routing architecture. Seamlessly switch between Cloud-speed scaling for public research and Sovereign Local inference for sensitive private data processing, ensuring optimal performance for every task.",
+      agent: "Consumer Inference Agent",
+      desc: "Choose OpenAI compatible APIs, Ollama Local, Ollama Cloud, OpenRouter, Fireworks AI or OmniRoute. Load the current model catalog and choose the route for your text agents, with no silent provider fallback.",
       icon: "M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z",
       accent: "text-orange-500",
       border: "border-orange-500/20"
@@ -77,30 +91,27 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
         <div className="absolute top-1/4 right-1/4 w-[400px] h-[400px] bg-orange-900/10 rounded-full blur-[120px] pointer-events-none"></div>
         
         <div className="max-w-6xl w-full z-10 text-center animate-in fade-in slide-in-from-bottom-8 duration-1000">
-          <div className="inline-flex items-center space-x-3 px-6 py-2 rounded-full border border-orange-500/30 bg-orange-500/10 text-orange-400 text-[10px] font-black uppercase tracking-[0.5em] mb-12 shadow-[0_0_30px_rgba(249,115,22,0.15)]">
-            <span className="w-1.5 h-1.5 bg-orange-500 rounded-full animate-ping"></span>
-            <span>Neural Infrastructure v4.2 Active</span>
-          </div>
+          <SovereignSiHeader />
           
-          <h1 className="text-6xl md:text-[9.5rem] font-outfit font-black mb-4 leading-[0.8] tracking-tighter uppercase">
+          <h2 className="text-5xl md:text-[7rem] font-outfit font-black mb-4 leading-[0.9] tracking-tighter uppercase">
             Neural <span className="quantum-gradient-text italic">Quanta - OS - Agentic</span> <br/>
             <span className="text-white relative">
               Logic Cores.
               <div className="absolute -right-12 top-1/2 w-8 h-8 bg-orange-500 blur-2xl opacity-40"></div>
             </span>
-          </h1>
+          </h2>
           
           <div className="mb-12 mt-6">
-            <h2 className="text-3xl md:text-5xl font-outfit font-black uppercase tracking-tighter italic">
-              Sovereign <span className="text-orange-500">AI</span> Brain & <span className="text-emerald-400">Nervous System.</span>
-            </h2>
+            <p className="text-xl md:text-3xl font-outfit font-bold tracking-tight text-slate-300">
+              Your data. Your output. <span className="text-cyan-300">Your choice of intelligence.</span>
+            </p>
           </div>
           
           <p className="max-w-4xl mx-auto text-slate-400 text-xl md:text-2xl font-medium leading-relaxed mb-20 italic">
             Private intelligence loops anchored in a <span className="text-white font-black border-b-2 border-orange-500/50 pb-1">sovereign substrate</span> for the autonomous operator.
           </p>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-8 mb-32">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-8 mb-20">
             <button 
               onClick={() => authFormRef.current?.scrollIntoView({ behavior: 'smooth' })}
               className="px-14 py-7 quanta-btn-orange text-white rounded-[2.5rem] font-black uppercase tracking-[0.3em] text-sm shadow-[0_0_50px_rgba(249,115,22,0.3)] active:scale-95 flex items-center space-x-4 transition-all animate-glow-orange"
@@ -113,9 +124,13 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
               className="px-14 py-7 bg-slate-900 border-2 border-slate-800 text-slate-400 rounded-[2.5rem] font-black uppercase tracking-[0.3em] text-sm hover:border-orange-500/50 hover:text-white transition-all flex items-center space-x-3 group"
             >
               <svg className="w-5 h-5 group-hover:text-orange-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-              <span>Whitepaper v1.0</span>
+              <span>Whitepaper v1.3</span>
             </button>
           </div>
+
+          <SovereignTokensShowcase />
+
+          <HindsightGnoesisNeuralCore />
 
           {/* Infrastructure Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 text-left">
@@ -125,40 +140,38 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
                   <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={f.icon} /></svg>
                 </div>
                 <h3 className="text-2xl font-outfit font-black text-white mb-4 uppercase tracking-tighter italic group-hover:text-white">{f.title}</h3>
+                <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/25 bg-emerald-500/5 px-3 py-1.5 mb-4 text-[9px] font-black uppercase tracking-[0.18em] text-emerald-300">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                  {f.agent}
+                </div>
                 <div className="text-slate-400 text-xs font-bold uppercase tracking-widest leading-relaxed">
                   {f.desc}
                 </div>
               </div>
             ))}
           </div>
+
+          <SovereignTrustSection />
         </div>
       </div>
 
       {/* Auth Form Section */}
       <div ref={authFormRef} className="min-h-screen flex items-center justify-center p-6 relative bg-slate-950/90 border-t border-orange-500/20">
-        <div className="max-w-3xl w-full z-10 text-center">
+        <div className="max-w-5xl w-full z-10 text-center">
           <div className="w-32 h-32 quanta-btn-orange rounded-[3rem] mx-auto mb-10 shadow-[0_0_60px_rgba(249,115,22,0.4)] flex items-center justify-center animate-glow">
             <svg className="w-16 h-16 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
           </div>
           <h2 className="text-6xl font-outfit font-black text-white mb-4 uppercase tracking-tighter italic">Core <span className="text-orange-500">Sync</span></h2>
           <p className="text-slate-500 font-black uppercase tracking-[0.5em] text-[11px] mb-20">Secure Operator Authentication</p>
 
-          <div className="bg-[#020617] p-16 rounded-[4rem] shadow-2xl border-2 border-orange-500/10 relative overflow-hidden">
+          <div className="bg-[#020617] p-6 sm:p-10 lg:p-12 rounded-[2rem] sm:rounded-[3rem] shadow-2xl border-2 border-orange-500/10 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-orange-600/5 blur-3xl pointer-events-none"></div>
             <form onSubmit={handleAuth} className="space-y-12">
-              <div className="flex justify-center">
-                <div className="bg-slate-900 p-2 rounded-2xl border border-slate-800 inline-flex shadow-inner">
-                  {(['personal', 'business', 'trading', 'education', 'guest'] as const).map((t) => (
-                    <button 
-                      key={t}
-                      type="button" 
-                      onClick={() => setTrack(t)} 
-                      className={`px-8 py-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${track === t ? 'bg-orange-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
-                    >
-                      {t}
-                    </button>
-                  ))}
-                </div>
+              <div className="space-y-5">
+                <AgentActivationSelector value={track} onChange={setTrack} disabled={loading} />
+                <p aria-live="polite" className="text-sm text-slate-400 text-left">
+                  <span className="font-bold text-white">{selectedAgent.label}</span> selected. Activate your workspace below.
+                </p>
               </div>
 
               <div className="text-left space-y-4">
@@ -176,16 +189,17 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
               <button 
                 type="submit"
                 disabled={loading}
-                className="w-full py-9 quanta-btn-orange text-white rounded-[2.5rem] font-black uppercase tracking-[0.5em] text-xs shadow-[0_0_40px_rgba(249,115,22,0.2)] transition-all flex items-center justify-center space-x-6 active:scale-95"
+                style={{ background: `linear-gradient(115deg, ${selectedAgent.from}, ${selectedAgent.to})`, boxShadow: `0 12px 40px ${selectedAgent.from}25` }}
+                className="w-full py-7 px-5 text-slate-950 rounded-2xl font-black uppercase tracking-[0.2em] text-xs sm:text-sm transition-shadow flex items-center justify-center gap-4 disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
               >
                 {loading ? (
                   <>
                     <div className="w-5 h-5 border-4 border-white/20 border-t-white rounded-full animate-spin"></div>
-                    <span>Synchronizing...</span>
+                    <span>Activating {selectedAgent.label}...</span>
                   </>
                 ) : (
                   <>
-                    <span>Authenticate Quanta-OS Link</span>
+                    <span>Activate {selectedAgent.label}</span>
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
                   </>
                 )}

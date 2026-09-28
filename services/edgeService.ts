@@ -1,11 +1,10 @@
 
 import { GoogleGenAI } from "@google/genai";
 import { MechNode, HotPathLog, EdgeDomain } from "../types";
+import { getLocalGeminiApiKey } from './browserCredentials';
 
 const getAI = () => {
-  const apiKey = (typeof process !== 'undefined' && process.env?.API_KEY) || 
-         ((window as any).process?.env?.API_KEY) || 
-         '';
+  const apiKey = getLocalGeminiApiKey();
   return new GoogleGenAI({ apiKey });
 };
 

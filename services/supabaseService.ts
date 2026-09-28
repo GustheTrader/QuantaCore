@@ -2,6 +2,7 @@
 import { createClient } from '@supabase/supabase-js';
 // Corrected import: MemoryBlock does not exist in types.ts, using SourceNode instead
 import { SourceNode, ReflectionResult, ChatMessage, NeuralProject } from '../types';
+import type { UserTrack } from '../types';
 
 const SUPABASE_URL = 'https://ovugynuxvtvfkwjkyxby.supabase.co';
 
@@ -44,6 +45,13 @@ try {
 
 export const supabase = supabaseInstance;
 
+export const cloudStorageEnabled = (kind: 'prompts' | 'outputs' = 'outputs'): boolean => {
+  try {
+    const storage = JSON.parse(localStorage.getItem('quanta_api_settings') || '{}').storage;
+    return Boolean(storage && ['supabase', 'hybrid'].includes(storage.provider) && storage[kind === 'prompts' ? 'syncPrompts' : 'syncOutputs'] === true);
+  } catch { return false; }
+};
+
 /**
  * EDGE FUNCTION CALLER
  * Invokes a specific Supabase Edge Function by name.
@@ -63,6 +71,7 @@ export const invokeEdgeFunction = async (functionName: string, payload: any = {}
 
 // System Prompt Versioning
 export const getActiveSystemPrompt = async (agentName: string) => {
+  if (!cloudStorageEnabled('prompts')) return null;
   try {
     const { data, error } = await supabase
       .from('system_prompts')
@@ -78,6 +87,7 @@ export const getActiveSystemPrompt = async (agentName: string) => {
 };
 
 export const archiveAndActivatePrompt = async (agentName: string, promptText: string, reasoning: string, version: number) => {
+  if (!cloudStorageEnabled('prompts')) return null;
   try {
     await supabase.from('system_prompts').upsert({ agent_name: agentName, is_active: false });
     const { data, error } = await supabase.from('system_prompts').insert({
@@ -94,6 +104,7 @@ export const archiveAndActivatePrompt = async (agentName: string, promptText: st
 
 // Reflection Logs
 export const logReflection = async (agentName: string, messages: any[], result: ReflectionResult) => {
+  if (!cloudStorageEnabled()) return null;
   try {
     const { data, error } = await supabase.from('reflection_logs').insert({
       agent_name: agentName,
@@ -108,7 +119,7 @@ export const logReflection = async (agentName: string, messages: any[], result: 
 };
 
 // Authentication
-export const signInWithMagicLink = async (email: string, track?: 'personal' | 'business') => {
+export const signInWithMagicLink = async (email: string, track?: UserTrack) => {
   try {
     const { data, error } = await supabase.auth.signInWithOtp({
       email,
@@ -134,6 +145,7 @@ export const signOut = async () => {
 // Memory Management (Long Term Memory)
 // Corrected type name: MemoryBlock -> SourceNode
 export const syncMemoryToSupabase = async (memory: SourceNode) => {
+  if (!cloudStorageEnabled()) return null;
   try {
     const { data, error } = await supabase
       .from('memories')
@@ -156,13 +168,17 @@ export const syncMemoryToSupabase = async (memory: SourceNode) => {
 };
 
 // Corrected type name: MemoryBlock -> SourceNode
-export const fetchMemoriesFromSupabase = async (filter?: { query?: string, agentName?: string }): Promise<SourceNode[] | null> => {
+export const fetchMemoriesFromSupabase = async (filter?: { query?: string, agentName?: string }, signal?: AbortSignal): Promise<SourceNode[] | null> => {
+  if (!cloudStorageEnabled()) return null;
+  signal?.throwIfAborted();
   try {
     let query = supabase
       .from('memories')
       .select('*');
+    if (signal) query = query.abortSignal(signal);
     
     const { data, error } = await query.order('timestamp', { ascending: false });
+    signal?.throwIfAborted();
     
     if (error || !data) return null;
 
@@ -189,6 +205,7 @@ export const fetchMemoriesFromSupabase = async (filter?: { query?: string, agent
 };
 
 export const deleteMemoryFromSupabase = async (id: string) => {
+  if (!cloudStorageEnabled()) return;
   try {
     await supabase.from('memories').delete().eq('id', id);
   } catch (e) {}
@@ -196,6 +213,7 @@ export const deleteMemoryFromSupabase = async (id: string) => {
 
 // Chat History Sync
 export const syncChatHistoryToSupabase = async (agentName: string, messages: ChatMessage[]) => {
+  if (!cloudStorageEnabled()) return;
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
@@ -212,6 +230,7 @@ export const syncChatHistoryToSupabase = async (agentName: string, messages: Cha
 };
 
 export const fetchChatHistoryFromSupabase = async (agentName: string): Promise<ChatMessage[] | null> => {
+  if (!cloudStorageEnabled()) return null;
   try {
     const { data, error } = await supabase
       .from('chat_history')
@@ -228,6 +247,7 @@ export const fetchChatHistoryFromSupabase = async (agentName: string): Promise<C
 
 // Project Sync
 export const syncProjectsToSupabase = async (projects: NeuralProject[]) => {
+  if (!cloudStorageEnabled()) return;
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
@@ -243,6 +263,7 @@ export const syncProjectsToSupabase = async (projects: NeuralProject[]) => {
 };
 
 export const fetchProjectsFromSupabase = async (): Promise<NeuralProject[] | null> => {
+  if (!cloudStorageEnabled()) return null;
   try {
     const { data, error } = await supabase
       .from('neural_projects')

@@ -1,19 +1,14 @@
 
-import { GoogleGenAI } from "@google/genai";
+import { safeGenerateContent } from '../geminiService';
 
 export const agentTools = [
   {
     name: "search",
     description: "Search the web for real-time information.",
     execute: async (args: { query: string }) => {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       try {
-        const response = await ai.models.generateContent({
-          model: 'gemini-3-flash-preview',
-          contents: args.query,
-          config: {
+        const response = await safeGenerateContent('gemini-3-flash-preview', args.query, {
             tools: [{ googleSearch: {} }]
-          }
         });
         return {
           text: response.text,
