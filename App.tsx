@@ -26,7 +26,7 @@ import HermesAgent from './components/HermesAgent';
 import Gateway from './components/Gateway';
 import { FloatingChatManager } from './components/FloatingChatManager';
 import { useChatWindows } from './hooks/useChatWindows';
-import { supabase, signOut } from './services/supabaseService';
+import { isSupabaseConfigured, supabase, signOut } from './services/supabaseService';
 import type { UserTrack } from './types';
 import AgentControlPlane from './components/AgentControlPlane';
 import NeuralCoreConsole from './components/NeuralCoreConsole';
@@ -101,6 +101,38 @@ const App: React.FC = () => {
   };
 
   useEffect(() => {
+    if (import.meta.env.PROD) {
+      if (!isSupabaseConfigured) {
+        setLoading(false);
+        return;
+      }
+      let active = true;
+      const applyAuthSession = (authSession: any) => {
+        if (!active) return;
+        const user = authSession?.user;
+        if (!user?.email) {
+          setSession(null);
+          setProfile(null);
+          setLoading(false);
+          return;
+        }
+        const allowedTracks: UserTrack[] = ['personal', 'consumer', 'business', 'trading', 'education', 'guest', 'investing', 'growth'];
+        const requestedTrack = user.user_metadata?.track;
+        const nextSession = { email: String(user.email).toLowerCase(), track: allowedTracks.includes(requestedTrack) ? requestedTrack as UserTrack : 'personal' as UserTrack };
+        setSession(nextSession);
+        try {
+          const savedProfile = localStorage.getItem(`quanta_profile_${nextSession.email}`);
+          setProfile(savedProfile ? JSON.parse(savedProfile) : null);
+        } catch { setProfile(null); }
+        setLoading(false);
+      };
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: string, authSession: any) => applyAuthSession(authSession));
+      supabase.auth.getSession().then(({ data }: any) => applyAuthSession(data.session)).catch(() => {
+        if (active) { setSession(null); setLoading(false); }
+      });
+      return () => { active = false; subscription.unsubscribe(); };
+    }
+
     const initApp = async () => {
       try {
         const storedSession = localStorage.getItem('quanta_session');
@@ -116,7 +148,7 @@ const App: React.FC = () => {
       } catch (err) {
         console.error('Session restoration failed:', err);
       } finally {
-        setTimeout(() => setLoading(false), 1200);
+          setTimeout(() => setLoading(false), 1200);
       }
     };
 

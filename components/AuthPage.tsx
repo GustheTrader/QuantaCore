@@ -9,6 +9,7 @@ import SovereignTokensShowcase from './SovereignTokensShowcase';
 import SovereignSiHeader from './SovereignSiHeader';
 import { getAgentTrack } from '../lib/agent-tracks';
 import type { UserTrack } from '../types';
+import { isSupabaseConfigured, signInWithMagicLink } from '../services/supabaseService';
 
 interface AuthPageProps {
   onLogin: (data: { email: string, track: UserTrack }) => void;
@@ -18,6 +19,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
   const [email, setEmail] = useState('');
   const [track, setTrack] = useState<UserTrack>('personal');
   const [loading, setLoading] = useState(false);
+  const [authMessage, setAuthMessage] = useState('');
   const authFormRef = useRef<HTMLDivElement>(null);
   const selectedAgent = getAgentTrack(track);
 
@@ -76,6 +78,23 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
     e.preventDefault();
     if (!email.includes('@')) return;
     setLoading(true);
+    setAuthMessage('');
+    if (import.meta.env.PROD) {
+      if (!isSupabaseConfigured) {
+        setAuthMessage('Hosted sign-in is not configured yet. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in Vercel, then redeploy.');
+        setLoading(false);
+        return;
+      }
+      try {
+        await signInWithMagicLink(email.toLowerCase().trim(), track);
+        setAuthMessage('Check your email for a secure sign-in link.');
+      } catch {
+        setAuthMessage('We could not send a sign-in link. Check the email and Supabase Auth settings, then try again.');
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
     setTimeout(() => onLogin({ email: email.toLowerCase().trim(), track }), 1500);
   };
 
@@ -204,6 +223,8 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
                   </>
                 )}
               </button>
+
+              {authMessage && <p role="status" aria-live="polite" className="text-left text-sm text-cyan-200">{authMessage}</p>}
 
               <div className="pt-4 flex items-center justify-center space-x-4 opacity-60">
                  <div className="h-px w-8 bg-slate-800"></div>

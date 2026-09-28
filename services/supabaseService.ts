@@ -4,25 +4,18 @@ import { createClient } from '@supabase/supabase-js';
 import { SourceNode, ReflectionResult, ChatMessage, NeuralProject } from '../types';
 import type { UserTrack } from '../types';
 
-const SUPABASE_URL = 'https://ovugynuxvtvfkwjkyxby.supabase.co';
-
-const getSupabaseKey = () => {
-  try {
-    if (typeof process !== 'undefined' && process.env && process.env.SUPABASE_KEY) {
-      return process.env.SUPABASE_KEY;
-    }
-    if (typeof window !== 'undefined' && (window as any).process?.env?.SUPABASE_KEY) {
-      return (window as any).process.env.SUPABASE_KEY;
-    }
-  } catch (e) {}
-  return 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92dWd5bnV4dnR2Zmt3amt5eGJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MDcwMDAwMDAsImV4cCI6MjA0NTYwMDAwMH0.placeholder';
-};
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+export const isSupabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 
 let supabaseInstance: any;
 try {
-  supabaseInstance = createClient(SUPABASE_URL, getSupabaseKey());
+  if (!isSupabaseConfigured) throw new Error('Supabase auth is not configured.');
+  supabaseInstance = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+  });
 } catch (e) {
-  console.error("Supabase client failed to initialize:", e);
+  if (import.meta.env.PROD) console.error("Supabase client is not configured.");
   supabaseInstance = {
     auth: { 
       getSession: async () => ({ data: { session: null }, error: null }),

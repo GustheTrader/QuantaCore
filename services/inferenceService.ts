@@ -1,5 +1,6 @@
 import type { ComputeProvider } from '../types';
 import type { CompatibleProvider, ProviderConnection, ProviderModel } from '../lib/inference-providers';
+import { supabase } from './supabaseService';
 
 export interface ProviderConfigResponse {
   connections: ProviderConnection[];
@@ -8,9 +9,15 @@ export interface ProviderConfigResponse {
 }
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+  let authorization: Record<string, string> = {};
+  if (import.meta.env.PROD) {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) throw new Error('Sign in with your email link to use hosted model services.');
+    authorization = { Authorization: `Bearer ${session.access_token}` };
+  }
   const response = await fetch(`/api/inference${path}`, {
     ...init,
-    headers: { 'Content-Type': 'application/json', 'X-Quanta-Client': 'local-ui', ...init.headers }
+    headers: { 'Content-Type': 'application/json', 'X-Quanta-Client': 'local-ui', ...authorization, ...init.headers }
   });
   let data: any;
   try { data = await response.json(); } catch { throw new Error('The local inference server is unavailable. Restart Quanta OS.'); }

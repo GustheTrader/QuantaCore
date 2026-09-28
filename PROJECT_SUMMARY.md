@@ -23,6 +23,10 @@ flowchart LR
   UI --> OpenMuse[Separate Personal and Consumer workspace]
   API --> Hindsight[Optional Hindsight memory service]
   Hindsight --> Obsidian[Optional read-only Obsidian sync]
+  Browser[Hosted Vercel build] --> HostedAPI[Authenticated inference function]
+  HostedAPI --> SupabaseAuth[Supabase magic-link and access-token verification]
+  HostedAPI --> Limits[Upstash distributed rate limits]
+  HostedAPI --> FreeRoute[OpenRouter free model router]
 ```
 
 The compatible-provider store protects API credentials on the local host (Windows DPAPI; AES-GCM with a local key on other platforms). Provider requests go to the selected endpoint. The legacy direct Gemini client reads the user-entered key from browser local storage and calls Google from the browser. Quanta no longer injects keys into the web bundle. OpenMuse has a separate service, identity, workspace, and provider configuration; Quanta’s launch hub does not transfer its credentials or session.
@@ -37,12 +41,14 @@ The compatible-provider store protects API credentials on the local host (Window
 - Neural Core architecture visualization and whitepaper content for Hindsight memory, evidence, observations, and synthesis.
 - Sovereign Trust content and an opt-in Obsidian sync container definition.
 - OpenMuse launch/status hub for the Personal and Consumer roles.
+- Vercel hosted demo function with Supabase verified sessions, shared Upstash account/IP throttles, text/input limits, and a fixed OpenRouter free model route.
 
 ## Integration status
 
 | Integration | Status |
 | --- | --- |
 | Quanta web app and loopback API | Running locally on port 3000. |
+| GitHub and Vercel | `main` deploys the static Vite application and `/api/inference/*` function. Hosted auth, rate limits, and OpenRouter inference require Vercel environment configuration before the backend is enabled. |
 | Provider connections | Configurable from Settings; API keys are stored by the local server. |
 | CheaperInference | Compatible through the OpenAI-compatible provider using `https://api.cheaperinference.com/v1` and an exact provider model ID. |
 | OpenMuse | Separate checkout at `C:\GnoesisOpenMuse`; API on 8787 and web UI on 8081. Sample workspace data and model-backed chat are available. Quanta roles and identity are not automatically passed into OpenMuse. |
@@ -66,6 +72,8 @@ Optional memory services start with `docker compose up -d`. Obsidian sync requir
 ## Product and security boundaries
 
 - The Quanta UI server binds to loopback. Keep local services and their ports private unless you intentionally configure a secured deployment.
+- The Vercel demo is a separate hosted mode: Supabase verifies bearer sessions, Upstash applies 10 requests/minute and 120/day per user plus 30/minute per IP, and hosted inference fixes the model to `openrouter/free` with an 800-token output cap. Its required environment variables are documented in `.env.example` and README. Prompts pass through Vercel to OpenRouter and upstream model providers; do not submit confidential material.
+- The OpenRouter secret belongs only in the Vercel server environment and the ignored local `.env`; never use a `VITE_` prefix for it. The Supabase anon key is public; do not substitute a service-role key.
 - Keep compatible-provider credentials in the local protected provider store and out of Git. The direct Gemini key is browser-side local storage, so use that path only in a trusted local browser.
 - The checked-in Obsidian mount overlay is machine-specific and excluded from Git.
 - The OpenMuse launch hub is not an identity bridge. It provides starter prompts and links; users review and submit work in OpenMuse.
