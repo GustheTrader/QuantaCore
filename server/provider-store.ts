@@ -65,7 +65,14 @@ export class ProviderStore {
     if (this.cached) return this.cached;
     if (this.loading) return this.loading;
     this.loading = (async () => {
-      const data: StoreData = { connections: {}, preferredProvider: 'gemini', gatewayKey: '' };
+      const envKey = process.env.OPENROUTER_API_KEY?.trim() || '';
+      const envModel = process.env.OPENROUTER_MODEL?.trim() || '';
+      const envBaseUrl = process.env.OPENROUTER_BASE_URL?.trim() || COMPATIBLE_PROVIDERS.find(provider => provider.id === 'openrouter')!.baseUrl;
+      const data: StoreData = {
+        connections: envKey || envModel ? { openrouter: { baseUrl: envBaseUrl, model: envModel, apiKey: envKey } } : {},
+        preferredProvider: envKey && envModel ? 'openrouter' : 'gemini',
+        gatewayKey: ''
+      };
       let saved: any;
       try { saved = JSON.parse(await fs.readFile(path.join(this.directory, 'providers.json'), 'utf8')); }
       catch (error: any) {
@@ -74,9 +81,16 @@ export class ProviderStore {
       }
       for (const provider of COMPATIBLE_PROVIDERS) {
         const entry = saved.connections?.[provider.id];
-        if (entry) data.connections[provider.id] = { baseUrl: entry.baseUrl, model: entry.model, apiKey: await this.unprotect(entry.credential || '') };
+        if (entry) {
+          const apiKey = await this.unprotect(entry.credential || '');
+          data.connections[provider.id] = {
+            baseUrl: entry.baseUrl || (provider.id === 'openrouter' ? envBaseUrl : provider.baseUrl),
+            model: entry.model || (provider.id === 'openrouter' ? envModel : ''),
+            apiKey: apiKey || (provider.id === 'openrouter' ? envKey : '')
+          };
+        }
       }
-      data.preferredProvider = saved.preferredProvider || 'gemini';
+      data.preferredProvider = saved.preferredProvider || data.preferredProvider;
       data.gatewayKey = await this.unprotect(saved.gatewayCredential || '');
       return this.cached = data;
     })();

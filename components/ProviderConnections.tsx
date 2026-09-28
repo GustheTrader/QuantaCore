@@ -75,6 +75,7 @@ export default function ProviderConnections() {
         <button disabled={busy || !draft.model.trim()} onClick={() => run('use')} className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 px-4 py-3 text-sm font-semibold text-white disabled:opacity-40"><Check size={15} /> Use for text agents</button>
       </div>
       <p className="flex items-start gap-2 text-xs leading-5 text-slate-400"><ShieldCheck size={16} className="mt-0.5 shrink-0 text-cyan-400" /> New connector keys are encrypted by the local server and never returned in settings responses. Loading a model catalog does not run paid inference.</p>
+      {selected === 'openrouter' && <p className="rounded-xl border border-amber-400/20 bg-amber-400/5 p-3 text-xs leading-5 text-amber-100/80">The <code>openrouter/free</code> demo route selects from free models whose availability and data policies can vary by model provider. Avoid sending confidential or sensitive data through this route.</p>}
       <p className="text-xs leading-5 text-slate-400">Ollama Local is restricted to this computer. Cloud providers receive your prompt and selected context when you submit a request. OmniRoute follows the upstream routes you configure in its gateway.</p>
     </div>}
     <div aria-live="polite" className="text-sm">{busy && <p className="text-cyan-300">Updating connection…</p>}{message && <p className="text-emerald-300">{message}</p>}{error && <p role="alert" className="text-rose-300">{error}</p>}</div>

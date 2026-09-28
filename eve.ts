@@ -1,5 +1,5 @@
 import express from 'express';
-import { createServer as createViteServer } from 'vite';
+import { createServer as createViteServer, loadEnv } from 'vite';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { ProviderStore } from './server/provider-store';
@@ -9,6 +9,13 @@ import { createCliRouter } from './server/cli-router';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 async function startServer() {
+  // Provider credentials stay server-side; load the ignored local .env without
+  // defining or injecting any key into the browser bundle.
+  const mode = process.env.NODE_ENV === 'production' ? 'production' : 'development';
+  for (const [key, value] of Object.entries(loadEnv(mode, __dirname, ''))) {
+    if (process.env[key] === undefined || !process.env[key]?.trim()) process.env[key] = value;
+  }
+
   const app = express();
   const PORT = 3000;
 

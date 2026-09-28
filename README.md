@@ -83,7 +83,17 @@ For a compatible gateway such as CheaperInference:
 3. Enter an exact model ID from the provider’s model catalog and save its API key.
 4. Select that route when you want Quanta to use it.
 
-The compatible-provider settings store protects credentials locally. The legacy direct Gemini client reads the key you enter in Settings from browser local storage and calls Google from the browser; use that path only in a trusted local browser. Quanta no longer injects API keys into the web bundle. Requests sent through a cloud provider leave the local device for that provider to process.
+For a no-cost demo route, add your OpenRouter key to the server-side `.env` and set:
+
+```dotenv
+OPENROUTER_API_KEY=your_openrouter_key
+OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
+OPENROUTER_MODEL=openrouter/free
+```
+
+Restart `npm run dev` after editing `.env`. Quanta loads the key only in the local Express server; the Settings provider screen will show OpenRouter as configured and use `openrouter/free` for text agents unless another provider is already saved as preferred. OpenRouter chooses an available free model for each request, so model capability and availability can vary, and free-tier rate limits apply. Data handling policies vary by the selected model provider; do not send confidential or sensitive content through the free demo route. You can still load the catalog and choose a specific model in **Settings → Providers**.
+
+Keys entered in the compatible-provider settings store are protected locally. `.env` provider keys remain in the ignored local environment file and are read only by the server. The legacy direct Gemini client reads the key you enter in Settings from browser local storage and calls Google from the browser; use that path only in a trusted local browser. Quanta no longer injects API keys into the web bundle. Requests sent through a cloud provider leave the local device for that provider to process.
 
 ## Optional memory services
 
