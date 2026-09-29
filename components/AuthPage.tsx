@@ -150,12 +150,6 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
             </button>
           </div>
 
-          <SovereignTokensShowcase />
-
-          <HarnessRouterShowcase />
-
-          <HindsightGnoesisNeuralCore />
-
           {/* Infrastructure Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 text-left">
             {features.map((f, i) => (
@@ -176,6 +170,12 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
           </div>
 
           <SovereignTrustSection />
+
+          <HarnessRouterShowcase />
+
+          <SovereignTokensShowcase />
+
+          <HindsightGnoesisNeuralCore />
         </div>
       </div>
 

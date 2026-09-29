@@ -6,43 +6,43 @@ export default function HarnessRouterShowcase() {
       <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
         <div className="max-w-3xl">
           <div className="mb-2 text-[10px] font-bold uppercase tracking-[0.22em] text-cyan-200">Gnoesis SI Harness Router · QuantaCore pilot</div>
-          <h2 id="gnoesis-si-harness-router" className="text-2xl font-black text-white sm:text-3xl">One contract. Choose a harness for the job.</h2>
-          <p className="mt-3 text-sm leading-6 text-slate-300">The Unified Harness Protocol gives QuantaCore a shared way to submit bounded work and inspect the run. That makes it practical to compare compatible harness and model combinations by task, while QuantaCore retains problem choice, policy, and human approval.</p>
+          <h2 id="gnoesis-si-harness-router" className="text-2xl font-black text-white sm:text-3xl">Choose or swap the harness for each case.</h2>
+          <p className="mt-3 text-sm leading-6 text-slate-300">A research case, code task, and data audit can each use a different eligible harness and model. QuantaCore keeps the problem, permissions, and approval policy; the router records the requested route and what actually served the run.</p>
         </div>
         <div className="shrink-0 rounded-xl border border-cyan-300/20 bg-cyan-300/5 px-4 py-3 text-[10px] font-bold uppercase leading-5 tracking-wide text-cyan-100">Test path<br />Sign in → Mission Control → Harness Router</div>
       </div>
 
       <div className="mt-6 grid gap-3 md:grid-cols-3">
         <div className="rounded-2xl border border-white/10 bg-slate-950/40 p-4">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-cyan-100">Integrate once</h3>
-          <p className="mt-2 text-xs leading-5 text-slate-400">Share task semantics for harness selection, continuing sessions, streamed progress, files, artifacts, cancellation, and structured failures.</p>
+          <h3 className="text-xs font-bold uppercase tracking-wider text-cyan-100">Swap per case</h3>
+          <p className="mt-2 text-xs leading-5 text-slate-400">Rerun the same case with another eligible harness to compare its fit, without treating one runtime as the winner for every job.</p>
         </div>
         <div className="rounded-2xl border border-white/10 bg-slate-950/40 p-4">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-cyan-100">Route by evidence</h3>
-          <p className="mt-2 text-xs leading-5 text-slate-400">The target is task-specific fit across eligibility, quality, evidence, cost, latency, and reliability—not a universal model leaderboard.</p>
+          <h3 className="text-xs font-bold uppercase tracking-wider text-cyan-100">Compare evidence</h3>
+          <p className="mt-2 text-xs leading-5 text-slate-400">Hold the case and rubric steady. Measure verified quality, tool success, cost, latency, failures, and abstention for each harness × model pair.</p>
         </div>
         <div className="rounded-2xl border border-white/10 bg-slate-950/40 p-4">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-cyan-100">Inspect each run</h3>
-          <p className="mt-2 text-xs leading-5 text-slate-400">Keep route identity, progress, outputs, failures, and evaluation evidence visible so an operator can review the result.</p>
+          <h3 className="text-xs font-bold uppercase tracking-wider text-cyan-100">Keep control</h3>
+          <p className="mt-2 text-xs leading-5 text-slate-400">Check permissions and budgets before a run; inspect route identity and outputs afterward. Consequential actions stay with the operator.</p>
         </div>
       </div>
 
       <div className="mt-6 grid gap-4 xl:grid-cols-2">
         <figure className="overflow-hidden rounded-2xl border border-white/10 bg-slate-950/70 p-3">
-          <a href="/images/uhp-harnessrouter-overview.png" target="_blank" rel="noreferrer" aria-label="Open the Unified Harness Protocol overview image at full size">
-            <img src="/images/uhp-harnessrouter-overview.png" alt="Reference diagram of the Unified Harness Protocol connecting an application, agent harnesses, and shared components such as tools, models, permissions, sessions, files, and artifacts." loading="lazy" decoding="async" className="h-[280px] w-full object-contain sm:h-[340px]" />
+          <a href="/images/gnoesis-harness-router-splash.png" target="_blank" rel="noreferrer" aria-label="Open the Gnoesis Harness Router case-by-case routing illustration">
+            <img src="/images/gnoesis-harness-router-splash.png" alt="Research, coding, and data case studies connect through a central router to different interchangeable agent harnesses." width={1536} height={1024} loading="lazy" decoding="async" className="h-[280px] w-full rounded-xl object-contain sm:h-[340px]" />
           </a>
-          <figcaption className="px-1 pt-3 text-[11px] leading-5 text-slate-400">Unified Harness Protocol overview. Enabled capabilities still depend on the connected runtime and its configuration.</figcaption>
+          <figcaption className="px-1 pt-3 text-[11px] leading-5 text-slate-400">One router, different harness choices for different case studies.</figcaption>
         </figure>
         <figure className="overflow-hidden rounded-2xl border border-white/10 bg-slate-950/70 p-3">
-          <a href="/images/harnessrouter-agent-catalog-reference.png" target="_blank" rel="noreferrer" aria-label="Open the multi-harness catalog reference image at full size">
-            <img src="/images/harnessrouter-agent-catalog-reference.png" alt="Reference screenshot showing a catalog of agent harness names around a one API message." loading="lazy" decoding="async" className="h-[280px] w-full object-contain sm:h-[340px]" />
+          <a href="/images/gnoesis-harness-router-case-study-routing.png" target="_blank" rel="noreferrer" aria-label="Open the Harness Router evaluation flow illustration">
+            <img src="/images/gnoesis-harness-router-case-study-routing.png" alt="Research, code, and data tasks pass through policy gates, choose separate harness routes, and feed a shared evidence record." width={1536} height={1024} loading="lazy" decoding="async" className="h-[280px] w-full rounded-xl object-contain sm:h-[340px]" />
           </a>
-          <figcaption className="px-1 pt-3 text-[11px] leading-5 text-slate-400">Multi-harness catalog reference. Its pictured count is not a live availability guarantee; the connected router's catalog is authoritative.</figcaption>
+          <figcaption className="px-1 pt-3 text-[11px] leading-5 text-slate-400">Filter each route by capability and policy, then compare the case results.</figcaption>
         </figure>
       </div>
 
-      <p className="mt-4 border-t border-white/10 pt-4 text-xs leading-5 text-slate-400">Pilot status: local Docker connectivity is verified, but a model provider and API key are still needed for model-backed runs. Compatibility is not a quality ranking, and this research-only integration does not authorize trading execution.</p>
+      <p className="mt-4 border-t border-white/10 pt-4 text-xs leading-5 text-slate-400">The current pilot supports manual harness and model selection for bounded tests. Evidence-ranked recommendations are still under evaluation; visual routes are illustrative and do not promise live availability or a quality winner. No trading execution.</p>
     </section>
   );
 }

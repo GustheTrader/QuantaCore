@@ -23,7 +23,7 @@ Build the image with `integrations/harnessrouter/build-local.ps1 -SourcePath <cl
 
 ## HarnessRouter strengths and QuantaCore benefits
 
-The pinned HarnessRouter source implements the Unified Harness Protocol (UHP) with an OpenAI Responses-compatible task surface. This gives QuantaCore one integration contract for compatible harness backends while preserving the information an agent product needs to operate and inspect a run.
+HarnessRouter gives QuantaCore a shared task interface for compatible harness backends. Quanta can select an eligible harness and model for each case study, run bounded work, and preserve the requested route, actual served route, and outcome. The pinned upstream release exposes UHP and an OpenAI Responses-compatible task surface as implementation details; the product story and visuals here are about case-by-case harness routing.
 
 ### What the shared contract provides
 
@@ -32,6 +32,19 @@ The pinned HarnessRouter source implements the Unified Harness Protocol (UHP) wi
 - **Explicit route identity.** A run can name the requested harness and model, while QuantaCore records what actually served it and whether substitution occurred. A mismatch can then be excluded from a comparison or escalated before use.
 - **Policy stays at the product boundary.** QuantaCore can choose the problem, define data and tool permissions, enforce budgets, present alternatives, and ask the operator to approve consequential steps. HarnessRouter supplies execution infrastructure; it does not decide which financial or personal action is authorized.
 - **Task-level measurement becomes practical.** A common interface makes paired comparisons easier. QuantaCore can store the task version, route, prompt/config version, result, evidence, latency, cost, failures, and abstentions under a consistent run record.
+
+### Swap harnesses by case study
+
+Do not assign one runtime to every kind of work. Keep a case study fixed, then rerun it with another eligible harness to measure whether the route fits that task better. The examples below describe evaluation criteria, not a claim that any named harness is currently connected or has already won.
+
+| Case study | Evidence to prioritize when swapping harnesses |
+| --- | --- |
+| Research synthesis | Source fidelity, citation coverage, uncertainty, and appropriate abstention. |
+| Code or workspace task | Test results, artifact validity, tool-call success, and reproducibility. |
+| Data audit | Schema and calculation correctness, malformed-input handling, and reproducible findings. |
+| Trading research | Point-in-time evidence, arithmetic and quote integrity, uncertainty, and strict separation from execution authority. |
+
+For a fair comparison, hold the case, data snapshot, prompt/config version, rubric, permissions, and budget constant; change the harness first and log the requested and served harness/model for every run. The current pilot exposes manual harness and model selection for bounded tests. Jev-assisted selection and evidence-ranked recommendations remain planned evaluation layers, not live automatic routing.
 
 ### How QuantaCore should compare strengths
 
@@ -55,13 +68,13 @@ Promote a route only after it clears the task class's quality and policy floors.
 - The local pilot currently verifies router connectivity and status only. No model-backed run or paid comparison has been completed because provider credentials and an API key are not configured.
 - Agent tasks remain research-only. No model strength score or successful benchmark grants access to orders, wallets, transfers, or broker credentials.
 
-### Reference images
+### Custom Harness Router visuals
 
-These user-supplied screenshots are visual references for the shared protocol and harness catalog. Their marketing copy is not an operational instruction or a statement of the live QuantaCore configuration. Open either image for its full-resolution version.
+These project-specific illustrations replace the source screenshots in the splash and wiki. They show the intended case-by-case routing idea; they do not represent a live catalog, benchmark result, or verified quality ranking.
 
-![User-supplied Unified Harness Protocol diagram showing an application, harnesses, and shared execution components](../public/images/uhp-harnessrouter-overview.png)
+![Custom Gnoesis SI Harness Router illustration showing research, coding, and data cases routed to different harnesses](../public/images/gnoesis-harness-router-splash.png)
 
-![User-supplied multi-harness catalog screenshot; the pictured count is not a live availability guarantee](../public/images/harnessrouter-agent-catalog-reference.png)
+![Custom Harness Router flow showing policy gates, per-case harness selection, and a shared evidence record](../public/images/gnoesis-harness-router-case-study-routing.png)
 
 ## Decision
 
