@@ -110,7 +110,7 @@ const App: React.FC = () => {
       const applyAuthSession = (authSession: any) => {
         if (!active) return;
         const user = authSession?.user;
-        if (!user?.email) {
+        if (!user?.id) {
           setSession(null);
           setProfile(null);
           setLoading(false);
@@ -118,7 +118,8 @@ const App: React.FC = () => {
         }
         const allowedTracks: UserTrack[] = ['personal', 'consumer', 'business', 'trading', 'education', 'guest', 'investing', 'growth'];
         const requestedTrack = user.user_metadata?.track;
-        const nextSession = { email: String(user.email).toLowerCase(), track: allowedTracks.includes(requestedTrack) ? requestedTrack as UserTrack : 'personal' as UserTrack };
+        const sessionEmail = user.email || user.user_metadata?.contact_email || `guest-${String(user.id).slice(0, 8)}@guest.invalid`;
+        const nextSession = { email: String(sessionEmail).toLowerCase(), track: allowedTracks.includes(requestedTrack) ? requestedTrack as UserTrack : 'personal' as UserTrack };
         setSession(nextSession);
         try {
           const savedProfile = localStorage.getItem(`quanta_profile_${nextSession.email}`);

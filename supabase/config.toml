@@ -1,4 +1,17 @@
 project_id = "ovugynuxvtvfkwjkyxby"
 
+[auth]
+enable_anonymous_sign_ins = true
+site_url = "https://quanta-core.vercel.app/"
+additional_redirect_urls = [
+  "https://quanta-core.vercel.app",
+  "https://quanta-core.vercel.app/",
+  "https://quanta-core.vercel.app/**",
+  "http://localhost:3000",
+  "http://localhost:3000/**",
+  "http://127.0.0.1:3000",
+  "http://127.0.0.1:3000/**",
+]
+
 [functions.quanta-inference]
 verify_jwt = true

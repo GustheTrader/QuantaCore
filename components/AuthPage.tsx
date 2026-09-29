@@ -9,7 +9,7 @@ import SovereignTokensShowcase from './SovereignTokensShowcase';
 import SovereignSiHeader from './SovereignSiHeader';
 import { getAgentTrack } from '../lib/agent-tracks';
 import type { UserTrack } from '../types';
-import { isSupabaseConfigured, signInWithMagicLink } from '../services/supabaseService';
+import { isSupabaseConfigured, signInAsTestGuest } from '../services/supabaseService';
 
 interface AuthPageProps {
   onLogin: (data: { email: string, track: UserTrack }) => void;
@@ -20,6 +20,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
   const [track, setTrack] = useState<UserTrack>('personal');
   const [loading, setLoading] = useState(false);
   const [authMessage, setAuthMessage] = useState('');
+  const [emailConsent, setEmailConsent] = useState(false);
   const authFormRef = useRef<HTMLDivElement>(null);
   const selectedAgent = getAgentTrack(track);
 
@@ -76,26 +77,27 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.includes('@')) return;
+    if (!email.includes('@') || !emailConsent) return;
     setLoading(true);
     setAuthMessage('');
     if (import.meta.env.PROD) {
       if (!isSupabaseConfigured) {
-        setAuthMessage('Hosted sign-in is not configured yet. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in Vercel, then redeploy.');
+        setAuthMessage('Guest access is not configured yet. Supabase settings are missing from this deployment.');
         setLoading(false);
         return;
       }
       try {
-        await signInWithMagicLink(email.toLowerCase().trim(), track);
-        setAuthMessage('Check your email for a secure sign-in link.');
-      } catch {
-        setAuthMessage('We could not send a sign-in link. Check the email and Supabase Auth settings, then try again.');
+        await signInAsTestGuest(email, track);
+        onLogin({ email: email.toLowerCase().trim(), track });
+      } catch (error) {
+        console.error('Guest access failed', error);
+        setAuthMessage('Guest access could not start. Check that Supabase anonymous sign-ins are enabled and the test email table migration is applied.');
       } finally {
         setLoading(false);
       }
       return;
     }
-    setTimeout(() => onLogin({ email: email.toLowerCase().trim(), track }), 1500);
+    onLogin({ email: email.toLowerCase().trim(), track });
   };
 
   const downloadWhitepaper = () => {
@@ -176,12 +178,12 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
 
       {/* Auth Form Section */}
       <div ref={authFormRef} className="min-h-screen flex items-center justify-center p-6 relative bg-slate-950/90 border-t border-orange-500/20">
-        <div className="max-w-5xl w-full z-10 text-center">
+        <div className="max-w-7xl w-full z-10 text-center">
           <div className="w-32 h-32 quanta-btn-orange rounded-[3rem] mx-auto mb-10 shadow-[0_0_60px_rgba(249,115,22,0.4)] flex items-center justify-center animate-glow">
             <svg className="w-16 h-16 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
           </div>
           <h2 className="text-6xl font-outfit font-black text-white mb-4 uppercase tracking-tighter italic">Core <span className="text-orange-500">Sync</span></h2>
-          <p className="text-slate-500 font-black uppercase tracking-[0.5em] text-[11px] mb-20">Secure Operator Authentication</p>
+          <p className="text-slate-500 font-black uppercase tracking-[0.5em] text-[11px] mb-20">Test Guest Access · Email Not Verified</p>
 
           <div className="bg-[#020617] p-6 sm:p-10 lg:p-12 rounded-[2rem] sm:rounded-[3rem] shadow-2xl border-2 border-orange-500/10 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-orange-600/5 blur-3xl pointer-events-none"></div>
@@ -194,20 +196,30 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
               </div>
 
               <div className="text-left space-y-4">
-                <label className="block text-orange-400 text-[10px] font-black uppercase tracking-[0.4em] px-2">Identifier Signature</label>
+                <label className="block text-orange-400 text-[10px] font-black uppercase tracking-[0.4em] px-2">Test Contact Email</label>
                 <input 
                   type="email" 
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="operator@quanta-os.ai"
+                  placeholder="you@example.com"
                   className="w-full bg-slate-950 border-2 border-slate-800 text-white rounded-2xl py-8 px-10 focus:outline-none focus:border-orange-500 transition-all font-mono text-base shadow-inner"
                   required
                 />
+                <label className="flex items-start gap-3 px-2 text-left text-xs leading-relaxed text-slate-400">
+                  <input
+                    type="checkbox"
+                    checked={emailConsent}
+                    onChange={(event) => setEmailConsent(event.target.checked)}
+                    className="mt-0.5 accent-orange-500"
+                    required
+                  />
+                  <span>I agree to store this email in Supabase so QuantaCore can contact me about the test. This address is not verified by guest access.</span>
+                </label>
               </div>
 
               <button 
                 type="submit"
-                disabled={loading}
+                disabled={loading || !emailConsent}
                 style={{ background: `linear-gradient(115deg, ${selectedAgent.from}, ${selectedAgent.to})`, boxShadow: `0 12px 40px ${selectedAgent.from}25` }}
                 className="w-full py-7 px-5 text-slate-950 rounded-2xl font-black uppercase tracking-[0.2em] text-xs sm:text-sm transition-shadow flex items-center justify-center gap-4 disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
               >
@@ -218,7 +230,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
                   </>
                 ) : (
                   <>
-                    <span>Activate {selectedAgent.label}</span>
+                    <span>Continue as Test Guest</span>
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
                   </>
                 )}

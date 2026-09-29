@@ -22,6 +22,7 @@ try {
       getUser: async () => ({ data: { user: null }, error: null }),
       onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
       signInWithOtp: async () => ({ error: new Error("Supabase unavailable") }),
+      signInAnonymously: async () => ({ data: { user: null }, error: new Error("Supabase unavailable") }),
       signOut: async () => ({ error: null })
     },
     functions: {
@@ -127,6 +128,26 @@ export const signInWithMagicLink = async (email: string, track?: UserTrack) => {
     console.error("Sign in failed", e);
     throw e;
   }
+};
+
+/** Creates a temporary Supabase identity and records the tester's explicitly opted-in contact email. */
+export const signInAsTestGuest = async (email: string, track: UserTrack) => {
+  const normalizedEmail = email.toLowerCase().trim();
+  const { data, error } = await supabase.auth.signInAnonymously({
+    options: { data: { track, contact_email: normalizedEmail } },
+  });
+  if (error) throw error;
+  if (!data?.user?.id) throw new Error('Supabase did not create a guest session.');
+
+  const { error: contactError } = await supabase.from('test_access_contacts').insert({
+    user_id: data.user.id,
+    contact_email: normalizedEmail,
+  });
+  if (contactError) {
+    await supabase.auth.signOut();
+    throw contactError;
+  }
+  return data;
 };
 
 export const signOut = async () => {
