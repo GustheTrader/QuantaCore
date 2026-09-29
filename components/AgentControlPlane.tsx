@@ -65,7 +65,7 @@ export default function AgentControlPlane({ track, profile, email, onActivateAge
 
   useEffect(() => {
     loadProviderConnections().then(config => setConnections(config.connections)).catch(error => setNotice(error.message));
-    loadAgentMemoryStatus(email).then(status => { setMemoryStatus(status); setMemoryApiAvailable(true); }).catch(() => { setMemoryStatus(null); setMemoryApiAvailable(false); });
+    loadAgentMemoryStatus(email).then(status => { setMemoryStatus(status); setMemoryApiAvailable(status.services.some(service => service.status === 'responding' || service.status === 'configured')); }).catch(() => { setMemoryStatus(null); setMemoryApiAvailable(false); });
     const changed = () => { if (controller.current) return; const provider = getPreferredProvider(); setThread(previous => ({ ...previous, provider, model: undefined })); resetCatalog(); setSelectedModel(''); };
     window.addEventListener('quanta_provider_changed', changed);
     return () => { controller.current?.abort(); catalogRequest.current += 1; window.removeEventListener('quanta_provider_changed', changed); };
@@ -161,7 +161,7 @@ export default function AgentControlPlane({ track, profile, email, onActivateAge
         const longTerm = recalled.hindsight.map(item => `[${item.source}${item.type ? ` · ${item.type}` : ''}] ${item.text}`).join('\n');
         const session = recalled.honcho ? `HONCHO SESSION CONTEXT\n${recalled.honcho}` : '';
         persistentContext = [longTerm && `HINDSIGHT LONG-TERM MEMORY\n${longTerm}`, session].filter(Boolean).join('\n\n');
-        if (recalled.degraded) setNotice('One memory service is unavailable; this run is using whichever local memory source responded.');
+        if (recalled.degraded) setNotice('One memory service is unavailable; this run is using whichever configured memory source responded.');
       } catch {
         setNotice('Persistent memory could not be reached. The agent will continue with notebook context only.');
       }
@@ -190,9 +190,9 @@ export default function AgentControlPlane({ track, profile, email, onActivateAge
       if (snapshot.useMemory) {
         try {
           const retained = await retainAgentMemoryTurn({ owner: email, threadId: snapshot.id, agent: agent.id, query: prompt, userMessage: prompt, assistantMessage: response.text }, abort.signal);
-          if (Object.values(retained.services).some(status => status !== 'stored')) setNotice('This turn was saved in one local memory service; the other service is offline.');
-          loadAgentMemoryStatus(email).then(setMemoryStatus).catch(() => setMemoryStatus(null));
-        } catch { setNotice('The response is saved, but one or both local memory services could not store this turn.'); }
+          if (Object.values(retained.services).some(status => status !== 'stored')) setNotice('This turn was saved in one memory service; the other service is unavailable.');
+          loadAgentMemoryStatus(email).then(status => { setMemoryStatus(status); setMemoryApiAvailable(status.services.some(service => service.status === 'responding' || service.status === 'configured')); }).catch(() => setMemoryStatus(null));
+        } catch { setNotice('The response is saved, but one or both memory services could not store this turn.'); }
       }
     } catch (error: any) {
       const status: RunStatus = abort.signal.aborted ? 'cancelled' : 'error';
@@ -270,8 +270,8 @@ export default function AgentControlPlane({ track, profile, email, onActivateAge
             </div>{busy ? <button type="button" aria-label="Stop agent run" onClick={() => controller.current?.abort()} className={`flex h-10 w-10 items-center justify-center rounded-full border border-blue-400/30 bg-blue-500/15 text-blue-200 ${focus}`}><Square size={14} fill="currentColor" /></button> : <motion.button type="submit" aria-label={thread.mode === 'work' ? 'Start work task' : 'Send message'} disabled={!input.trim()} whileHover={reducedMotion ? undefined : { scale: motionTokens.scale.pop }} whileTap={reducedMotion ? undefined : { scale: motionTokens.scale.press }} transition={springs.snappy} className={`flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 text-white shadow-lg shadow-blue-600/20 disabled:opacity-30 ${focus}`}><ArrowUp size={19} /></motion.button>}</div>
             <div className="flex flex-wrap items-center gap-3 border-t border-blue-400/10 bg-[#09172d] px-5 py-3">
               <Folder size={15} className="text-slate-500" /><select aria-label="Choose project" disabled={busy} value={thread.projectId || ''} onChange={event => setThread(previous => ({ ...previous, projectId: event.target.value || undefined }))} className={`max-w-[170px] bg-transparent text-xs text-slate-400 ${focus}`}><option value="" className="bg-[#09172d]">Choose project</option>{projects.map(project => <option key={project.id} value={project.id} className="bg-[#09172d]">{project.title}</option>)}</select>
-              <label className="flex cursor-pointer items-center gap-2 text-xs text-slate-400" title={memoryApiAvailable ? 'When enabled, completed turns are stored in local Hindsight and Honcho. Their configured model provider may receive the text to derive memory; use a local LLM for local-only processing.' : 'Persistent memory requires the local QuantaCore API. Start the local app server to enable it.'}><input type="checkbox" disabled={busy || !memoryApiAvailable} checked={thread.useMemory && memoryApiAvailable} onChange={event => setThread(previous => ({ ...previous, useMemory: event.target.checked }))} className="accent-blue-500" /><Brain size={14} /> Hindsight + Honcho memory</label>
-              {memoryApiAvailable && <span className="text-[10px] text-slate-600" title={(memoryStatus?.services || []).map(service => `${service.id}: ${service.status}`).join(' · ') || 'Checking local memory services'}>{memoryStatus?.services.map(service => `${service.id === 'hindsight' ? 'H' : 'Ho'} ${service.status === 'responding' ? 'on' : 'off'}`).join(' · ') || 'Memory status pending'}</span>}
+              <label className="flex cursor-pointer items-center gap-2 text-xs text-slate-400" title={memoryApiAvailable ? `When enabled, completed turns are stored in ${memoryStatus?.persistence === 'hosted' ? 'hosted' : 'local'} Hindsight and Honcho. Their configured model provider may receive the text to derive memory.` : `Persistent memory is unavailable. Configure ${import.meta.env.PROD ? 'Hindsight or Honcho secrets in Supabase Edge Functions' : 'the local QuantaCore memory services'} to enable it.`}><input type="checkbox" disabled={busy || !memoryApiAvailable} checked={thread.useMemory && memoryApiAvailable} onChange={event => setThread(previous => ({ ...previous, useMemory: event.target.checked }))} className="accent-blue-500" /><Brain size={14} /> Hindsight + Honcho memory</label>
+              {memoryStatus && <span className="text-[10px] text-slate-600" title={memoryStatus.services.map(service => `${service.id}: ${service.status}`).join(' · ')}>{memoryStatus.persistence === 'hosted' ? 'Hosted' : 'Local'} · {memoryStatus.services.map(service => `${service.id === 'hindsight' ? 'H' : 'Ho'} ${service.status === 'responding' ? 'on' : service.status === 'configured' ? 'key set' : 'off'}`).join(' · ')}</span>}
               <Link to="/mcp" className={`ml-auto flex items-center gap-1.5 text-xs text-slate-400 hover:text-blue-200 ${focus}`}><Workflow size={14} /> Connectors</Link>
             </div>
           </form>

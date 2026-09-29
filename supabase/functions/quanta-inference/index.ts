@@ -155,7 +155,7 @@ async function chatCompletion(body: unknown) {
 Deno.serve(withSupabase({ auth: 'user' }, async (request, context) => {
   const origin = request.headers.get('origin');
   if (!origin || !allowedOrigins().has(origin)) return errorResponse(403, 'This origin is not allowed.');
-  const userId = context.userClaims?.sub;
+  const userId = context.userClaims?.id;
   if (!userId) return errorResponse(401, 'Sign in to use hosted inference.');
 
   const limited = await checkLimits(userId, request);

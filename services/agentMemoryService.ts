@@ -1,7 +1,9 @@
+import { invokeEdgeFunction } from './supabaseService';
+
 export interface AgentMemoryStatus {
   checkedAt: string;
-  persistence: 'local';
-  services: { id: 'hindsight' | 'honcho'; status: 'responding' | 'unavailable' | 'authentication-required' | 'error'; latencyMs: number }[];
+  persistence: 'local' | 'hosted';
+  services: { id: 'hindsight' | 'honcho'; status: 'responding' | 'configured' | 'unavailable' | 'authentication-required' | 'error'; latencyMs: number }[];
 }
 
 export interface AgentMemoryContext {
@@ -12,6 +14,12 @@ export interface AgentMemoryContext {
 }
 
 async function request<T>(path: string, owner: string, body?: Record<string, unknown>, signal?: AbortSignal): Promise<T> {
+  if (import.meta.env.PROD) {
+    const action = path === '/status' ? 'status' : path === '/context' ? 'context' : 'turn';
+    const data = await invokeEdgeFunction('quanta-memory', { action, ...(body || {}) });
+    if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
+    return data as T;
+  }
   const response = await fetch(`/api/memory${path}`, {
     method: body ? 'POST' : 'GET',
     headers: { 'Content-Type': 'application/json', 'X-Quanta-Client': 'local-ui' },

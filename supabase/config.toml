@@ -15,3 +15,6 @@ additional_redirect_urls = [
 
 [functions.quanta-inference]
 verify_jwt = true
+
+[functions.quanta-memory]
+verify_jwt = true
