@@ -45,7 +45,8 @@ export function createInferenceRouters(store: ProviderStore, hooks?: InferenceHo
 
   api.get('/runtime', async (_req, res) => {
     const services = [
-      { id: 'hindsight', label: 'Gnoesis Neural Core · Hindsight', url: 'http://127.0.0.1:8888/health' },
+      { id: 'hindsight', label: 'Gnoesis Neural Core · Hindsight', url: `${process.env.HINDSIGHT_BASE_URL || 'http://127.0.0.1:8888'}/health` },
+      { id: 'honcho', label: 'Honcho · Session memory', url: `${process.env.HONCHO_BASE_URL || process.env.HONCHO_API_URL || 'http://127.0.0.1:8000'}/health` },
       { id: 'ollama', label: 'Ollama Local', url: 'http://127.0.0.1:11434/v1/models' },
       { id: 'omniroute', label: 'OmniRoute', url: 'http://127.0.0.1:20128/v1/models' }
     ];

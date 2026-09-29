@@ -17,6 +17,7 @@ dist-ssr
 .env.*
 !.env.example
 supabase/functions/.env
+supabase/.temp/
 
 # Editor directories and files
 .vscode/*

@@ -7,6 +7,7 @@ import { createInferenceRouters } from './server/inference-router';
 import { createCliRouter } from './server/cli-router';
 import { ResearchManager } from './server/research-manager';
 import { createResearchRouter } from './server/research-router';
+import { createMemoryRouter } from './server/memory-router';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -25,7 +26,9 @@ async function startServer() {
   const inference = createInferenceRouters(providerStore, research);
   app.use('/api/inference', inference.api);
   app.use('/api/trading', createResearchRouter(research));
-  app.use('/api/cli', createCliRouter(providerStore, research));  app.get('/api/openmuse/status', async (_req, res) => {
+  app.use('/api/cli', createCliRouter(providerStore, research));
+  app.use('/api/memory', createMemoryRouter());
+  app.get('/api/openmuse/status', async (_req, res) => {
     try {
       const response = await fetch('http://127.0.0.1:8787/api/health', { signal: AbortSignal.timeout(2000) });
       if (!response.ok) throw new Error('OpenMuse health check failed');
