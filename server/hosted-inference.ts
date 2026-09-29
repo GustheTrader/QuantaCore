@@ -1,6 +1,3 @@
-import { createClient } from '@supabase/supabase-js';
-import { Ratelimit } from '@upstash/ratelimit';
-import { Redis } from '@upstash/redis';
 import type { Request, Response } from 'express';
 
 const FREE_MODEL = 'openrouter/free';
@@ -10,21 +7,32 @@ const jsonError = (res: Response, status: number, message: string) => {
   return res.status(status).json({ error: { message } });
 };
 
-let authClient: ReturnType<typeof createClient> | undefined;
-let limits: { minute: Ratelimit; day: Ratelimit; ipMinute: Ratelimit } | undefined;
+type AuthClient = import('@supabase/supabase-js').SupabaseClient;
+type RateLimits = {
+  minute: import('@upstash/ratelimit').Ratelimit;
+  day: import('@upstash/ratelimit').Ratelimit;
+  ipMinute: import('@upstash/ratelimit').Ratelimit;
+};
+let authClient: AuthClient | undefined;
+let limits: RateLimits | undefined;
 
-function getAuthClient() {
+async function getAuthClient() {
   const url = process.env.VITE_SUPABASE_URL?.trim();
   const key = process.env.VITE_SUPABASE_ANON_KEY?.trim();
   if (!url || !key) throw new Error('Hosted authentication is not configured.');
+  const { createClient } = await import('@supabase/supabase-js');
   return authClient ||= createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
 }
 
-function getRateLimits() {
+async function getRateLimits() {
   const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
   const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
   if (!url || !token) throw new Error('Hosted request limits are not configured.');
   if (!limits) {
+    const [{ Ratelimit }, { Redis }] = await Promise.all([
+      import('@upstash/ratelimit'),
+      import('@upstash/redis')
+    ]);
     const redis = new Redis({ url, token });
     limits = {
       minute: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(10, '1 m'), prefix: 'quanta:inference:minute', analytics: false }),
@@ -54,7 +62,8 @@ function sameOrigin(req: Request) {
 async function authenticate(req: Request) {
   const bearer = header(req, 'authorization')?.match(/^Bearer\s+(.+)$/i)?.[1];
   if (!bearer || bearer.length > 4096) return null;
-  const { data, error } = await getAuthClient().auth.getUser(bearer);
+  const client = await getAuthClient();
+  const { data, error } = await client.auth.getUser(bearer);
   return error || !data.user ? null : data.user;
 }
 
@@ -75,8 +84,8 @@ export async function hostedInference(req: Request, res: Response) {
   catch { return jsonError(res, 503, 'Hosted authentication is temporarily unavailable.'); }
   if (!user) return jsonError(res, 401, 'Sign in to use hosted inference.');
 
-  let rateLimits: ReturnType<typeof getRateLimits>;
-  try { rateLimits = getRateLimits(); }
+  let rateLimits: Awaited<ReturnType<typeof getRateLimits>>;
+  try { rateLimits = await getRateLimits(); }
   catch { return jsonError(res, 503, 'Hosted request limits are not configured.'); }
 
   const forwardedFor = req.headers['x-forwarded-for'];
