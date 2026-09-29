@@ -8,6 +8,7 @@ import { createCliRouter } from './server/cli-router';
 import { ResearchManager } from './server/research-manager';
 import { createResearchRouter } from './server/research-router';
 import { createMemoryRouter } from './server/memory-router';
+import { createHarnessRouterApi } from './server/harness-router';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -28,6 +29,7 @@ async function startServer() {
   app.use('/api/trading', createResearchRouter(research));
   app.use('/api/cli', createCliRouter(providerStore, research));
   app.use('/api/memory', createMemoryRouter());
+  app.use('/api/harness-router', createHarnessRouterApi(providerStore));
   app.get('/api/openmuse/status', async (_req, res) => {
     try {
       const response = await fetch('http://127.0.0.1:8787/api/health', { signal: AbortSignal.timeout(2000) });

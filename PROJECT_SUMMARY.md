@@ -27,6 +27,8 @@ flowchart LR
   HostedAPI --> SupabaseAuth[Supabase magic-link and access-token verification]
   HostedAPI --> Limits[Upstash distributed rate limits]
   HostedAPI --> FreeRoute[OpenRouter free model router]
+  HostedAPI --> HarnessProxy[Authenticated HarnessRouter test proxy]
+  HarnessProxy --> RemoteHarness[Operator-managed HTTPS runtime]
 ```
 
 The compatible-provider store protects API credentials on the local host (Windows DPAPI; AES-GCM with a local key on other platforms). Provider requests go to the selected endpoint. The legacy direct Gemini client reads the user-entered key from browser local storage and calls Google from the browser. Quanta no longer injects keys into the web bundle. OpenMuse has a separate service, identity, workspace, and provider configuration; Quanta’s launch hub does not transfer its credentials or session.
@@ -41,6 +43,7 @@ The compatible-provider store protects API credentials on the local host (Window
 - Neural Core architecture visualization and whitepaper content for Hindsight memory, evidence, observations, and synthesis.
 - Sovereign Trust content and an opt-in Obsidian sync container definition.
 - OpenMuse launch/status hub for the Personal and Consumer roles.
+- **Gnoesis SI Harness Router** control surface with local Docker and authenticated hosted-browser modes, bounded single-turn test runs, and requested/served model reporting. The hosted mode requires a reachable HTTPS HarnessRouter, Supabase server secrets, and explicit read-only harness/model allowlists. Jev triage and model-strength scoring remain evaluation work until validated.
 - Supabase Edge Function hosted demo with verified Supabase sessions, shared Upstash account/IP throttles, text/input limits, and a fixed OpenRouter free model route. Vercel serves the static frontend only.
 
 ## Integration status
@@ -53,6 +56,7 @@ The compatible-provider store protects API credentials on the local host (Window
 | CheaperInference | Compatible through the OpenAI-compatible provider using `https://api.cheaperinference.com/v1` and an exact provider model ID. |
 | OpenMuse | Separate checkout at `C:\GnoesisOpenMuse`; API on 8787 and web UI on 8081. Sample workspace data and model-backed chat are available. Quanta roles and identity are not automatically passed into OpenMuse. |
 | Hindsight | Docker Compose service is defined; health and inference depend on local configuration and provider credentials. |
+| Gnoesis SI Harness Router | Local Docker runtime is healthy on `127.0.0.1:3100`. The QuantaCore page now offers local and authenticated hosted-browser test modes. Hosted execution is fail-closed until an HTTPS HarnessRouter endpoint, server API key, read-only harness/model allowlists, and function secrets are configured. See [integration plan](docs/GNOESIS_SI_HARNESS_ROUTER.md). |
 | Obsidian | Optional read-only sync profile. A private, machine-specific vault mount is required. |
 | FPT-Omega router | Shown as a conditional target in the architecture. Production routing into Hindsight is not yet implemented or validated. |
 | FireRouter, Nexus, Finetune RL | Landing-page showcase only; Quanta does not manage these services or training jobs. |
@@ -77,7 +81,9 @@ Optional memory services start with `docker compose up -d`. Obsidian sync requir
 - Keep compatible-provider credentials in the local protected provider store and out of Git. The direct Gemini key is browser-side local storage, so use that path only in a trusted local browser.
 - The checked-in Obsidian mount overlay is machine-specific and excluded from Git.
 - The OpenMuse launch hub is not an identity bridge. It provides starter prompts and links; users review and submit work in OpenMuse.
+- Hosted HarnessRouter runs require a signed-in Supabase user, an allowed origin, Upstash limits, and operator-owned HTTPS endpoint/key secrets. Hosted test runs allow only configured harness/model IDs and cap prompts, output, steps, and time. The local and hosted modes do not grant trading or money movement authority.
 - A diagram, whitepaper, sample workspace, or status badge is not proof of a live model, active Memory Defense policy, working vault sync, or production FPT-Omega routing.
+- Harness/model compatibility and candidate descriptions are not evidence of task quality. The Gnoesis SI Harness Router evaluates candidates by harness × model × task class; Jev confidence is not trusted until calibrated against held-out, adjudicated cases.
 - Financial analysis is research support. The agent roster does not enable order placement or money movement.
 
 ## Immediate engineering priorities

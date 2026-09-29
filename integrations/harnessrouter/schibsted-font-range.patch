@@ -1,0 +1,9 @@
+diff --git a/ui/src/app/layout.tsx b/ui/src/app/layout.tsx
+index e0d61f8..035d0eb 100644
+--- a/ui/src/app/layout.tsx
++++ b/ui/src/app/layout.tsx
+@@ -22,3 +22,3 @@
+ const mono = IBM_Plex_Mono({ variable: '--font-ibm-mono', subsets: ['latin'], weight: ['400', '500', '600'] });
+-const display = Schibsted_Grotesk({ variable: '--font-grotesk', subsets: ['latin'], weight: 'variable' });
++const display = Schibsted_Grotesk({ variable: '--font-grotesk', subsets: ['latin'], weight: ['400', '500', '600', '700', '800', '900'] });
+ const inter = Inter({ variable: '--font-inter', subsets: ['latin'], weight: ['400', '500', '600', '700'] });

@@ -151,6 +151,13 @@ const Dashboard: React.FC<DashboardProps> = ({ profile, track = 'personal', onOp
         />
       </section>
 
+      <section className="mb-12 rounded-3xl border border-cyan-400/20 bg-gradient-to-r from-cyan-950/50 via-slate-950/70 to-indigo-950/40 p-6 sm:p-8">
+        <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+          <div><div className="mb-2 text-[10px] font-bold uppercase tracking-[0.22em] text-cyan-200">Local and hosted test options</div><h2 className="text-2xl font-black text-white">Gnoesis SI Harness Router</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">Run a bounded test through the local Docker runtime or the authenticated hosted browser route. QuantaCore keeps problem selection, policy, and approvals.</p></div>
+          <Link to="/harness-router" className="inline-flex shrink-0 items-center justify-center rounded-xl border border-cyan-300/30 bg-cyan-300/10 px-5 py-3 text-xs font-bold text-cyan-100 hover:bg-cyan-300/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-200">Open control plane <span aria-hidden="true" className="ml-2">→</span></Link>
+        </div>
+      </section>
+
       {/* Real-time System Health & Telemetry Widget */}
       <section className="mb-12">
         <SystemHealthWidget />

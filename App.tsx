@@ -35,6 +35,7 @@ import OpenMuseAgent from './components/OpenMuseAgent';
 import QuantaCliTerminal from './components/QuantaCliTerminal';
 import GnoesisResearch from './components/GnoesisResearch';
 import { isLocalResearchHost } from './services/researchService';
+import GnoesisSiHarnessRouter from './components/GnoesisSiHarnessRouter';
 
 interface ErrorBoundaryProps {
   children?: ReactNode;
@@ -264,6 +265,7 @@ const App: React.FC = () => {
                   <Routes>
                     <Route path="/" element={<Dashboard track={session.track} profile={profile} onOpenChat={openChat} onActivateAgent={handleActivateAgent} onOpenTerminal={openTerminal} />} />
                     <Route path="/coding-harness" element={<CodingHarness onOpenTerminal={openTerminal} />} />
+                    <Route path="/harness-router" element={<GnoesisSiHarnessRouter />} />
                     <Route path="/openmuse" element={<OpenMuseAgent track={session.track} onActivateAgent={handleActivateAgent} />} />
                     <Route path="/chat" element={<ChatInterface profile={profile} />} />
                     <Route path="/neural-core" element={<NeuralCoreConsole />} />
