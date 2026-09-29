@@ -22,7 +22,12 @@ function endpoint(id: CompatibleProvider, value: string) {
 const redactError = (message: string, secret: string) => (secret ? message.split(secret).join('[REDACTED]') : message).slice(0, 500);
 const errorResponse = (res: Response, error: any) => res.status(error.status || (error.name === 'AbortError' || error.name === 'TimeoutError' ? 504 : 502)).json({ error: { message: error.message || 'Inference request failed.', type: 'provider_error' } });
 
-export function createInferenceRouters(store: ProviderStore) {
+export interface InferenceHooks {
+  researchAuthorized(req: Request): boolean;
+  admit(req: Request, provider: string, model: string, baseUrl: string, body: Record<string, unknown>, controller: AbortController): unknown;
+  complete(admission: any, result: any): void;
+}
+export function createInferenceRouters(store: ProviderStore, hooks?: InferenceHooks) {
   const api = express.Router();
   const openai = express.Router();
 
@@ -110,6 +115,8 @@ export function createInferenceRouters(store: ProviderStore) {
   async function completion(req: Request, res: Response, gateway: boolean) {
     let controller: AbortController | undefined;
     let timer: ReturnType<typeof setTimeout> | undefined;
+    let admission: unknown;
+    let accounted = false;
     try {
       const stored = await store.read();
       let provider = gateway ? stored.preferredProvider : String(req.body.provider || stored.preferredProvider);
@@ -124,10 +131,14 @@ export function createInferenceRouters(store: ProviderStore) {
       if (!model || model.length > 256) throw fail('Configure a model ID for this provider.');
       if (getProviderDefinition(provider)!.requiresKey && !config.apiKey) throw fail('Configure this provider\'s API key in Settings.');
       if (!Array.isArray(req.body.messages) || req.body.messages.length === 0) throw fail('messages must be a non-empty array.');
-      const allowed = ['messages', 'stream', 'temperature', 'top_p', 'max_tokens', 'max_completion_tokens', 'stop', 'tools', 'tool_choice', 'response_format', 'seed', 'reasoning_effort', 'plugins'];
+      const allowed = ['messages', 'stream', 'stream_options', 'parallel_tool_calls', 'temperature', 'top_p', 'max_tokens', 'max_completion_tokens', 'stop', 'tools', 'tool_choice', 'response_format', 'seed', 'reasoning_effort', 'plugins'];
       const body: Record<string, unknown> = { model };
       for (const field of allowed) if (req.body[field] !== undefined) body[field] = req.body[field];
       controller = new AbortController();
+      if (req.get('X-Gnoesis-Run')) {
+        if (!gateway || !hooks) throw fail('Research gateway accounting is unavailable.', 403);
+        admission = hooks.admit(req, provider, model, endpoint(provider, config.baseUrl), body, controller);
+      }
       timer = setTimeout(() => controller?.abort(), 180000);
       res.on('close', () => controller?.abort());
       const upstream = await fetch(`${endpoint(provider, config.baseUrl)}/chat/completions`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...(config.apiKey ? { Authorization: `Bearer ${config.apiKey}` } : {}) }, body: JSON.stringify(body), redirect: 'error', signal: controller.signal });
@@ -143,12 +154,14 @@ export function createInferenceRouters(store: ProviderStore) {
         res.setHeader('Cache-Control', 'no-cache');
         await pipeline(Readable.fromWeb(upstream.body as any), res);
       } else {
-        res.json(await upstream.json());
+        const result = await upstream.json();
+        hooks?.complete(admission, result); accounted = true;
+        res.json(result);
       }
     } catch (error) {
       if (!res.headersSent) errorResponse(res, error);
       else res.end();
-    } finally { if (timer) clearTimeout(timer); }
+    } finally { if (timer) clearTimeout(timer); if (admission && !accounted) hooks?.complete(admission, null); }
   }
 
   api.post('/chat/completions', (req, res) => completion(req, res, false));
@@ -159,7 +172,8 @@ export function createInferenceRouters(store: ProviderStore) {
       const provided = req.get('authorization')?.replace(/^Bearer\s+/i, '') || '';
       const expected = Buffer.from(key);
       const received = Buffer.from(provided);
-      if (!key || expected.length !== received.length || !timingSafeEqual(expected, received)) return res.status(401).json({ error: { message: 'A Quanta local API key is required.', type: 'authentication_error' } });
+      const general = !!key && expected.length === received.length && timingSafeEqual(expected, received);
+      if (!general && !hooks?.researchAuthorized(req)) return res.status(401).json({ error: { message: 'A scoped local API credential is required.', type: 'authentication_error' } });
       next();
     } catch (error) { errorResponse(res, error); }
   });

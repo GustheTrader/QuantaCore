@@ -88,15 +88,15 @@ const EdgeMechNetwork: React.FC = () => {
         <div>
           <div className="flex items-center space-x-3 mb-4">
              <div className="px-4 py-1 bg-red-900/20 border border-red-500/50 text-red-500 rounded-full text-[9px] font-black uppercase tracking-[0.3em] animate-pulse">
-                Premium Hot Path
+                SIMULATED
              </div>
-             <div className="text-[10px] font-mono text-slate-500">CLOUDFLARE_EDGE :: REDIS_STACK</div>
+             <div className="text-[10px] font-mono text-slate-500">PROTOTYPE :: RANDOM TELEMETRY</div>
           </div>
           <h1 className="text-5xl md:text-7xl font-outfit font-black text-white uppercase tracking-tighter italic">
             EDGE <span className="text-red-500">MECH</span> NETWORK
           </h1>
           <p className="text-slate-500 font-bold uppercase tracking-[0.4em] text-[10px] mt-4">
-            High-Frequency Execution Environment
+            Simulated network environment · generated metrics and example logs
           </p>
         </div>
         
@@ -130,8 +130,8 @@ const EdgeMechNetwork: React.FC = () => {
         <div className="lg:col-span-3 glass-card p-8 rounded-[2.5rem] border-slate-800 bg-[#050505] relative overflow-hidden">
            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-600 via-transparent to-red-600 opacity-50"></div>
            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-[10px] font-black text-red-500 uppercase tracking-[0.3em]">Redis Hot Path Telemetry</h3>
-              <span className="font-mono text-[10px] text-slate-500">us-east-1 :: 6379</span>
+              <h3 className="text-[10px] font-black text-red-500 uppercase tracking-[0.3em]">Simulated Redis Telemetry</h3>
+              <span className="font-mono text-[10px] text-slate-500">EXAMPLE VALUES</span>
            </div>
            
            <div className="grid grid-cols-3 gap-8 mb-8">
@@ -172,7 +172,7 @@ const EdgeMechNetwork: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 h-[500px]">
          {/* Mech Node Map */}
          <div className="glass-card p-8 rounded-[3rem] border-slate-800 bg-[#050505] flex flex-col">
-            <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-6">Cloudflare Mech Topology</h3>
+            <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-6">Simulated Mech Topology</h3>
             
             {session.isActive ? (
               <div className="flex-1 grid grid-cols-3 gap-4 auto-rows-min">
@@ -202,7 +202,7 @@ const EdgeMechNetwork: React.FC = () => {
 
          {/* Execution Log */}
          <div className="glass-card p-8 rounded-[3rem] border-red-900/20 bg-black flex flex-col relative overflow-hidden group">
-            <div className="absolute top-4 right-4 text-[9px] font-mono text-red-900 animate-pulse">LIVE_EXEC_STREAM</div>
+            <div className="absolute top-4 right-4 text-[9px] font-mono text-red-400">SIMULATED_EXEC_STREAM</div>
             <div className="flex-1 overflow-y-auto custom-scrollbar font-mono text-xs space-y-3 pr-2">
                {session.logs.map((log, idx) => (
                  <div key={`${log.id}_${idx}`} className="animate-in slide-in-from-left-2 duration-100 flex space-x-3">
@@ -218,7 +218,7 @@ const EdgeMechNetwork: React.FC = () => {
             </div>
             {session.logs.length > 0 && (
               <div className="mt-4 pt-4 border-t border-red-900/20">
-                <ActionHub content={session.logs.map(l => `[${new Date(l.timestamp).toISOString()}] ${l.source}: ${l.message}`).join('\n')} agentName="Edge Mech" title="Execution Stream" />
+                <ActionHub content={`SIMULATED TELEMETRY AND EXAMPLE LOGS\n\n${session.logs.map(l => `[${new Date(l.timestamp).toISOString()}] ${l.source}: ${l.message}`).join('\n')}`} agentName="Edge Mech (Simulated)" title="Simulated Execution Stream" />
               </div>
             )}
          </div>

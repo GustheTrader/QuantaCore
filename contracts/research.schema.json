@@ -1,0 +1,709 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gnoesis.local/contracts/research/v1",
+  "title": "Gnoesis Agenic Research v1",
+  "$defs": {
+    "RunStatus": {
+      "type": "string",
+      "enum": [
+        "queued",
+        "running",
+        "cancelling",
+        "cancelled",
+        "done",
+        "error",
+        "review",
+        "data_insufficient"
+      ]
+    },
+    "Models": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "deep": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 256
+        },
+        "quick": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 256
+        }
+      },
+      "required": [
+        "deep",
+        "quick"
+      ]
+    },
+    "Budget": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "max_calls": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 120
+        },
+        "max_tokens": {
+          "type": "integer",
+          "minimum": 1000,
+          "maximum": 500000
+        },
+        "max_output_tokens": {
+          "type": "integer",
+          "minimum": 128,
+          "maximum": 4096
+        },
+        "max_duration_seconds": {
+          "type": "integer",
+          "minimum": 30,
+          "maximum": 1800
+        },
+        "max_cost_usd": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 50
+        }
+      },
+      "required": [
+        "max_calls",
+        "max_tokens",
+        "max_output_tokens",
+        "max_duration_seconds",
+        "max_cost_usd"
+      ]
+    },
+    "Position": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "ticker": {
+          "type": "string",
+          "pattern": "^[A-Z0-9][A-Z0-9.^=-]{0,23}$"
+        },
+        "quantity": {
+          "type": "number"
+        },
+        "average_price": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        }
+      },
+      "required": [
+        "ticker",
+        "quantity",
+        "average_price"
+      ]
+    },
+    "Portfolio": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "cash": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "currency": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "positions": {
+          "type": "array",
+          "maxItems": 100,
+          "items": {
+            "$ref": "#/$defs/Position"
+          }
+        }
+      },
+      "required": [
+        "cash",
+        "currency",
+        "positions"
+      ]
+    },
+    "RunRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "ticker": {
+          "type": "string",
+          "pattern": "^[A-Z0-9][A-Z0-9.^=-]{0,23}$"
+        },
+        "trade_date": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+        },
+        "asset_type": {
+          "type": "string",
+          "const": "stock"
+        },
+        "models": {
+          "$ref": "#/$defs/Models"
+        },
+        "selected_analysts": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "market",
+              "social",
+              "news",
+              "fundamentals"
+            ]
+          }
+        },
+        "debate_rounds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3
+        },
+        "risk_rounds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3
+        },
+        "budget": {
+          "$ref": "#/$defs/Budget"
+        },
+        "portfolio": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Portfolio"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "research",
+            "evaluation",
+            "fixture"
+          ]
+        },
+        "confirmed": {
+          "type": "boolean",
+          "const": true
+        }
+      },
+      "required": [
+        "ticker",
+        "trade_date",
+        "asset_type",
+        "models",
+        "selected_analysts",
+        "debate_rounds",
+        "risk_rounds",
+        "budget",
+        "portfolio",
+        "mode",
+        "confirmed"
+      ]
+    },
+    "Evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "tool": {
+          "type": "string"
+        },
+        "node_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "vendor": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "success",
+            "no_data",
+            "unavailable",
+            "error"
+          ]
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "observed",
+            "operator_supplied"
+          ]
+        },
+        "query": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "as_of": {
+          "type": "string"
+        },
+        "fetched_at": {
+          "type": "string"
+        },
+        "sha256": {
+          "type": "string"
+        },
+        "excerpt": {
+          "type": "string"
+        },
+        "artifact": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "error": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "tool",
+        "node_id",
+        "vendor",
+        "status",
+        "kind",
+        "query",
+        "as_of",
+        "fetched_at",
+        "sha256",
+        "excerpt",
+        "artifact",
+        "error"
+      ]
+    },
+    "Decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "rating": {
+          "type": "string",
+          "enum": [
+            "Buy",
+            "Overweight",
+            "Hold",
+            "Underweight",
+            "Sell",
+            "REVIEW"
+          ]
+        },
+        "executive_summary": {
+          "type": "string"
+        },
+        "investment_thesis": {
+          "type": "string"
+        },
+        "price_target": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "time_horizon": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "entry_price": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "stop_loss": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "position_sizing": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "raw_text": {
+          "type": "string"
+        },
+        "reports": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Evidence"
+          }
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "data_status": {
+          "type": "string",
+          "enum": [
+            "ready",
+            "insufficient"
+          ]
+        },
+        "research_only": {
+          "type": "boolean",
+          "const": true
+        },
+        "source": {
+          "type": "string",
+          "enum": [
+            "structured",
+            "rendered_text",
+            "fixture"
+          ]
+        },
+        "baseline": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "rating",
+        "executive_summary",
+        "investment_thesis",
+        "price_target",
+        "time_horizon",
+        "entry_price",
+        "stop_loss",
+        "position_sizing",
+        "raw_text",
+        "reports",
+        "evidence",
+        "warnings",
+        "data_status",
+        "research_only",
+        "source",
+        "baseline"
+      ]
+    },
+    "Usage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "calls": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "input_tokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "output_tokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "total_tokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cost_usd": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "price_known": {
+          "type": "boolean"
+        },
+        "estimated": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "calls",
+        "input_tokens",
+        "output_tokens",
+        "total_tokens",
+        "cost_usd",
+        "price_known",
+        "estimated"
+      ]
+    },
+    "RunError": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "error_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "message",
+        "error_id"
+      ]
+    },
+    "Run": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "ticker": {
+          "type": "string"
+        },
+        "trade_date": {
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/RunStatus"
+        },
+        "created_at": {
+          "type": "string"
+        },
+        "updated_at": {
+          "type": "string"
+        },
+        "configuration_hash": {
+          "type": "string"
+        },
+        "request": {
+          "$ref": "#/$defs/RunRequest"
+        },
+        "batch_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "attempt": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "decision": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Decision"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "error": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RunError"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "usage": {
+          "$ref": "#/$defs/Usage"
+        },
+        "settlement": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": true
+        },
+        "artifact_url": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "ticker",
+        "trade_date",
+        "status",
+        "created_at",
+        "updated_at",
+        "configuration_hash",
+        "request",
+        "batch_id",
+        "attempt",
+        "decision",
+        "error",
+        "usage",
+        "settlement",
+        "artifact_url"
+      ]
+    },
+    "Event": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "seq": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "run_id": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "at": {
+          "type": "string"
+        },
+        "node_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "payload": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "previous_hash": {
+          "type": "string"
+        },
+        "hash": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "seq",
+        "run_id",
+        "type",
+        "at",
+        "node_id",
+        "payload",
+        "previous_hash",
+        "hash"
+      ]
+    },
+    "WorkerRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "attempt": { "type": "integer", "minimum": 1 },
+        "run_id": {
+          "type": "string",
+          "pattern": "^[a-f0-9-]{36}$"
+        },
+        "request": {
+          "$ref": "#/$defs/RunRequest"
+        },
+        "past_decisions": {
+          "type": "array",
+          "maxItems": 100,
+          "items": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      },
+      "required": [
+        "attempt",
+        "run_id",
+        "request",
+        "past_decisions"
+      ]
+    },
+    "WorkerEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "type": "string"
+        },
+        "node_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "payload": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "type",
+        "node_id",
+        "payload"
+      ]
+    },
+    "BatchRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tickers": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 10,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Z0-9][A-Z0-9.^=-]{0,23}$"
+          }
+        },
+        "dates": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 20,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          }
+        },
+        "template": {
+          "$ref": "#/$defs/RunRequest"
+        }
+      },
+      "required": [
+        "tickers",
+        "dates",
+        "template"
+      ]
+    }
+  }
+}

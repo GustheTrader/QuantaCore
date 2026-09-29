@@ -37,3 +37,7 @@ docker-compose.obsidian.local.yml
 
 # Machine-local encrypted inference credentials and runtime state
 .quanta/
+data/trading/
+trading/.venv/
+trading/.pytest_cache/
+trading/**/__pycache__/

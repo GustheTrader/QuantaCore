@@ -1,0 +1,1 @@
+"""Gnoesis Agenic Research worker."""

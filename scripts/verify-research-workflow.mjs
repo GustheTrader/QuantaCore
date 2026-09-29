@@ -1,0 +1,15 @@
+// Explicit fixture verification. Requires a separate server with GNOESIS_TEST_MODE=1.
+import assert from 'node:assert/strict';
+const base=process.env.GNOESIS_VERIFY_URL||'http://127.0.0.1:3001';
+if(!['127.0.0.1','localhost'].includes(new URL(base).hostname))throw Error('Verification requires a loopback server.');
+const request={ticker:'AAPL',trade_date:'2025-01-02',asset_type:'stock',models:{deep:'local/fixture',quick:'local/fixture'},selected_analysts:['market','social','news','fundamentals'],debate_rounds:1,risk_rounds:1,budget:{max_calls:60,max_tokens:200000,max_output_tokens:1024,max_duration_seconds:90,max_cost_usd:null},portfolio:null,mode:'fixture',confirmed:true};
+async function api(path,body,key){const response=await fetch(`${base}/api/trading${path}`,{method:body===undefined?'GET':'POST',headers:{'X-Quanta-Client':'local-ui',...(body===undefined?{}:{'Content-Type':'application/json'}),...(key?{'Idempotency-Key':key}:{})},...(body===undefined?{}:{body:JSON.stringify(body)})});const value=await response.json();if(!response.ok)throw Error(JSON.stringify(value));return value;}
+const key=`verify-${crypto.randomUUID()}`;
+const first=await api('/runs',request,key),again=await api('/runs',request,key);assert.equal(first.run_id,again.run_id);
+const until=async(fn,done)=>{const end=Date.now()+300000;while(Date.now()<end){const value=await fn();if(done(value))return value;await new Promise(r=>setTimeout(r,1000));}throw Error('Fixture workflow timed out.');};
+const run=await until(()=>api(`/runs/${first.run_id}`),r=>['done','error','review','data_insufficient','cancelled'].includes(r.status));assert.equal(run.status,'review');assert.equal(run.decision.source,'fixture');assert.equal(run.usage.calls,0);
+const stream=await fetch(`${base}/api/trading/runs/${run.id}/events`,{headers:{'X-Quanta-Client':'local-ui'}});const data=await stream.text();const events=[...data.matchAll(/^data: (.+)$/gm)].map(m=>JSON.parse(m[1]));assert.equal(new Set(events.filter(e=>e.type==='node.completed').map(e=>e.node_id)).size,12);
+const batchKey=`${key}-batch`,body={tickers:['AAPL','MSFT','NVDA','SPY'],dates:['2025-01-02','2025-01-03','2025-01-06'],template:request};const batch=await api('/backtest',body,batchKey),same=await api('/backtest',body,batchKey);assert.equal(batch.batch_id,same.batch_id);assert.deepEqual(new Set(batch.run_ids),new Set(same.run_ids));
+const final=await until(()=>api(`/backtest/${batch.batch_id}`),b=>b.summary.pending===0);assert.equal(final.runs.length,12);assert.equal(final.summary.review,12);assert(final.runs.every(r=>r.decision?.source==='fixture'&&r.usage.calls===0));
+const cancelled=await api('/runs',{...request,ticker:'IBM'});await api(`/runs/${cancelled.run_id}/cancel`,{});const end=await until(()=>api(`/runs/${cancelled.run_id}`),r=>['cancelled','done'].includes(r.status));assert.equal(end.status,'cancelled');
+console.log(JSON.stringify({label:'Fixture workflow validation only; no trading performance claim',single_run:run.id,batch_id:batch.batch_id,cells:12,roles:12,cancelled_run:end.id,provider_calls:0},null,2));

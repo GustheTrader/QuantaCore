@@ -9,8 +9,10 @@ import { exportToBrowser } from '../services/utils';
 import { useFileIngestion } from '../hooks/useFileIngestion';
 import { FileIngestionZone } from './FileIngestionZone';
 import { AGENT_TRACKS, getAgentTrack } from '../lib/agent-tracks';
+import { Navigate } from 'react-router-dom';
+import type { UserTrack } from '../types';
 
-const Council: React.FC = () => {
+const GenericCouncil: React.FC = () => {
   const [sessionActive, setSessionActive] = useState(false);
   const [prompt, setPrompt] = useState('');
   const [selectedAgents, setSelectedAgents] = useState<string[]>([]);
@@ -592,5 +594,8 @@ const Council: React.FC = () => {
     </FileIngestionZone>
   );
 };
+
+const Council: React.FC<{ track?: UserTrack }> = ({ track }) =>
+  track === 'trading' ? <Navigate to="/research" replace /> : <GenericCouncil />;
 
 export default Council;

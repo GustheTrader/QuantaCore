@@ -33,6 +33,8 @@ import NeuralCoreConsole from './components/NeuralCoreConsole';
 import CodingHarness from './components/CodingHarness';
 import OpenMuseAgent from './components/OpenMuseAgent';
 import QuantaCliTerminal from './components/QuantaCliTerminal';
+import GnoesisResearch from './components/GnoesisResearch';
+import { isLocalResearchHost } from './services/researchService';
 
 interface ErrorBoundaryProps {
   children?: ReactNode;
@@ -91,6 +93,9 @@ const App: React.FC = () => {
   const [profile, setProfile] = useState<{ name: string, callsign: string, personality: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [terminalOpen, setTerminalOpen] = useState(false);
+  const [currentHash, setCurrentHash] = useState(window.location.hash);
+  const localResearchRoute = isLocalResearchHost() && currentHash.replace(/^#/, '').split('?')[0] === '/research';
+  const localResearchAccess = localResearchRoute && (!session || !profile);
   const { windows, openChat, closeChat, toggleMinimize, focusWindow, addMessage } = useChatWindows();
   const openTerminal = () => {
     const url = new URL(window.location.href);
@@ -99,6 +104,12 @@ const App: React.FC = () => {
     if (popup) popup.focus();
     else setTerminalOpen(true);
   };
+
+  useEffect(() => {
+    const updateHash = () => setCurrentHash(window.location.hash);
+    window.addEventListener('hashchange', updateHash);
+    return () => window.removeEventListener('hashchange', updateHash);
+  }, []);
 
   useEffect(() => {
     if (import.meta.env.PROD) {
@@ -192,7 +203,7 @@ const App: React.FC = () => {
     }
   };
 
-  if (loading) {
+  if (loading && !localResearchRoute) {
     return (
       <div className="h-screen bg-[#020617] flex flex-col items-center justify-center">
         <div className="w-20 h-20 bg-indigo-600 rounded-[2rem] animate-pulse flex items-center justify-center mb-6 shadow-[0_0_50px_rgba(99,102,241,0.5)]">
@@ -213,7 +224,14 @@ const App: React.FC = () => {
   return (
     <ErrorBoundary>
       <HashRouter>
-        {!session ? (
+        {localResearchAccess ? (
+          <div className="min-h-screen bg-[#020617] text-gray-100 p-5 md:p-10">
+            <div className="max-w-7xl mx-auto">
+              <a href="#/" className="inline-block text-sm text-slate-400 hover:text-white mb-6">← QuantaCore</a>
+              <GnoesisResearch />
+            </div>
+          </div>
+        ) : !session ? (
           <AuthPage onLogin={handleLogin} />
         ) : !profile ? (
           <ProfileSetup onComplete={handleProfileComplete} email={session.email} track={session.track} />
@@ -257,7 +275,8 @@ const App: React.FC = () => {
                     <Route path="/agent-zero" element={<AgentZero profile={profile} onOpenChat={openChat} />} />
                     <Route path="/iron-claw" element={<IronClawAgent />} />
                     <Route path="/edge-mech" element={<EdgeMechNetwork />} />
-                    <Route path="/council" element={<Council />} />
+                    <Route path="/research" element={<GnoesisResearch />} />
+                    <Route path="/council" element={<Council track={session.track} />} />
                     <Route path="/projects" element={<Projects />} />
                     <Route path="/mcp" element={<MCPConnectors />} />
                     <Route path="/images" element={<ImageGenerator />} />
