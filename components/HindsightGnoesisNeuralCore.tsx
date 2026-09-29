@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import { motionTokens } from '../lib/motion-tokens';
+import MultiStrategyRetrieval from './MultiStrategyRetrieval';
 
 const FLOWS = [
   'M 168 337 C 194 337 188 185 212 185',
@@ -276,6 +277,8 @@ const HindsightGnoesisNeuralCore: React.FC = () => {
       <p className="mt-2 max-w-5xl px-1 text-[11px] leading-relaxed text-slate-500">
         FPT-Omega runs only when a qualifying domain and deep-research, novel-solving, or cross-domain task are both present. Otherwise, memory uses the standard route. Derived hypotheses stay labeled; facts keep source provenance.
       </p>
+
+      <MultiStrategyRetrieval animateFlows={animateFlows} />
     </section>
   );
 };
