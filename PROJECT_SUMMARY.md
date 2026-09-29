@@ -41,14 +41,14 @@ The compatible-provider store protects API credentials on the local host (Window
 - Neural Core architecture visualization and whitepaper content for Hindsight memory, evidence, observations, and synthesis.
 - Sovereign Trust content and an opt-in Obsidian sync container definition.
 - OpenMuse launch/status hub for the Personal and Consumer roles.
-- Vercel hosted demo function with Supabase verified sessions, shared Upstash account/IP throttles, text/input limits, and a fixed OpenRouter free model route.
+- Supabase Edge Function hosted demo with verified Supabase sessions, shared Upstash account/IP throttles, text/input limits, and a fixed OpenRouter free model route. Vercel serves the static frontend only.
 
 ## Integration status
 
 | Integration | Status |
 | --- | --- |
 | Quanta web app and loopback API | Running locally on port 3000. |
-| GitHub and Vercel | `main` deploys the static Vite application and `/api/inference/*` function. Hosted auth, rate limits, and OpenRouter inference require Vercel environment configuration before the backend is enabled. |
+| GitHub, Vercel, Supabase | `main` deploys the static Vite application to Vercel. The authenticated `quanta-inference` Edge Function source targets Supabase project `ovugynuxvtvfkwjkyxby`; deploy it with the Supabase CLI and add OpenRouter and Upstash secrets in Supabase Function Secrets. |
 | Provider connections | Configurable from Settings; API keys are stored by the local server. |
 | CheaperInference | Compatible through the OpenAI-compatible provider using `https://api.cheaperinference.com/v1` and an exact provider model ID. |
 | OpenMuse | Separate checkout at `C:\GnoesisOpenMuse`; API on 8787 and web UI on 8081. Sample workspace data and model-backed chat are available. Quanta roles and identity are not automatically passed into OpenMuse. |

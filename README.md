@@ -97,20 +97,42 @@ Keys entered in the compatible-provider settings store are protected locally. `.
 
 ## GitHub and Vercel hosted demo
 
-`main` is connected to the Vercel project. Vercel serves the Vite `dist` site and the authenticated inference function at `/api/inference/*`. The hosted build permits only the fixed `openrouter/free` model, uses Supabase magic-link sign-in, checks each access token with Supabase Auth, and applies shared Upstash limits: 10 requests per minute and 120 per day per account, plus 30 per minute per IP. Requests accept text only, up to 16 messages and 30,000 characters, with an 800-token output cap. The hosted demo does not expose provider-key editing, the local CLI, local Ollama, or OpenMuse APIs.
+`main` deploys the Vite `dist` frontend to Vercel. Authenticated hosted inference runs in the Supabase Edge Function `quanta-inference` in project `ovugynuxvtvfkwjkyxby`; Supabase validates the user JWT before the handler runs. The function permits only the fixed `openrouter/free` model and applies shared Upstash limits: 10 requests per minute and 120 per day per account, plus 30 per minute per forwarded IP when available. Requests accept text only, up to 16 messages and 30,000 characters, with an 800-token output cap. The hosted demo does not expose provider-key editing, the local CLI, local Ollama, or OpenMuse APIs.
 
-After importing `GustheTrader/QuantaCore` into Vercel with `main` as the production branch, add these project environment variables. Set the Supabase values for both Production and Preview if you want preview deployments to support sign-in. `OPENROUTER_API_KEY`, `UPSTASH_REDIS_REST_TOKEN`, and `UPSTASH_REDIS_REST_URL` should be stored as sensitive server variables; never prefix them with `VITE_`.
+### Vercel frontend variables
+
+Add only the public Supabase client settings to Vercel, for Production and any Preview environments you intend to use:
 
 | Variable | Value |
 | --- | --- |
 | `VITE_SUPABASE_URL` | Your Supabase project URL |
-| `VITE_SUPABASE_ANON_KEY` | Supabase anon/publishable key; never a service-role key |
-| `OPENROUTER_API_KEY` | Your OpenRouter key, kept server-side |
+| `VITE_SUPABASE_ANON_KEY` | Supabase publishable key (`sb_publishable_...`) or legacy anon key; never a secret/service-role key |
+
+These `VITE_*` values are embedded at build time, so redeploy Vercel after changing them. Vercel does not hold the OpenRouter or Upstash secrets for hosted inference.
+
+### Supabase Edge Function secrets and deploy
+
+In the Supabase Dashboard for this project, open **Edge Functions → Secrets** and add these secrets. They are read only by the function at runtime:
+
+| Secret | Value |
+| --- | --- |
+| `OPENROUTER_API_KEY` | Your OpenRouter key |
 | `OPENROUTER_MODEL` | `openrouter/free` |
 | `UPSTASH_REDIS_REST_URL` | Upstash Redis REST URL |
 | `UPSTASH_REDIS_REST_TOKEN` | Upstash Redis REST token |
+| `QUANTA_ALLOWED_ORIGINS` | `https://quanta-core.vercel.app` (comma-separated if you add trusted domains) |
 
-In Supabase Auth, enable email magic links and add `https://quanta-core.vercel.app/**` (plus any preview/custom domains you plan to use) to the allowed redirect URLs. In Vercel, redeploy after adding the variables because Vite `VITE_*` values are embedded at build time. The function fails closed with 503 when server credentials or distributed rate-limit credentials are missing. Free-model availability, capacity, and data handling vary by upstream model provider; users should not send confidential content through this public demo.
+Then deploy the function from the repository root using the Supabase CLI:
+
+```powershell
+supabase login
+supabase link --project-ref ovugynuxvtvfkwjkyxby
+supabase functions deploy quanta-inference
+```
+
+The function is configured with JWT verification enabled. The app calls it with the signed-in Supabase session through `supabase.functions.invoke`; CORS responses are handled by Supabase's authenticated function wrapper, and the handler additionally checks the configured origin. Do not store the OpenRouter key or Upstash token in Vercel, the browser bundle, or GitHub. Keep secrets out of `supabase/functions/.env` commits; the `.env` file there is ignored for local function development.
+
+In Supabase Auth, enable email magic links and add `https://quanta-core.vercel.app/**` (plus any preview/custom domains you plan to use) to the allowed redirect URLs. The function fails closed with 503 when OpenRouter or distributed rate-limit secrets are missing. Free-model availability, capacity, and data handling vary by upstream model provider; requests still go to OpenRouter, so do not send confidential content through this public demo.
 
 The development server remains local-first and uses its existing machine-protected provider connections. Its `.env` is ignored by Git and is not uploaded to Vercel.
 

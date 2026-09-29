@@ -1,5 +1,5 @@
 {
-  "exclude": ["node_modules", "FPhindsight", "dist", ".quanta"],
+  "exclude": ["node_modules", "FPhindsight", "dist", ".quanta", "supabase"],
   "compilerOptions": {
     "target": "ES2022",
     "experimentalDecorators": true,

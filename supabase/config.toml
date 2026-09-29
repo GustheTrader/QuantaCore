@@ -1,0 +1,4 @@
+project_id = "ovugynuxvtvfkwjkyxby"
+
+[functions.quanta-inference]
+verify_jwt = true

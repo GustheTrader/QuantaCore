@@ -1,6 +1,6 @@
 import type { ComputeProvider } from '../types';
 import type { CompatibleProvider, ProviderConnection, ProviderModel } from '../lib/inference-providers';
-import { supabase } from './supabaseService';
+import { isSupabaseConfigured, supabase } from './supabaseService';
 
 export interface ProviderConfigResponse {
   connections: ProviderConnection[];
@@ -9,15 +9,34 @@ export interface ProviderConfigResponse {
 }
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
-  let authorization: Record<string, string> = {};
   if (import.meta.env.PROD) {
+    if (!isSupabaseConfigured) throw new Error('Hosted inference is not configured. Add the VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY build variables in Vercel.');
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.access_token) throw new Error('Sign in with your email link to use hosted model services.');
-    authorization = { Authorization: `Bearer ${session.access_token}` };
+    let payload: unknown;
+    if (init.body !== undefined) {
+      try { payload = JSON.parse(String(init.body)); }
+      catch { throw new Error('The hosted inference request was invalid.'); }
+    }
+    const { data, error } = await supabase.functions.invoke('quanta-inference', {
+      body: { path, method: init.method || 'GET', body: payload }
+    });
+    if (error) {
+      let message = 'Hosted inference is temporarily unavailable.';
+      const context = (error as { context?: unknown }).context;
+      if (context instanceof Response) {
+        try {
+          const result = await context.json();
+          if (typeof result?.error?.message === 'string') message = result.error.message;
+        } catch { /* Keep the generic message for non-JSON upstream errors. */ }
+      }
+      throw new Error(message);
+    }
+    return data as T;
   }
   const response = await fetch(`/api/inference${path}`, {
     ...init,
-    headers: { 'Content-Type': 'application/json', 'X-Quanta-Client': 'local-ui', ...authorization, ...init.headers }
+    headers: { 'Content-Type': 'application/json', 'X-Quanta-Client': 'local-ui', ...init.headers }
   });
   let data: any;
   try { data = await response.json(); } catch { throw new Error('The local inference server is unavailable. Restart Quanta OS.'); }
