@@ -7,6 +7,7 @@ import SovereignTrustSection from './SovereignTrustSection';
 import AgentActivationSelector from './AgentActivationSelector';
 import SovereignTokensShowcase from './SovereignTokensShowcase';
 import SovereignSiHeader from './SovereignSiHeader';
+import HarnessRouterShowcase from './HarnessRouterShowcase';
 import { getAgentTrack } from '../lib/agent-tracks';
 import type { UserTrack } from '../types';
 import { isSupabaseConfigured, signInAsTestGuest } from '../services/supabaseService';
@@ -150,6 +151,8 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
           </div>
 
           <SovereignTokensShowcase />
+
+          <HarnessRouterShowcase />
 
           <HindsightGnoesisNeuralCore />
 

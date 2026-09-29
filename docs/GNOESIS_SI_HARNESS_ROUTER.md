@@ -21,6 +21,48 @@
 
 Build the image with `integrations/harnessrouter/build-local.ps1 -SourcePath <clone-path>`. The helper checks the exact source commit, normalizes Docker shell scripts from CRLF for Linux, applies the recorded patch only during the build, and restores the clone afterward. The patch is small: Google Fonts no longer accepts the upstream build's requested 100–900 Schibsted Grotesk range, so the image uses supported 400–900 weights. The original clone commit remains the source baseline and the change is isolated and reviewable.
 
+## HarnessRouter strengths and QuantaCore benefits
+
+The pinned HarnessRouter source implements the Unified Harness Protocol (UHP) with an OpenAI Responses-compatible task surface. This gives QuantaCore one integration contract for compatible harness backends while preserving the information an agent product needs to operate and inspect a run.
+
+### What the shared contract provides
+
+- **One product adapter for compatible harnesses.** QuantaCore can request a task and select a harness through `metadata.harness_id` instead of building a separate product integration for each backend. This simplifies adding or comparing backends; it does not mean every backend has identical features.
+- **Agent-run lifecycle.** The contract supports persistent sessions, continuation, streaming progress, attached and produced files, cancellation, structured failures, and execution traces. These semantics fit the run-and-inspect workflow better than treating every agent as a stateless chat completion.
+- **Explicit route identity.** A run can name the requested harness and model, while QuantaCore records what actually served it and whether substitution occurred. A mismatch can then be excluded from a comparison or escalated before use.
+- **Policy stays at the product boundary.** QuantaCore can choose the problem, define data and tool permissions, enforce budgets, present alternatives, and ask the operator to approve consequential steps. HarnessRouter supplies execution infrastructure; it does not decide which financial or personal action is authorized.
+- **Task-level measurement becomes practical.** A common interface makes paired comparisons easier. QuantaCore can store the task version, route, prompt/config version, result, evidence, latency, cost, failures, and abstentions under a consistent run record.
+
+### How QuantaCore should compare strengths
+
+First filter out routes that are unavailable or cannot meet the task's permission, data, tool, context, and budget requirements. Among eligible routes, compare the **harness × model × task class** using a fixed, versioned evaluation set:
+
+| Dimension | Evidence to record |
+| --- | --- |
+| Task quality | Correctness against a deterministic check or independent rubric; source accuracy and artifact validity where relevant. |
+| Evidence behavior | Citation/provenance quality, uncertainty, appropriate abstention, and whether claims survive an independent check. |
+| Tool behavior | Required-action success, invalid calls, retries, policy violations, and whether generated files are usable. |
+| Operations | Cost per verified result, p50/p95 duration, tokens, incomplete/cancel rate, and verified served-model rate. |
+| Governance fit | Data route, available permissions, reproducible environment, audit trail, and human-approval requirements. |
+
+Promote a route only after it clears the task class's quality and policy floors. Optimize cost and latency within those floors, and report sample size and uncertainty. Do not treat a route's self-rating, marketing label, one smoke test, or a general benchmark as proof that it is strongest for QuantaCore. Jev's classifier evidence is maintained separately in [Jev classifier and model strength registry](#jev-classifier-and-model-strength-registry); Jev may recommend eligible work, but it cannot grant authority or certify a route by itself.
+
+### Limits and current pilot boundary
+
+- The supplied catalog screenshot says “16 agent harnesses.” That is text in a reference screenshot, not a guarantee about this installation. QuantaCore must use the connected HarnessRouter's live catalog and actual availability.
+- A shared protocol standardizes interaction; it does not make models, tools, permissions, quality, cost, or isolation equivalent. Verify each route and its configuration.
+- The pinned HarnessRouter benchmark evidence covers specific benchmark tasks. It does not establish a winner for QuantaCore research, coding, or trading-research tasks.
+- The local pilot currently verifies router connectivity and status only. No model-backed run or paid comparison has been completed because provider credentials and an API key are not configured.
+- Agent tasks remain research-only. No model strength score or successful benchmark grants access to orders, wallets, transfers, or broker credentials.
+
+### Reference images
+
+These user-supplied screenshots are visual references for the shared protocol and harness catalog. Their marketing copy is not an operational instruction or a statement of the live QuantaCore configuration. Open either image for its full-resolution version.
+
+![User-supplied Unified Harness Protocol diagram showing an application, harnesses, and shared execution components](../public/images/uhp-harnessrouter-overview.png)
+
+![User-supplied multi-harness catalog screenshot; the pictured count is not a live availability guarantee](../public/images/harnessrouter-agent-catalog-reference.png)
+
 ## Decision
 
 Use **HarnessRouter as the execution control plane** for harness lifecycle, model availability, sessions, streams, files, cancellation, and execution traces. Keep **QuantaCore as the operator control plane** for user intent, domain policy, problem selection, approvals, memory consent, and result presentation. Add a small server-side adapter and a measurable routing policy between them. Start with a local pilot, then decide how to deploy a hosted route. This avoids treating an OpenAI-compatible chat proxy as if it had agent session semantics.
