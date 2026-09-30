@@ -1,5 +1,6 @@
 
 import React, { useState, useRef } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
 import { exportToBrowser } from '../services/utils';
 import { WHITEPAPER_TEXT } from '../services/whitepaperContent';
 import HindsightGnoesisNeuralCore from './HindsightGnoesisNeuralCore';
@@ -8,6 +9,7 @@ import AgentActivationSelector from './AgentActivationSelector';
 import SovereignTokensShowcase from './SovereignTokensShowcase';
 import SovereignSiHeader from './SovereignSiHeader';
 import HarnessRouterShowcase from './HarnessRouterShowcase';
+import NeuralLinkWelcome from './NeuralLinkWelcome';
 import { getAgentTrack } from '../lib/agent-tracks';
 import type { UserTrack } from '../types';
 import { isSupabaseConfigured, signInAsTestGuest } from '../services/supabaseService';
@@ -17,6 +19,13 @@ interface AuthPageProps {
 }
 
 const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
+  const [showNeuralWelcome, setShowNeuralWelcome] = useState(() => {
+    try {
+      return window.localStorage.getItem('quanta_neural_link_initialized_v1') !== 'true';
+    } catch {
+      return true;
+    }
+  });
   const [email, setEmail] = useState('');
   const [track, setTrack] = useState<UserTrack>('personal');
   const [loading, setLoading] = useState(false);
@@ -105,8 +114,21 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
     exportToBrowser("QuantaOS_Sovereign_Intelligence_Whitepaper", WHITEPAPER_TEXT);
   };
 
+  const completeNeuralWelcome = () => {
+    try {
+      window.localStorage.setItem('quanta_neural_link_initialized_v1', 'true');
+    } catch {
+      // The splash can still open if browser storage is unavailable.
+    }
+    setShowNeuralWelcome(false);
+  };
+
   return (
-    <div className="min-h-screen bg-[#020617] text-white selection:bg-orange-500/30 overflow-x-hidden">
+    <AnimatePresence mode="wait">
+      {showNeuralWelcome ? (
+        <NeuralLinkWelcome key="neural-link-welcome" onComplete={completeNeuralWelcome} />
+      ) : (
+    <div key="splash" className="min-h-screen bg-[#020617] text-white selection:bg-orange-500/30 overflow-x-hidden">
       {/* Hero Section */}
       <div className="relative min-h-screen flex flex-col items-center justify-center px-6 pt-20 pb-40">
         <div className="absolute inset-0 bg-gradient-to-tr from-emerald-500/5 via-transparent to-orange-500/5 pointer-events-none blur-[150px] animate-pulse"></div>
@@ -252,6 +274,8 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
         </div>
       </div>
     </div>
+      )}
+    </AnimatePresence>
   );
 };
 
