@@ -19,19 +19,20 @@ const sparks = [
 ];
 
 export default function NeuralLinkWelcome({ onComplete }: NeuralLinkWelcomeProps) {
-  const [initializing, setInitializing] = useState(false);
+  const [phase, setPhase] = useState<'ready' | 'initializing' | 'initialized'>('ready');
   const timer = useRef<number | null>(null);
   const reducedMotion = useReducedMotion() ?? false;
+  const initializing = phase === 'initializing';
 
   useEffect(() => () => {
     if (timer.current !== null) window.clearTimeout(timer.current);
   }, []);
 
   const initialize = () => {
-    if (initializing) return;
-    setInitializing(true);
+    if (phase !== 'ready') return;
+    setPhase('initializing');
     const duration = reducedMotion ? motionTokens.duration.fast : motionTokens.duration.handshake;
-    timer.current = window.setTimeout(onComplete, duration * 1000);
+    timer.current = window.setTimeout(() => setPhase('initialized'), duration * 1000);
   };
 
   const focus = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-emerald-300';
@@ -69,7 +70,7 @@ export default function NeuralLinkWelcome({ onComplete }: NeuralLinkWelcomeProps
           </div>
           <div className="flex items-center gap-2 rounded-full border border-white/[0.09] bg-white/[0.025] px-3 py-2 font-mono text-[9px] uppercase tracking-[0.14em] text-slate-400 sm:px-4">
             <span className={`h-1.5 w-1.5 rounded-full ${initializing ? 'bg-amber-300' : 'bg-emerald-300'}`} />
-            {initializing ? 'Link sequence active' : 'First-run handshake'}
+            {initializing ? 'Link sequence active' : phase === 'initialized' ? 'Neural link ready' : 'First-run handshake'}
           </div>
         </header>
 
@@ -86,7 +87,7 @@ export default function NeuralLinkWelcome({ onComplete }: NeuralLinkWelcomeProps
               Bring your agents into one deliberate operating field. QuantaCore gives each task a place to think, route, and return useful work.
             </p>
             <p className="mx-auto mt-3 max-w-lg text-xs leading-6 text-slate-500 md:mx-0">
-              This first-run sequence opens your control plane. Model and provider connections remain yours to configure explicitly.
+              Initialize the signal, then enter QuantaCore. Model and provider connections remain yours to configure explicitly.
             </p>
 
             <div className="mt-8 flex flex-wrap justify-center gap-x-5 gap-y-2 font-mono text-[9px] uppercase tracking-[0.14em] text-slate-500 md:justify-start">
@@ -97,20 +98,22 @@ export default function NeuralLinkWelcome({ onComplete }: NeuralLinkWelcomeProps
 
             <motion.button
               type="button"
-              onClick={initialize}
+              onClick={phase === 'initialized' ? onComplete : initialize}
               disabled={initializing}
               whileHover={reducedMotion || initializing ? undefined : { y: -motionTokens.distance.xs, scale: motionTokens.scale.pop }}
               whileTap={reducedMotion || initializing ? undefined : { scale: motionTokens.scale.press }}
               transition={springs.snappy}
               className={`mt-9 inline-flex min-h-14 w-full items-center justify-center gap-3 rounded-2xl border border-emerald-200/30 bg-gradient-to-r from-emerald-300 via-lime-200 to-amber-200 px-6 py-4 font-outfit text-xs font-black uppercase tracking-[0.19em] text-[#06100b] shadow-[0_0_45px_rgba(52,211,153,0.13)] transition-[filter,box-shadow] hover:brightness-105 hover:shadow-[0_0_55px_rgba(52,211,153,0.22)] disabled:cursor-wait disabled:opacity-90 sm:w-auto ${focus}`}
             >
-              {initializing ? 'Establishing Neural Link' : 'Initialize Neural Link'}
+              {initializing ? 'Establishing Neural Link' : phase === 'initialized' ? 'Enter QuantaCore' : 'Initialize Neural Link'}
               <svg aria-hidden="true" className={`h-4 w-4 ${initializing ? 'opacity-60' : ''}`} viewBox="0 0 24 24" fill="none">
-                <path d="M13 3 5 14h6l-1 7 9-11h-6l1-7Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+                {phase === 'initialized'
+                  ? <path d="M5 12h14m-6-6 6 6-6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                  : <path d="M13 3 5 14h6l-1 7 9-11h-6l1-7Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />}
               </svg>
             </motion.button>
             <p role="status" aria-live="polite" className="mt-4 min-h-5 font-mono text-[9px] uppercase tracking-[0.14em] text-slate-500">
-              {initializing ? 'Welcome sequence active · preparing your workspace' : 'Initialize once to continue · remember this device'}
+              {initializing ? 'Welcome sequence active · preparing your workspace' : phase === 'initialized' ? 'Neural link ready · enter QuantaCore to continue' : 'Initialize once to continue · remember this device'}
             </p>
           </section>
 
