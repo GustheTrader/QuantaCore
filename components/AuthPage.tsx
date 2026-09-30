@@ -115,17 +115,16 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
         <div className="max-w-6xl w-full z-10 text-center animate-in fade-in slide-in-from-bottom-8 duration-1000">
           <SovereignSiHeader />
           
-          <h2 className="text-5xl md:text-[7rem] font-outfit font-black mb-4 leading-[0.9] tracking-tighter uppercase">
-            Neural <span className="quantum-gradient-text italic">Quanta - OS - Agentic</span> <br/>
-            <span className="text-white relative">
-              Logic Cores.
-              <div className="absolute -right-12 top-1/2 w-8 h-8 bg-orange-500 blur-2xl opacity-40"></div>
-            </span>
+          <h2 className="mb-4 text-4xl font-outfit font-black uppercase leading-[0.96] tracking-tighter sm:text-6xl md:text-[6rem]">
+            <span className="block text-white">Quanta-<span className="bg-gradient-to-r from-orange-400 via-amber-300 to-emerald-400 bg-clip-text text-transparent">Agentic</span> OS</span>
+            <span className="mt-2 block text-emerald-300">with Neural</span>
+            <span className="block text-white">Logic Cores and Loops.</span>
           </h2>
           
           <div className="mb-12 mt-6">
-            <p className="text-xl md:text-3xl font-outfit font-bold tracking-tight text-slate-300">
-              Your data. Your output. <span className="text-cyan-300">Your choice of intelligence.</span>
+            <p className="text-lg font-outfit font-bold tracking-tight text-white sm:text-xl md:text-3xl">
+              <span className="block">Your data. <span className="text-emerald-300">Your Pipeline.</span> Your Private Output.</span>
+              <span className="mt-2 block">You own the Super <span className="bg-gradient-to-r from-orange-400 via-amber-300 to-emerald-400 bg-clip-text text-transparent">Intelligence.</span></span>
             </p>
           </div>
           
