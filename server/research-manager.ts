@@ -3,7 +3,7 @@ import { existsSync, appendFileSync, readFileSync, writeFileSync } from 'node:fs
 import path from 'node:path';
 import { randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 import type { Request } from 'express';
-import type { BatchRequest, Decision, RunRequest, WorkerEvent } from '../lib/research-contract';
+import type { BatchRequest, Decision, Run, RunRequest, WorkerEvent } from '../lib/research-contract';
 import { ProviderStore } from './provider-store';
 import { ResearchStore, ENGINE, failure, validate, validateRequest, validDate, digest, terminal, type Route } from './research-store';
 import { getProviderDefinition, type CompatibleProvider } from '../lib/inference-providers';
@@ -26,6 +26,8 @@ export type Admission = {
 };
 const events = new Set(['node.started', 'node.completed', 'tool.started', 'tool.completed', 'warning', 'memory.settled', 'usage', 'heartbeat', 'result', 'error']);
 const nodes = new Set(['market_analyst', 'social_analyst', 'news_analyst', 'fundamentals_analyst', 'bull_researcher', 'bear_researcher', 'research_manager', 'trader', 'aggressive_analyst', 'conservative_analyst', 'neutral_analyst', 'portfolio_manager']);
+const budgetFailureMarker = 'Research budget exhausted before this inference call.';
+const budgetFailureMessage = 'The frozen inference budget blocked the next model call. No inference request was sent. Start a new reviewed run with a higher token limit or a narrower research configuration.';
 export class ResearchManager {
     readonly store: ResearchStore;
     readonly testMode: boolean;
@@ -217,11 +219,31 @@ export class ResearchManager {
         return { batch_id: id, run_ids: runIds };
     }
     batchStatus(id: string) { if (!this.store.db.prepare('SELECT id FROM batches WHERE id=?').get(id))
-        throw failure('Batch not found.', 404); const runs = this.store.batchRuns(id), by_rating: Record<string, number> = {}; for (const run of runs)
+        throw failure('Batch not found.', 404); const runs = this.store.batchRuns(id).map(run => this.runView(run.id)), by_rating: Record<string, number> = {}; for (const run of runs)
         if (run.decision)
             by_rating[run.decision.rating] = (by_rating[run.decision.rating] || 0) + 1; return { id, runs, summary: { completed: runs.filter(r => r.status === 'done').length, failed: runs.filter(r => r.status === 'error' || r.status === 'cancelled').length, pending: runs.filter(r => !terminal.has(r.status)).length, review: runs.filter(r => r.status === 'review' || r.status === 'data_insufficient').length, by_rating, limitations: ['Independent decision workflow, without portfolio fills, slippage or fees.', 'Failure and review cells remain in the grid.', 'No validated historical return or alpha claim.', 'Online historical feeds and current models are not point-in-time evidence.'] } }; }
+    private hasPersistedBudgetFailure(run: Run) {
+        if (run.error?.code === 'RESEARCH_BUDGET_EXHAUSTED') return true;
+        if (!['error', 'running'].includes(run.status) || (run.error && run.error.code !== 'WORKER_FAILED')) return false;
+        const history = this.store.events(run.id);
+        let attemptStart = 0;
+        for (const event of history) if (['run.started', 'run.resumed'].includes(event.type) && event.payload.attempt === run.attempt) attemptStart = event.seq;
+        const workerError = history.slice().reverse().find(event => event.seq > attemptStart && event.type === 'worker.error');
+        const workerErrorId = workerError?.payload.error_id;
+        if (typeof workerErrorId !== 'string' || !/^[0-9a-f-]{36}$/i.test(workerErrorId)) return false;
+        const file = path.resolve(this.dataDir, 'runs', run.id, 'attempts', String(run.attempt), `error-${workerErrorId}.txt`);
+        const relative = path.relative(path.resolve(this.dataDir), file);
+        if (!relative || relative.startsWith('..') || path.isAbsolute(relative) || !existsSync(file)) return false;
+        try { return readFileSync(file, 'utf8').includes(budgetFailureMarker); } catch { return false; }
+    }
+    runView(id: string): Run {
+        const run = this.store.get(id);
+        if (!this.hasPersistedBudgetFailure(run) || run.error?.code === 'RESEARCH_BUDGET_EXHAUSTED') return run;
+        return { ...run, error: { code: 'RESEARCH_BUDGET_EXHAUSTED', message: budgetFailureMessage, error_id: run.error?.error_id || randomUUID() } };
+    }
     async resume(id: string) { const run = this.store.get(id); if (!['error', 'cancelled'].includes(run.status))
-        throw failure('Only cancelled or failed runs can resume.', 409); if (run.usage.calls >= run.request.budget.max_calls || run.usage.total_tokens >= run.request.budget.max_tokens)
+        throw failure('Only cancelled or failed runs can resume.', 409); if (this.hasPersistedBudgetFailure(run))
+        throw failure(budgetFailureMessage, 409); if (run.usage.calls >= run.request.budget.max_calls || run.usage.total_tokens >= run.request.budget.max_tokens)
         throw failure('This run exhausted its budget. Submit a new run with explicit limits.', 409); const next = this.store.transition(id, 'queued', 'run.resumed', {}, { attempt: run.attempt + 1, error: null }); void this.dispatch(); return next; }
     async cancel(id: string) {
         let run = this.store.get(id);
@@ -285,8 +307,11 @@ export class ResearchManager {
                     const now = this.store.get(run.id);
                     if (now.status === 'cancelling')
                         this.store.transition(run.id, 'cancelled', 'run.cancelled', { reason: 'operator or time limit' });
-                    else if (now.status === 'running')
-                        this.store.transition(run.id, 'error', 'run.error', {}, { error: { code: 'WORKER_FAILED', message: 'The research worker stopped. Review persisted events and retry with the same frozen configuration.', error_id: randomUUID() } });
+                    else if (now.status === 'running') {
+                        const detail = error as Error & { code?: string; errorId?: string };
+                        const budgetBlocked = detail.code === 'RESEARCH_BUDGET_EXHAUSTED' || this.hasPersistedBudgetFailure(now);
+                        this.store.transition(run.id, 'error', 'run.error', {}, { error: { code: budgetBlocked ? 'RESEARCH_BUDGET_EXHAUSTED' : 'WORKER_FAILED', message: budgetBlocked ? budgetFailureMessage : 'The research worker stopped. Review persisted events and error details before retrying.', error_id: detail.errorId || randomUUID() } });
+                    }
                 }
                 finally {
                     clearTimeout(timer);
@@ -357,8 +382,14 @@ export class ResearchManager {
             this.store.transition(id, decision.data_status === 'insufficient' ? 'data_insufficient' : decision.rating === 'REVIEW' ? 'review' : 'done', 'result', event.payload, { decision });
         }
         else if (event.type === 'error') {
-            this.store.append(id, 'worker.error', { code: String(event.payload.code || 'WORKER_ERROR').slice(0, 80), message: 'Worker failed. Error details are retained by error identifier.', error_id: String(event.payload.error_id || randomUUID()).slice(0, 80) });
-            throw failure('Worker reported an error.', 502);
+            const isBudgetFailure = String(event.payload.message || '').includes(budgetFailureMarker);
+            const errorId = String(event.payload.error_id || randomUUID()).slice(0, 80);
+            const code = isBudgetFailure ? 'RESEARCH_BUDGET_EXHAUSTED' : String(event.payload.code || 'WORKER_ERROR').slice(0, 80);
+            const message = isBudgetFailure ? budgetFailureMessage : 'Worker failed. Error details are retained by error identifier.';
+            this.store.append(id, 'worker.error', { code, message, error_id: errorId });
+            const error = failure(message, 502);
+            Object.assign(error, { code, errorId });
+            throw error;
         }
         else
             this.store.append(id, event.type, event.payload, event.node_id);
@@ -409,8 +440,19 @@ export class ResearchManager {
         }
         const input = Buffer.byteLength(JSON.stringify({ messages: body.messages, tools: body.tools, response_format: body.response_format }), 'utf8') + 512, output = run.request.budget.max_output_tokens, cost = route.input_rate !== null && route.output_rate !== null ? input * route.input_rate + output * route.output_rate : null;
         const usage = this.store.usage(id), limit = run.request.budget;
-        if (Date.now() - active.started > limit.max_duration_seconds * 1000 || usage.calls + 1 > limit.max_calls || usage.total_tokens + input + output > limit.max_tokens || (limit.max_cost_usd !== null && (cost === null || usage.cost_usd === null || usage.cost_usd + cost > limit.max_cost_usd)))
-            throw failure('Research budget exhausted before this inference call.', 429);
+        const blockedBy = Date.now() - active.started > limit.max_duration_seconds * 1000 ? 'max_duration_seconds'
+            : usage.calls + 1 > limit.max_calls ? 'max_calls'
+            : usage.total_tokens + input + output > limit.max_tokens ? 'max_tokens'
+            : limit.max_cost_usd !== null && (cost === null || usage.cost_usd === null || usage.cost_usd + cost > limit.max_cost_usd) ? 'max_cost_usd'
+            : null;
+        if (blockedBy) {
+            this.store.append(id, 'warning', { message: `Inference stopped before provider execution because the frozen ${blockedBy} limit cannot cover the next request.`, reason: blockedBy,
+                used_tokens: usage.total_tokens, reserved_tokens: input + output, remaining_tokens: Math.max(0, limit.max_tokens - usage.total_tokens),
+                used_calls: usage.calls, call_limit: limit.max_calls });
+            const error = failure(budgetFailureMarker, 429);
+            Object.assign(error, { code: 'RESEARCH_BUDGET_EXHAUSTED' });
+            throw error;
+        }
         const admission = { id: randomUUID(), runId: id, route, input, output, controller };
         this.store.transaction(() => { this.store.db.prepare('INSERT INTO calls VALUES(?,?,?,?)').run(admission.id, id, active.attempt, JSON.stringify({ input, output, cost: cost || 0, estimated: true })); const next = this.store.usage(id); this.store.append(id, 'llm.admitted', { call_id: admission.id, model: route.id, attempt: active.attempt, reserved_input_tokens: input, reserved_output_tokens: output, reserved_cost_usd: cost, request_sha256: digest(body) }); const run = this.store.get(id); run.usage = next; this.store.save(run); });
         active.calls.add(controller);

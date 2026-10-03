@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import express from 'express';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { ProviderStore } from './provider-store';
@@ -41,6 +41,49 @@ test('worker credential cannot bypass scope; atomic budget admits only one concu
     finally {
         await close(local.server);
         await close(remote.server);
+        manager.store.close();
+        await rm(directory, { recursive: true, force: true });
+    }
+});
+test('persisted budget exhaustion is diagnosed without changing the immutable run or allowing resume', async () => {
+    const directory = await mkdtemp(path.join(os.tmpdir(), 'gnoesis-budget-diagnostic-'));
+    const dataDirectory = path.join(directory, 'data', 'trading');
+    const manager = new ResearchManager(new ProviderStore(directory), directory, { database: ':memory:' });
+    const run = manager.store.create(base, [{ id: 'local/unit', provider: 'local', model: 'unit', baseUrl: 'http://127.0.0.1:1/v1', input_rate: 0, output_rate: 0 }]);
+    manager.store.transition(run.id, 'running', 'run.started', {});
+    const workerErrorId = '9b8bc52f-63b1-4c27-9d18-c1a631f9f998';
+    manager.store.append(run.id, 'worker.error', { code: 'WORKER_FAILED', message: 'Worker failed. Error details are retained by error identifier.', error_id: workerErrorId });
+    await mkdir(path.join(dataDirectory, 'runs', run.id, 'attempts', '1'), { recursive: true });
+    await writeFile(path.join(dataDirectory, 'runs', run.id, 'attempts', '1', `error-${workerErrorId}.txt`), 'Research budget exhausted before this inference call.');
+    manager.store.transition(run.id, 'error', 'run.error', {}, { error: { code: 'WORKER_FAILED', message: 'The research worker stopped.', error_id: 'ab8bc52f-63b1-4c27-9d18-c1a631f9f998' } });
+    const before = manager.store.events(run.id), configHash = run.configuration_hash, usage = manager.store.get(run.id).usage;
+    try {
+        const diagnosed = manager.runView(run.id);
+        assert.equal(diagnosed.error?.code, 'RESEARCH_BUDGET_EXHAUSTED');
+        assert.equal(diagnosed.error?.error_id, 'ab8bc52f-63b1-4c27-9d18-c1a631f9f998');
+        assert.match(diagnosed.error?.message || '', /No inference request was sent/);
+        const app = express();
+        app.use('/api/trading', createResearchRouter(manager));
+        const local = await listen(app);
+        try {
+            const response = await fetch(`${local.url}/api/trading/runs/${run.id}/artifact.json`, { headers: { 'X-Quanta-Client': 'local-ui' } });
+            const artifact = await response.json();
+            assert.equal(response.status, 200);
+            assert.equal(artifact.run.error.code, 'WORKER_FAILED');
+            assert.equal(artifact.diagnosis.code, 'RESEARCH_BUDGET_EXHAUSTED');
+            assert.equal(artifact.diagnosis.derived, true);
+            assert.equal(artifact.diagnosis.source, 'persisted worker trace');
+            assert.equal(artifact.events.length, before.length);
+        }
+        finally { await close(local.server); }
+        await assert.rejects(manager.resume(run.id), (error: any) => error.status === 409 && /frozen inference budget/.test(error.message));
+        assert.equal(manager.store.events(run.id).length, before.length);
+        assert.equal(manager.store.verify(run.id), true);
+        assert.equal(manager.store.get(run.id).configuration_hash, configHash);
+        assert.deepEqual(manager.store.get(run.id).usage, usage);
+        assert.equal(manager.store.get(run.id).attempt, 1);
+    }
+    finally {
         manager.store.close();
         await rm(directory, { recursive: true, force: true });
     }

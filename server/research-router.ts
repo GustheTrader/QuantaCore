@@ -18,7 +18,7 @@ export function createResearchRouter(manager: ResearchManager) {
     } };
     router.get('/health', route(async (_req, res) => res.json(await manager.health())));
     router.post('/estimate', route(async (req, res) => res.json(await manager.estimate(req.body as RunRequest))));
-    router.get('/runs', route((_req, res) => res.json({ runs: manager.store.list().slice(0, 1000) })));
+    router.get('/runs', route((_req, res) => res.json({ runs: manager.store.list().slice(0, 1000).map(run => run.status === 'error' ? manager.runView(run.id) : run) })));
     router.post('/runs', route(async (req, res) => { const run = await manager.submit(req.body as RunRequest, req.get('Idempotency-Key')); res.status(202).json({ run_id: run.id, run }); }));
     router.get('/decisions', route((req, res) => { let runs = manager.store.list().filter(r => r.decision !== null); for (const key of ['ticker', 'date', 'rating'])
         if (req.query[key] && typeof req.query[key] !== 'string')
@@ -26,7 +26,7 @@ export function createResearchRouter(manager: ResearchManager) {
         runs = runs.filter(r => r.ticker === req.query.ticker); if (req.query.date)
         runs = runs.filter(r => r.trade_date === req.query.date); if (req.query.rating)
         runs = runs.filter(r => r.decision?.rating === req.query.rating); res.json({ runs }); }));
-    router.get('/runs/:id', route((req, res) => res.json(manager.store.get(String(req.params.id)))));
+    router.get('/runs/:id', route((req, res) => res.json(manager.runView(String(req.params.id)))));
     router.post('/runs/:id/cancel', route(async (req, res) => res.json(await manager.cancel(String(req.params.id)))));
     router.post('/runs/:id/resume', route(async (req, res) => res.json(await manager.resume(String(req.params.id)))));
     router.post('/runs/:id/settle', route(async (req, res) => res.json(await manager.settle(String(req.params.id)))));
@@ -70,12 +70,12 @@ export function createResearchRouter(manager: ResearchManager) {
         void pump();
     }));
     router.get('/runs/:id/artifact.json', route((req, res) => { const id = String(req.params.id); if (!manager.store.verify(id))
-        throw failure('Journal integrity check failed.', 409); res.setHeader('Content-Disposition', `attachment; filename="gnoesis-${id}.json"`); res.json({ run: manager.store.get(id), engine: { version: '0.5.1', commit: '35543d0248bf89fcb92b17a15858ad0c0e940687' }, events: manager.store.events(id), frozen_routes: manager.store.routes(id) }); }));
+        throw failure('Journal integrity check failed.', 409); res.setHeader('Content-Disposition', `attachment; filename="gnoesis-${id}.json"`); const storedRun=manager.store.get(id), viewedRun=manager.runView(id), diagnosis=storedRun.error?.code === viewedRun.error?.code ? null : { ...viewedRun.error, derived: true, source: 'persisted worker trace' }; res.json({ run: storedRun, diagnosis, engine: { version: '0.5.1', commit: '35543d0248bf89fcb92b17a15858ad0c0e940687' }, events: manager.store.events(id), frozen_routes: manager.store.routes(id) }); }));
     router.get('/runs/:id/artifacts', route((req, res) => { const run = manager.store.get(String(req.params.id)); const d = run.decision; res.type('text/markdown'); res.setHeader('Content-Disposition', `attachment; filename="gnoesis-${run.id}.md"`); res.send(`# Gnoesis Agenic Research\n\nResearch only.\n\nRun: ${run.id}\nTicker: ${run.ticker}\nDate: ${run.trade_date}\nStatus: ${run.status}\nConfiguration: ${run.configuration_hash}\n\n## Decision\n\n${d?.raw_text || 'No decision was produced.'}\n\n${Object.entries(d?.reports || {}).map(([name, report]) => `## ${name}\n\n${report}`).join('\n\n')}\n\n## Evidence\n\n${JSON.stringify(d?.evidence || [], null, 2)}\n\n## Usage\n\n${JSON.stringify(run.usage, null, 2)}\n\n## Settlement\n\n${JSON.stringify(run.settlement, null, 2)}\n`); }));
     router.post('/backtest', route(async (req, res) => res.status(202).json(await manager.batch(req.body as BatchRequest, req.get('Idempotency-Key')))));
     router.get('/backtest/:id', route((req, res) => res.json(manager.batchStatus(String(req.params.id)))));
     router.post('/backtest/:id/resume', route(async (req, res) => { const batch = manager.batchStatus(String(req.params.id)); for (const run of batch.runs)
-        if (['error', 'cancelled'].includes(run.status))
-            await manager.resume(run.id); res.json(manager.batchStatus(batch.id)); }));
+        if (['error', 'cancelled'].includes(run.status) && run.error?.code !== 'RESEARCH_BUDGET_EXHAUSTED')
+            try { await manager.resume(run.id); } catch (error: any) { if (error.status !== 409) throw error; } res.json(manager.batchStatus(batch.id)); }));
     return router;
 }
