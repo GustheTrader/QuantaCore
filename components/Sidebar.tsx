@@ -5,7 +5,7 @@ import { getCredits } from '../services/creditService';
 import { UserCredits } from '../types';
 import type { UserTrack } from '../types';
 import { getAgentTrack } from '../lib/agent-tracks';
-import { MISSION_CONTROL_NAV, NAVIGATION_GROUPS } from '../lib/navigation';
+import { MISSION_CONTROL_NAV, NAVIGATION_GROUPS, AGENT_CATEGORIES } from '../lib/navigation';
 import type { NavigationItem, NavigationGroup } from '../lib/navigation';
 import { PROVIDER_CHOICES } from '../lib/inference-providers';
 import { ConfirmationModal } from './ConfirmationModal';
@@ -142,7 +142,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, onLogout, track, p
                   <h2 id={'nav-group-' + index} className="sr-only">{group.name}: {group.caption}</h2>
                 </div>
               )}
-              <div className="space-y-0.5">{group.items.map(item => renderNavLink(item, group.accent))}</div>
+              <div className="space-y-0.5">{group.name === 'Hands'
+                ? [...new Set(group.items.map(item => AGENT_CATEGORIES[item.path] || 'Other agents'))].map(category => (
+                  <div key={category}>
+                    {isOpen && <h3 className="px-2.5 pt-3 pb-1 text-[9px] font-semibold text-slate-500">{category}</h3>}
+                    {group.items.filter(item => (AGENT_CATEGORIES[item.path] || 'Other agents') === category).map(item => renderNavLink(item, group.accent))}
+                  </div>
+                )) : group.items.map(item => renderNavLink(item, group.accent))}</div>
             </section>
           ))}
         </nav>

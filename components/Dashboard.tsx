@@ -117,6 +117,7 @@ const Dashboard: React.FC<DashboardProps> = ({ profile, track = 'personal', onOp
     <div className="p-6 sm:p-10 animate-in fade-in duration-700">
       <header className="mb-8">
         <SovereignSiHeader compact />
+        <div className="grid md:grid-cols-2 gap-4 mt-6 mb-8">{[{path:'/work-zone',name:'Operator Work Zone',text:'Build your digital workforce. Org chart, onboarding, harness assignment and evidence-based training reviews.'},{path:'/quantatrade',name:'QuantaTrade',text:'Your SME trading desk. Source-backed research, bull and bear debate, risk review and a decision journal.'}].map(zone=><a key={zone.path} href={'#'+zone.path} className="rounded-2xl border border-cyan-900 bg-gradient-to-br from-indigo-950 to-slate-950 p-6 hover:border-orange-500 transition-colors"><h2 className="text-xl font-bold text-cyan-300">{zone.name} →</h2><p className="text-sm text-slate-400 mt-3">{zone.text}</p></a>)}</div>
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
             <h1 className="text-5xl sm:text-6xl font-outfit font-black text-white uppercase tracking-tighter italic mb-2">
@@ -135,6 +136,8 @@ const Dashboard: React.FC<DashboardProps> = ({ profile, track = 'personal', onOp
         </div>
       </header>
 
+      <section className="mb-8 rounded-3xl border border-orange-400/25 bg-gradient-to-r from-blue-950/60 to-cyan-950/30 p-6"><h2 className="text-xl font-bold text-white">Organized agents · optional computers</h2><p className="mt-2 text-sm text-slate-400">Explore agents by purpose, add persistent OpenDots coworkers, and choose a local Docker or configured cloud computer companion.</p><div className="mt-4 flex flex-wrap gap-3"><Link to="/agents" className="rounded-xl bg-gradient-to-r from-orange-500 to-amber-400 px-4 py-2 font-semibold text-slate-950">Browse agent directory</Link><Link to="/opendots" className="rounded-xl border border-cyan-400/30 px-4 py-2 text-cyan-200">OpenDots workspace</Link></div></section>
+
       <section aria-labelledby="operational-agent-launch" className="mb-12 rounded-3xl border border-blue-400/20 bg-slate-950/50 p-5 sm:p-8">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
           <h2 id="operational-agent-launch" className="text-xl font-outfit font-bold text-white">Launch an Agent</h2>
@@ -149,6 +152,13 @@ const Dashboard: React.FC<DashboardProps> = ({ profile, track = 'personal', onOp
             else onOpenChat?.(getAgentTrack(nextTrack).label);
           }}
         />
+      </section>
+
+      <section className="mb-12 rounded-3xl border border-cyan-400/20 bg-gradient-to-r from-cyan-950/50 via-slate-950/70 to-indigo-950/40 p-6 sm:p-8">
+        <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+          <div><div className="mb-2 text-[10px] font-bold uppercase tracking-[0.22em] text-cyan-200">Local and hosted test options</div><h2 className="text-2xl font-black text-white">Gnoesis SI Harness Router</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">Run a bounded test through the local Docker runtime or the authenticated hosted browser route. QuantaCore keeps problem selection, policy, and approvals.</p></div>
+          <Link to="/harness-router" className="inline-flex shrink-0 items-center justify-center rounded-xl border border-cyan-300/30 bg-cyan-300/10 px-5 py-3 text-xs font-bold text-cyan-100 hover:bg-cyan-300/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-200">Open control plane <span aria-hidden="true" className="ml-2">→</span></Link>
+        </div>
       </section>
 
       {/* Real-time System Health & Telemetry Widget */}

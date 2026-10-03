@@ -9,6 +9,7 @@ interface StoreData {
   connections: Partial<Record<CompatibleProvider, Connection>>;
   preferredProvider: string;
   gatewayKey: string;
+  harnessRouterApiKey: string;
 }
 
 const dpapi = (value: string, unprotect: boolean): Promise<string> => new Promise((resolve, reject) => {
@@ -71,7 +72,8 @@ export class ProviderStore {
       const data: StoreData = {
         connections: envKey || envModel ? { openrouter: { baseUrl: envBaseUrl, model: envModel, apiKey: envKey } } : {},
         preferredProvider: envKey && envModel ? 'openrouter' : 'gemini',
-        gatewayKey: ''
+        gatewayKey: '',
+        harnessRouterApiKey: ''
       };
       let saved: any;
       try { saved = JSON.parse(await fs.readFile(path.join(this.directory, 'providers.json'), 'utf8')); }
@@ -92,6 +94,7 @@ export class ProviderStore {
       }
       data.preferredProvider = saved.preferredProvider || data.preferredProvider;
       data.gatewayKey = await this.unprotect(saved.gatewayCredential || '');
+      data.harnessRouterApiKey = await this.unprotect(saved.harnessRouterCredential || '');
       return this.cached = data;
     })();
     try { return await this.loading; } finally { this.loading = undefined; }
@@ -108,7 +111,7 @@ export class ProviderStore {
       await fs.mkdir(this.directory, { recursive: true, mode: 0o700 });
       const file = path.join(this.directory, 'providers.json');
       const temporary = path.join(this.directory, 'providers.tmp');
-      await fs.writeFile(temporary, JSON.stringify({ version: 1, preferredProvider: snapshot.preferredProvider, connections, gatewayCredential: await this.protect(snapshot.gatewayKey) }, null, 2), { mode: 0o600 });
+      await fs.writeFile(temporary, JSON.stringify({ version: 1, preferredProvider: snapshot.preferredProvider, connections, gatewayCredential: await this.protect(snapshot.gatewayKey), harnessRouterCredential: await this.protect(snapshot.harnessRouterApiKey) }, null, 2), { mode: 0o600 });
       await fs.rename(temporary, file);
       this.cached = snapshot;
     });
@@ -120,6 +123,14 @@ export class ProviderStore {
     return data.connections[id] || { baseUrl: COMPATIBLE_PROVIDERS.find(provider => provider.id === id)!.baseUrl, model: '', apiKey: '' };
   }
 
+  async harnessRouterKey(): Promise<string> {
+    return (await this.read()).harnessRouterApiKey;
+  }
+
+  async setHarnessRouterKey(apiKey: string): Promise<void> {
+    await this.update(data => { data.harnessRouterApiKey = apiKey; });
+  }
+
   async publicConfig() {
     const data = await this.read();
     return {
@@ -128,7 +139,8 @@ export class ProviderStore {
         return { id: provider.id, baseUrl: connection.baseUrl, model: connection.model, hasKey: Boolean(connection.apiKey) };
       })),
       preferredProvider: data.preferredProvider,
-      gatewayKeyConfigured: Boolean(data.gatewayKey)
+      gatewayKeyConfigured: Boolean(data.gatewayKey),
+      harnessRouterKeyConfigured: Boolean(data.harnessRouterApiKey)
     };
   }
 }

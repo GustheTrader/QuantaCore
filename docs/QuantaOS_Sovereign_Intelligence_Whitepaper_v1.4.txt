@@ -1,9 +1,3 @@
-
-/**
- * Downloadable product whitepaper, updated for the Hindsight–Gnoesis memory
- * architecture and the proposed conditional FPT-Omega routing design.
- */
-export const WHITEPAPER_TEXT = `
 YOUR INTELLIGENCE. YOUR RULES.
 COMPOSABLE SOVEREIGN AI AND OWNERSHIP OF YOUR AGENTIC SYSTEM
 A White Paper on Privacy, Business IP, Persistent Memory, and Voluntary Data Value
@@ -174,4 +168,3 @@ When operators choose to create value from eligible data or knowledge, the syste
 
 ---
 End of Document
-`;

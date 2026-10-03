@@ -1,12 +1,13 @@
 
 import React, { useState, useRef } from 'react';
-import { exportToBrowser } from '../services/utils';
-import { WHITEPAPER_TEXT } from '../services/whitepaperContent';
+import { AnimatePresence, motion } from 'motion/react';
 import HindsightGnoesisNeuralCore from './HindsightGnoesisNeuralCore';
 import SovereignTrustSection from './SovereignTrustSection';
 import AgentActivationSelector from './AgentActivationSelector';
 import SovereignTokensShowcase from './SovereignTokensShowcase';
 import SovereignSiHeader from './SovereignSiHeader';
+import HarnessRouterShowcase from './HarnessRouterShowcase';
+import NeuralLinkWelcome from './NeuralLinkWelcome';
 import { getAgentTrack } from '../lib/agent-tracks';
 import type { UserTrack } from '../types';
 import { isSupabaseConfigured, signInAsTestGuest } from '../services/supabaseService';
@@ -16,6 +17,13 @@ interface AuthPageProps {
 }
 
 const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
+  const [showNeuralWelcome, setShowNeuralWelcome] = useState(() => {
+    try {
+      return window.localStorage.getItem('quanta_neural_link_initialized_v1') !== 'true';
+    } catch {
+      return true;
+    }
+  });
   const [email, setEmail] = useState('');
   const [track, setTrack] = useState<UserTrack>('personal');
   const [loading, setLoading] = useState(false);
@@ -101,30 +109,48 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
   };
 
   const downloadWhitepaper = () => {
-    exportToBrowser("QuantaOS_Sovereign_Intelligence_Whitepaper", WHITEPAPER_TEXT);
+    const link = document.createElement('a');
+    link.href = '/whitepapers/QuantaOS_Sovereign_Intelligence_Whitepaper_v1.4.pdf';
+    link.download = 'QuantaOS_Sovereign_Intelligence_Whitepaper_v1.4.pdf';
+    link.click();
+  };
+
+  const completeNeuralWelcome = () => {
+    try {
+      window.localStorage.setItem('quanta_neural_link_initialized_v1', 'true');
+    } catch {
+      // The splash can still open if browser storage is unavailable.
+    }
+    setShowNeuralWelcome(false);
   };
 
   return (
-    <div className="min-h-screen bg-[#020617] text-white selection:bg-orange-500/30 overflow-x-hidden">
+    <AnimatePresence mode="wait">
+      {showNeuralWelcome ? (
+        <NeuralLinkWelcome key="neural-link-welcome" onComplete={completeNeuralWelcome} />
+      ) : (
+    <div key="splash" className="min-h-screen bg-[#020617] text-white selection:bg-orange-500/30 overflow-x-hidden">
       {/* Hero Section */}
       <div className="relative min-h-screen flex flex-col items-center justify-center px-6 pt-20 pb-40">
         <div className="absolute inset-0 bg-gradient-to-tr from-emerald-500/5 via-transparent to-orange-500/5 pointer-events-none blur-[150px] animate-pulse"></div>
         <div className="absolute top-1/4 right-1/4 w-[400px] h-[400px] bg-orange-900/10 rounded-full blur-[120px] pointer-events-none"></div>
         
         <div className="max-w-6xl w-full z-10 text-center animate-in fade-in slide-in-from-bottom-8 duration-1000">
-          <SovereignSiHeader />
+          <SovereignSiHeader onNavigate={path => {
+            window.location.hash = path;
+            authFormRef.current?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+          }} />
           
-          <h2 className="text-5xl md:text-[7rem] font-outfit font-black mb-4 leading-[0.9] tracking-tighter uppercase">
-            Neural <span className="quantum-gradient-text italic">Quanta - OS - Agentic</span> <br/>
-            <span className="text-white relative">
-              Logic Cores.
-              <div className="absolute -right-12 top-1/2 w-8 h-8 bg-orange-500 blur-2xl opacity-40"></div>
-            </span>
+          <h2 className="mb-4 text-4xl font-outfit font-black uppercase leading-[0.96] tracking-tighter sm:text-6xl md:text-[6rem]">
+            <span className="block text-white">Quanta-<span className="bg-gradient-to-r from-orange-400 via-amber-300 to-emerald-400 bg-clip-text text-transparent">Agentic</span> OS</span>
+            <span className="mt-2 block text-emerald-300">with Neural</span>
+            <span className="block text-white">Logic Cores and Loops.</span>
           </h2>
           
           <div className="mb-12 mt-6">
-            <p className="text-xl md:text-3xl font-outfit font-bold tracking-tight text-slate-300">
-              Your data. Your output. <span className="text-cyan-300">Your choice of intelligence.</span>
+            <p className="text-lg font-outfit font-bold tracking-tight text-white sm:text-xl md:text-3xl">
+              <span className="block">Your data. <span className="text-emerald-300">Your Pipeline.</span> Your Private Output.</span>
+              <span className="mt-2 block">You own the Super <span className="bg-gradient-to-r from-orange-400 via-amber-300 to-emerald-400 bg-clip-text text-transparent">Intelligence.</span></span>
             </p>
           </div>
           
@@ -145,13 +171,9 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
               className="px-14 py-7 bg-slate-900 border-2 border-slate-800 text-slate-400 rounded-[2.5rem] font-black uppercase tracking-[0.3em] text-sm hover:border-orange-500/50 hover:text-white transition-all flex items-center space-x-3 group"
             >
               <svg className="w-5 h-5 group-hover:text-orange-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-              <span>Whitepaper v1.3</span>
+              <span>Whitepaper PDF · v1.4</span>
             </button>
           </div>
-
-          <SovereignTokensShowcase />
-
-          <HindsightGnoesisNeuralCore />
 
           {/* Infrastructure Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 text-left">
@@ -173,6 +195,12 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
           </div>
 
           <SovereignTrustSection />
+
+          <HarnessRouterShowcase />
+
+          <SovereignTokensShowcase />
+
+          <HindsightGnoesisNeuralCore />
         </div>
       </div>
 
@@ -250,6 +278,8 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
         </div>
       </div>
     </div>
+      )}
+    </AnimatePresence>
   );
 };
 

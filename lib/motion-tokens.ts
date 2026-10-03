@@ -5,6 +5,9 @@ export const motionTokens = {
     normal: 0.35,
     slow: 0.6,
     crawl: 1,
+    handshake: 1.35,
+    orbit: 12,
+    orbitFast: 6,
   },
   easing: {
     smooth: [0.22, 1, 0.36, 1] as const,

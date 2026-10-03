@@ -1,0 +1,28 @@
+services:
+  paperclip:
+    image: ghcr.io/paperclipai/paperclip@sha256:8462fc831df840f44a324f961180efd09939a6df125e4486dc63cf33be90937e
+    container_name: quanta-paperclip
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3210:3210"
+    environment:
+      HOST: "0.0.0.0"
+      PORT: "3210"
+      PAPERCLIP_AUTH_BASE_URL_MODE: explicit
+      PAPERCLIP_ALLOWED_HOSTNAMES: "127.0.0.1,localhost"
+      PAPERCLIP_HOME: /paperclip
+      PAPERCLIP_DEPLOYMENT_MODE: authenticated
+      PAPERCLIP_DEPLOYMENT_EXPOSURE: private
+      PAPERCLIP_PUBLIC_URL: http://127.0.0.1:3210
+      PAPERCLIP_TELEMETRY_DISABLED: "1"
+    env_file:
+      - ../.quanta/paperclip.env
+    volumes:
+      - paperclip-data:/paperclip
+    mem_limit: 2g
+    cpus: 1.0
+    pids_limit: 1024
+    security_opt:
+      - no-new-privileges:true
+volumes:
+  paperclip-data:

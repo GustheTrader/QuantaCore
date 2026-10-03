@@ -211,6 +211,7 @@ export default function AgentControlPlane({ track, profile, email, onActivateAge
       <p className="px-4 pb-1 pt-4 text-[10px] font-semibold uppercase tracking-[0.18em] text-blue-400/80">Hands · Agents</p>
       <Link to="/tasks" className={`flex items-center gap-3 rounded-xl px-4 py-2.5 hover:bg-blue-400/10 hover:text-white ${focus}`}><Workflow size={17} /> Work board</Link>
       <Link to="/coding-harness" className={`flex items-center gap-3 rounded-xl px-4 py-2.5 hover:bg-blue-400/10 hover:text-white ${focus}`}><SquareTerminal size={17} /> Coding harnesses</Link>
+      <Link to="/agent-house" className={`flex items-center gap-3 rounded-xl px-4 py-2.5 hover:bg-blue-400/10 hover:text-white ${focus}`}><MessageSquare size={17} /> Open House Channel</Link>
       <p className="px-4 pb-1 pt-4 text-[10px] font-semibold uppercase tracking-[0.18em] text-blue-400/80">Nervous Systems</p>
       <Link to="/neural-core" className={`flex items-center gap-3 rounded-xl px-4 py-2.5 hover:bg-blue-400/10 hover:text-white ${focus}`}><Brain size={17} /> Neural Core</Link>
       <Link to="/mcp" className={`flex items-center gap-3 rounded-xl px-4 py-2.5 hover:bg-blue-400/10 hover:text-white ${focus}`}><Workflow size={17} /> Connectors</Link>

@@ -32,9 +32,15 @@ import AgentControlPlane from './components/AgentControlPlane';
 import NeuralCoreConsole from './components/NeuralCoreConsole';
 import CodingHarness from './components/CodingHarness';
 import OpenMuseAgent from './components/OpenMuseAgent';
+import OpenDotsAgent from './components/OpenDotsAgent';
+import AgentDirectory from './components/AgentDirectory';
 import QuantaCliTerminal from './components/QuantaCliTerminal';
 import GnoesisResearch from './components/GnoesisResearch';
+import OperatorWorkZone from './components/OperatorWorkZone';
+import QuantaTrade from './components/QuantaTrade';
 import { isLocalResearchHost } from './services/researchService';
+import GnoesisSiHarnessRouter from './components/GnoesisSiHarnessRouter';
+import AgentHouseChannel from './components/AgentHouseChannel';
 
 interface ErrorBoundaryProps {
   children?: ReactNode;
@@ -89,12 +95,12 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
 
 const App: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [session, setSession] = useState<{ email: string, track: UserTrack } | null>(null);
+  const [session, setSession] = useState<{ email: string, track: UserTrack, userId?: string } | null>(null);
   const [profile, setProfile] = useState<{ name: string, callsign: string, personality: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [terminalOpen, setTerminalOpen] = useState(false);
   const [currentHash, setCurrentHash] = useState(window.location.hash);
-  const localResearchRoute = isLocalResearchHost() && currentHash.replace(/^#/, '').split('?')[0] === '/research';
+  const localResearchRoute = isLocalResearchHost() && ['/research', '/work-zone', '/quantatrade'].includes(currentHash.replace(/^#/, '').split('?')[0]);
   const localResearchAccess = localResearchRoute && (!session || !profile);
   const { windows, openChat, closeChat, toggleMinimize, focusWindow, addMessage } = useChatWindows();
   const openTerminal = () => {
@@ -130,7 +136,7 @@ const App: React.FC = () => {
         const allowedTracks: UserTrack[] = ['personal', 'consumer', 'business', 'trading', 'education', 'guest', 'investing', 'growth'];
         const requestedTrack = user.user_metadata?.track;
         const sessionEmail = user.email || user.user_metadata?.contact_email || `guest-${String(user.id).slice(0, 8)}@guest.invalid`;
-        const nextSession = { email: String(sessionEmail).toLowerCase(), track: allowedTracks.includes(requestedTrack) ? requestedTrack as UserTrack : 'personal' as UserTrack };
+        const nextSession = { email: String(sessionEmail).toLowerCase(), userId: String(user.id), track: allowedTracks.includes(requestedTrack) ? requestedTrack as UserTrack : 'personal' as UserTrack };
         setSession(nextSession);
         try {
           const savedProfile = localStorage.getItem(`quanta_profile_${nextSession.email}`);
@@ -228,7 +234,8 @@ const App: React.FC = () => {
           <div className="min-h-screen bg-[#020617] text-gray-100 p-5 md:p-10">
             <div className="max-w-7xl mx-auto">
               <a href="#/" className="inline-block text-sm text-slate-400 hover:text-white mb-6">← QuantaCore</a>
-              <GnoesisResearch />
+              <div className="flex gap-5 mb-6 text-sm text-cyan-300"><a href="#/work-zone">Work Zone</a><a href="#/quantatrade">QuantaTrade</a><a href="#/research">Research</a><span className="ml-auto text-slate-500">Trusted local operator</span></div>
+              {currentHash.startsWith('#/work-zone') ? <OperatorWorkZone /> : currentHash.startsWith('#/quantatrade') ? <QuantaTrade /> : <GnoesisResearch />}
             </div>
           </div>
         ) : !session ? (
@@ -264,7 +271,11 @@ const App: React.FC = () => {
                   <Routes>
                     <Route path="/" element={<Dashboard track={session.track} profile={profile} onOpenChat={openChat} onActivateAgent={handleActivateAgent} onOpenTerminal={openTerminal} />} />
                     <Route path="/coding-harness" element={<CodingHarness onOpenTerminal={openTerminal} />} />
+                    <Route path="/harness-router" element={<GnoesisSiHarnessRouter />} />
+                    <Route path="/agent-house" element={<AgentHouseChannel key={session.userId || session.email} owner={session.userId || session.email} />} />
                     <Route path="/openmuse" element={<OpenMuseAgent track={session.track} onActivateAgent={handleActivateAgent} />} />
+                    <Route path="/opendots" element={<OpenDotsAgent />} />
+                    <Route path="/agents" element={<AgentDirectory onActivateAgent={handleActivateAgent} />} />
                     <Route path="/chat" element={<ChatInterface profile={profile} />} />
                     <Route path="/neural-core" element={<NeuralCoreConsole />} />
                     <Route path="/gateway" element={<Gateway />} />
@@ -275,6 +286,8 @@ const App: React.FC = () => {
                     <Route path="/agent-zero" element={<AgentZero profile={profile} onOpenChat={openChat} />} />
                     <Route path="/iron-claw" element={<IronClawAgent />} />
                     <Route path="/edge-mech" element={<EdgeMechNetwork />} />
+                    <Route path="/work-zone" element={<OperatorWorkZone />} />
+                    <Route path="/quantatrade" element={<QuantaTrade />} />
                     <Route path="/research" element={<GnoesisResearch />} />
                     <Route path="/council" element={<Council track={session.track} />} />
                     <Route path="/projects" element={<Projects />} />

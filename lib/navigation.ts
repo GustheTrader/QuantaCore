@@ -46,7 +46,12 @@ export const NAVIGATION_GROUPS: NavigationGroup[] = [
     accent: 'blue',
     items: [
       { name: 'Agent Control Plane', path: '/agent', icon: agentIcon, description: 'Chat and work with your operational agent' },
+      { name: 'Open House Channel', path: '/agent-house', icon: networkIcon, description: 'Named agents, task harnesses, private KBs and a shared master KB' },
       { name: 'OpenMuse Agent', path: '/openmuse', icon: agentIcon, description: 'Personal and Consumer agent workspace' },
+      { name: 'OpenDots Agents', path: '/opendots', icon: networkIcon, description: 'Persistent specialist coworkers and optional per-agent computers' },
+      { name: 'Operator Work Zone', path: '/work-zone', icon: networkIcon, description: 'Paperclip organizations, workboard, onboarding and skill reviews' },
+      { name: 'QuantaTrade', path: '/quantatrade', icon: searchIcon, description: 'SME trading desk, stock research and reviewed decisions' },
+      { name: 'Agent Directory', path: '/agents', icon: agentIcon, description: 'Agents grouped by purpose with optional computer sessions' },
       { name: 'Coding Harnesses', path: '/coding-harness', icon: 'M8 8l-4 4 4 4m8-8l4 4-4 4M14 4l-4 16', description: 'FireConnect setup and Quanta CLI' },
       { name: 'Gnoesis Agenic Research', path: '/research', icon: searchIcon, description: 'TradingAgents research, evidence and decision journal' },
       { name: 'SME Council', path: '/council', icon: 'M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2' },
@@ -84,3 +89,13 @@ export const NAVIGATION_GROUPS: NavigationGroup[] = [
     ]
   }
 ];
+
+export const AGENT_CATEGORIES: Record<string, string> = {
+  '/work-zone': 'Command & collaboration', '/quantatrade': 'Trading & markets', '/agents': 'Command & collaboration', '/agent': 'Command & collaboration', '/agent-house': 'Command & collaboration',
+  '/openmuse': 'Personal & consumer', '/opendots': 'Persistent coworkers',
+  '/research': 'Research & specialists', '/council': 'Research & specialists', '/sme-builder': 'Research & specialists',
+  '/deep-agent': 'Research & specialists', '/deep-diver': 'Research & specialists',
+  '/coding-harness': 'Execution & security', '/agent-zero': 'Execution & security', '/iron-claw': 'Execution & security',
+  '/images': 'Creative studios', '/videos': 'Creative studios',
+  '/hermes': 'Execution & security', '/agentic-os': 'Orchestration'
+};

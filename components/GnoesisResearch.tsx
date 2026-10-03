@@ -102,9 +102,9 @@ const runMarkdown = (run: Run) => {
   return `# Gnoesis Agenic Research\n\nResearch only. Predictive value is unvalidated.\n\nRun: ${run.id}\nTicker: ${run.ticker}\nDate: ${run.trade_date}\nStatus: ${run.status}\nCreated: ${run.created_at}\nConfiguration hash: ${run.configuration_hash}\nAttempt: ${run.attempt}\n\n## Decision\n\n${decision?.rating || 'No decision'}\n\n${decision?.executive_summary || ''}\n\n${decision?.investment_thesis || ''}\n\n## Warnings\n\n${decision?.warnings.map(warning => `- ${warning}`).join('\n') || 'None recorded.'}\n\n## Full reports\n\n${decision ? Object.entries(decision.reports).map(([name, report]) => `### ${name}\n\n${report}`).join('\n\n') : ''}\n\n## Raw final output\n\n${decision?.raw_text || ''}\n\n## Configuration and measured usage\n\n\`\`\`json\n${JSON.stringify({ request: run.request, usage: run.usage, error: run.error }, null, 2)}\n\`\`\`\n\n## Evidence\n\n\`\`\`json\n${JSON.stringify(decision?.evidence || [], null, 2)}\n\`\`\`\n\n## Settlement\n\n\`\`\`json\n${JSON.stringify(run.settlement, null, 2)}\n\`\`\``;
 };
 
-const GnoesisResearch: React.FC = () => {
+const GnoesisResearch: React.FC<{initialTab?: Tab; initialTicker?: string}> = ({initialTab = 'research', initialTicker = ''}) => {
   const local = isLocalResearchHost();
-  const [tab, setTab] = useState<Tab>('research');
+  const [tab, setTab] = useState<Tab>(initialTab);
   const [health, setHealth] = useState<ResearchHealth | null>(null);
   const [loading, setLoading] = useState(local);
   const [notice, setNotice] = useState<{ kind: 'error' | 'success'; message: string } | null>(null);
@@ -115,7 +115,7 @@ const GnoesisResearch: React.FC = () => {
   const [stream, setStream] = useState<{ state: ResearchStreamState; message?: string }>({ state: 'closed' });
   const [busy, setBusy] = useState<string | null>(null);
   const [draft, setDraft] = useState<Draft>({
-    ticker: '', date: localDate(), deep: '', quick: '', analysts: ['market', 'social', 'news', 'fundamentals'],
+    ticker: initialTicker, date: localDate(), deep: '', quick: '', analysts: ['market', 'social', 'news', 'fundamentals'],
     debateRounds: 1, riskRounds: 1, maxCalls: 60, maxTokens: 200000, maxOutput: 2048, maxSeconds: 900, maxCost: '', portfolio: '',
   });
   const [estimate, setEstimate] = useState<{ key: string; value: ResearchEstimate; request: RunRequest } | null>(null);
