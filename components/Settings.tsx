@@ -3,7 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { ApiSettings, UserCredits } from '../types';
 import { invokeEdgeFunction } from '../services/supabaseService';
 import { ConfirmationModal } from './ConfirmationModal';
-import ProviderConnections from './ProviderConnections';
+import SystemSetup from './SystemSetup';
+import HybridCloud from './HybridCloud';
 
 const Settings: React.FC = () => {
   const [settings, setSettings] = useState<ApiSettings>({
@@ -33,7 +34,7 @@ const Settings: React.FC = () => {
     lastSync: Date.now()
   });
 
-  const [activeTab, setActiveTab] = useState<'api' | 'credits' | 'storage' | 'infra'>('api');
+  const [activeTab, setActiveTab] = useState<'api' | 'credits' | 'storage' | 'infra' | 'hybrid'>('api');
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
   
   const [isProbing, setIsProbing] = useState(false);
@@ -123,16 +124,17 @@ const Settings: React.FC = () => {
       </header>
 
       <div className="flex justify-center mb-12">
-        <div className="bg-slate-900/50 p-2 rounded-[2.5rem] border border-slate-800 flex shadow-inner">
+        <div className="bg-slate-900/50 p-2 rounded-[2.5rem] border border-slate-800 flex flex-wrap justify-center shadow-inner">
           <button onClick={() => setActiveTab('api')} className={`px-10 py-5 rounded-[2rem] text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'api' ? 'bg-orange-600 text-white shadow-2xl animate-glow-orange' : 'text-slate-500 hover:text-slate-300'}`}>Compute</button>
           <button onClick={() => setActiveTab('storage')} className={`px-10 py-5 rounded-[2rem] text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'storage' ? 'bg-indigo-600 text-white shadow-2xl animate-glow' : 'text-slate-500 hover:text-slate-300'}`}>Storage</button>
           <button onClick={() => setActiveTab('infra')} className={`px-10 py-5 rounded-[2rem] text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'infra' ? 'bg-cyan-600 text-white shadow-2xl animate-glow' : 'text-slate-500 hover:text-slate-300'}`}>Infra Diagnostic</button>
+          <button onClick={() => setActiveTab('hybrid')} className={`px-6 py-5 rounded-[2rem] text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'hybrid' ? 'bg-cyan-600 text-white' : 'text-slate-500 hover:text-slate-300'}`}>Hybrid Cloud</button>
           <button onClick={() => setActiveTab('credits')} className={`px-10 py-5 rounded-[2rem] text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'credits' ? 'bg-emerald-600 text-white shadow-2xl animate-glow' : 'text-slate-500 hover:text-slate-300'}`}>Credits</button>
         </div>
       </div>
 
       <div className="glass-card p-12 rounded-[4rem] border-slate-800/50 shadow-2xl relative overflow-hidden">
-        {activeTab === 'api' ? (
+        {activeTab === 'hybrid' ? <HybridCloud /> : activeTab === 'api' ? (
           <div className="space-y-12 animate-in slide-in-from-bottom-4 duration-500">
             <div className="p-8 bg-slate-950/50 border border-slate-800 rounded-[3rem] space-y-6">
               <div className="flex items-center justify-between">
@@ -147,12 +149,11 @@ const Settings: React.FC = () => {
               </div>
             </div>
 
-            <div className={`space-y-6 transition-all duration-500 ${settings.computeMode === 'credits' ? 'opacity-40 grayscale' : 'opacity-100'}`}>
+            <SystemSetup geminiConnection={<div className="space-y-6">
               <label className="text-emerald-400 text-[11px] font-black uppercase tracking-[0.4em] px-2">Personal Gemini Core</label>
               <input type="password" disabled={settings.computeMode === 'credits'} value={settings.geminiKey} onChange={(e) => setSettings({...settings, geminiKey: e.target.value})} placeholder={settings.computeMode === 'credits' ? "Using Platform Credits..." : "Enter Personal Gemini API Key..."} className="w-full bg-slate-950 border-2 border-slate-800 rounded-3xl py-8 px-10 text-white font-mono focus:border-emerald-500 transition-all outline-none shadow-inner" />
-            </div>
-
-            <ProviderConnections />
+              <p className="text-sm text-slate-400">Save Gemini settings with Commit Architecture Changes below. Gemini is optional; choose it explicitly for text agents.</p>
+            </div>} />
 
             <button onClick={handleSaveSettings} className="w-full py-10 quanta-btn-orange text-white rounded-[2.5rem] font-black uppercase tracking-[0.5em] text-[13px] transition-all">
               {saveStatus || "Commit Architecture Changes"}

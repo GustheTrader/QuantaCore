@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { MCPConnector, MCPConnectorType } from '../types';
+import ZoMcpConnection from './ZoMcpConnection';
 
 const MCPConnectors: React.FC = () => {
   const [connectors, setConnectors] = useState<MCPConnector[]>([]);
@@ -91,6 +92,7 @@ const MCPConnectors: React.FC = () => {
         <p className="text-slate-500 font-bold uppercase tracking-[0.4em] text-[10px] mt-8">Extending SME sensory reach via Local and Containerized substrates</p>
       </header>
 
+      <ZoMcpConnection />
       <div className="flex flex-col md:flex-row items-center justify-between mb-16 gap-8">
         <div className="bg-slate-900/50 p-2 rounded-[2.5rem] border border-slate-800 flex shadow-inner">
           {(['all', 'local', 'docker'] as const).map((t) => (

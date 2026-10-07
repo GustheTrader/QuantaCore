@@ -25,8 +25,8 @@ export interface TaskAttachment {
   synced: boolean;
 }
 
-export type ComputeProvider = 'gemini' | 'groq' | 'local' | 'abacus' | 'novita' | 'openai-compatible' | 'ollama-cloud' | 'openrouter' | 'fireworks' | 'omniroute';
-export type UserTrack = 'personal' | 'consumer' | 'business' | 'trading' | 'education' | 'guest' | 'investing' | 'growth';
+export type ComputeProvider = 'gemini' | 'claude' | 'grok' | 'google-api' | 'groq' | 'local' | 'abacus' | 'novita' | 'openai-compatible' | 'ollama-cloud' | 'openrouter' | 'fireworks' | 'omniroute';
+export type UserTrack = 'personal' | 'consumer' | 'business' | 'trading' | 'education' | 'guest' | 'investing' | 'growth' | 'credit' | 'rwa-defi' | 'asset-recovery' | 'prediction';
 
 export interface FPTAudit {
   deconstruction: string[]; // Breaking down the problem

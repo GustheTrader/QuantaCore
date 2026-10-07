@@ -8,7 +8,8 @@ export default defineConfig(() => ({
         host: '127.0.0.1',
         watch: { ignored: ['**/FPhindsight/**', '**/.quanta/**'] },
       },
-      optimizeDeps: { entries: ['index.html'] },
+      optimizeDeps: { entries: ['index.html', 'hybrid.html'] },
+      build: { rollupOptions: { input: { app: path.resolve(__dirname, 'index.html'), hybrid: path.resolve(__dirname, 'hybrid.html') } } },
       plugins: [react()],
       resolve: {
         alias: {

@@ -9,6 +9,7 @@ import { MISSION_CONTROL_NAV, NAVIGATION_GROUPS, AGENT_CATEGORIES } from '../lib
 import type { NavigationItem, NavigationGroup } from '../lib/navigation';
 import { PROVIDER_CHOICES } from '../lib/inference-providers';
 import { ConfirmationModal } from './ConfirmationModal';
+import { loadLocalRuntime, type LocalRuntime } from '../services/inferenceService';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -25,6 +26,14 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, onLogout, track, p
   const [provider, setProvider] = useState('Gemini');
   const [credits, setCredits] = useState<UserCredits>(getCredits());
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+  const [runtime, setRuntime] = useState<LocalRuntime>();
+  useEffect(() => { loadLocalRuntime().then(setRuntime).catch(() => setRuntime(undefined)); }, [location.pathname]);
+  const agentStatus = (path: string) => {
+    const id = path === '/openmuse' ? 'openmuse' : path === '/work-zone' ? 'paperclip' : '';
+    const service = runtime?.services.find(s => s.id === id);
+    return service ? service.status === 'responding' ? 'HTTP connected' : service.status === 'authentication-required' ? 'Sign-in needed' : 'Unavailable' : 'Connection unverified';
+  };
 
   useEffect(() => {
     const saved = localStorage.getItem('quanta_preferred_provider');
@@ -132,23 +141,27 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, onLogout, track, p
           </button>
           {NAVIGATION_GROUPS.map((group, index) => (
             <section key={group.name} aria-labelledby={'nav-group-' + index} className="mt-5 first:mt-0">
+              <button type="button" aria-expanded={isOpen && Boolean(expandedGroups[group.name])} aria-controls={'nav-items-' + index} aria-label={group.name === 'Hands' ? 'Agents' : group.name} title={group.name === 'Hands' ? 'Agents' : group.name} onClick={() => { if (!isOpen) setIsOpen(true); setExpandedGroups(previous => ({ ...previous, [group.name]: !isOpen || !previous[group.name] })); }} className="flex w-full items-center justify-between rounded-xl border border-slate-700/50 p-2.5 text-left hover:bg-slate-800/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300">
               {isOpen ? (
                 <div className="px-2.5 mb-2">
-                  <h2 id={'nav-group-' + index} className={'text-[10px] font-black uppercase tracking-[0.2em] ' + accentStyles[group.accent].heading}>{group.name}</h2>
+                  <h2 id={'nav-group-' + index} className={'text-[10px] font-black uppercase tracking-[0.2em] ' + accentStyles[group.accent].heading}>{group.name === 'Hands' ? 'Agents' : group.name}</h2>
                   <p className="mt-1 text-[9px] leading-relaxed text-slate-500">{group.caption}</p>
                 </div>
               ) : (
-                <div className="border-t border-slate-800/80 mb-2 mx-2">
+                <div className="text-xs font-bold text-cyan-200">
+                  <span aria-hidden="true">{group.name === 'Hands' ? 'A' : group.name === 'Nervous Systems' ? 'N' : group.name[0]}</span>
                   <h2 id={'nav-group-' + index} className="sr-only">{group.name}: {group.caption}</h2>
                 </div>
               )}
-              <div className="space-y-0.5">{group.name === 'Hands'
+              {isOpen && <span aria-hidden="true" className="text-slate-400">{expandedGroups[group.name] ? '▾' : '▸'}</span>}
+              </button>
+              {isOpen && expandedGroups[group.name] && <div id={'nav-items-' + index} className="space-y-0.5 pt-2">{group.name === 'Hands'
                 ? [...new Set(group.items.map(item => AGENT_CATEGORIES[item.path] || 'Other agents'))].map(category => (
-                  <div key={category}>
-                    {isOpen && <h3 className="px-2.5 pt-3 pb-1 text-[9px] font-semibold text-slate-500">{category}</h3>}
-                    {group.items.filter(item => (AGENT_CATEGORIES[item.path] || 'Other agents') === category).map(item => renderNavLink(item, group.accent))}
-                  </div>
-                )) : group.items.map(item => renderNavLink(item, group.accent))}</div>
+                  <details key={category} className="rounded-lg border border-slate-800/70 my-1">
+                    <summary className="cursor-pointer px-2.5 py-3 text-[10px] font-semibold text-blue-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300">{category}</summary>
+                    {group.items.filter(item => (AGENT_CATEGORIES[item.path] || 'Other agents') === category).map(item => <div key={item.path}>{renderNavLink(item, group.accent)}<p className="px-3 pb-2 text-[9px] text-slate-500">{agentStatus(item.path)}</p></div>)}
+                  </details>
+                )) : group.items.map(item => renderNavLink(item, group.accent))}{group.name === 'Hands' && <Link to="/startup" className="block p-3 text-xs text-cyan-300">Check agent connections →</Link>}</div>}
             </section>
           ))}
         </nav>

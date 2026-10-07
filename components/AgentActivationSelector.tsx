@@ -13,10 +13,20 @@ interface AgentActivationSelectorProps {
   activateOnSelect?: boolean;
 }
 
+const GROUP_ORDER = [
+  'Everyday & personal',
+  'Business & finance',
+  'Markets & investing',
+  'Research & forecasting',
+  'Digital assets & DeFi',
+  'Operations & investigations'
+];
+
 const AgentActivationSelector: React.FC<AgentActivationSelectorProps> = ({
   value, onChange, disabled = false, activateOnSelect = false
 }) => {
   const reducedMotion = useReducedMotion();
+  const groups = [...new Set(AGENT_TRACKS.map(agent => agent.directoryGroup))].sort((a, b) => GROUP_ORDER.indexOf(a) - GROUP_ORDER.indexOf(b));
 
   return (
     <fieldset disabled={disabled} className="min-w-0">
@@ -24,10 +34,13 @@ const AgentActivationSelector: React.FC<AgentActivationSelectorProps> = ({
         {activateOnSelect ? 'Your operation agents' : 'Choose your agent'}
       </legend>
       <p className="mb-5 text-left text-sm leading-relaxed text-slate-400">
-        Explore what each agent can help you do. These example case studies turn the context you provide into plans, comparisons and research briefs.
+        Explore each specialist’s typical work and research-backed harness fit. These capability matches should be compared on your tasks for quality, tool success, cost, latency and failures; confirm availability in your connected catalog.
       </p>
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
-        {AGENT_TRACKS.map(agent => {
+      <div className="space-y-8">
+        {groups.map(group => <section key={group} aria-labelledby={`activation-group-${group.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}`}>
+          <h2 id={`activation-group-${group.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}`} className="mb-3 text-left text-xs font-black uppercase tracking-[0.18em] text-cyan-300">{group}</h2>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-4">
+        {AGENT_TRACKS.filter(agent => agent.directoryGroup === group).map(agent => {
           const selected = value === agent.id;
           return (
             <motion.button
@@ -84,6 +97,12 @@ const AgentActivationSelector: React.FC<AgentActivationSelectorProps> = ({
                   </span>
                 ))}
               </span>
+              <span className="relative mb-5 block rounded-xl border border-cyan-300/15 bg-slate-950/55 p-3">
+                <span className="block text-[9px] font-black uppercase tracking-[0.16em] text-cyan-300">Best-fit harness · candidate</span>
+                <span className="mt-1 block text-xs font-bold leading-relaxed text-white">{agent.harnessFit.primary}</span>
+                <span className="mt-1 block text-[10px] leading-relaxed text-slate-400">{agent.harnessFit.rationale}</span>
+                {agent.harnessFit.support && <span className="mt-2 block border-t border-slate-700/70 pt-2 text-[10px] leading-relaxed text-violet-200">Optional: {agent.harnessFit.support}</span>}
+              </span>
               <span className="relative mt-auto flex items-center gap-2 border-t border-white/10 pt-4 text-[9px] font-black uppercase tracking-[0.2em]" style={{ color: agent.from }}>
                 <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full" style={{ background: selected ? agent.from : `${agent.from}60` }} />
                 {selected ? (activateOnSelect ? 'Active · open again' : 'Selected') : (activateOnSelect ? 'Activate agent' : 'Select agent')}
@@ -91,6 +110,8 @@ const AgentActivationSelector: React.FC<AgentActivationSelectorProps> = ({
             </motion.button>
           );
         })}
+          </div>
+        </section>)}
       </div>
     </fieldset>
   );

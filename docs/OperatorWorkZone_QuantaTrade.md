@@ -8,7 +8,7 @@ Prepare ignored local service credentials, then start Paperclip and initialize i
 
 ```powershell
 node scripts/setup-paperclip.mjs --prepare
-docker compose -p quanta-paperclip -f deploy/paperclip.compose.yml up -d
+node scripts/paperclip-compose.mjs up -d
 node scripts/setup-paperclip.mjs
 node scripts/initialize-workzones.mjs
 docker logs --tail 100 quanta-paperclip
@@ -47,7 +47,7 @@ A chosen harness is not a configured runtime. A training review is not model-wei
 
 The browser never supplies the authoritative company ID or owner identity. The local bridge derives the operator from a verified Supabase token when present; otherwise the explicitly trusted loopback preview uses one `local-operator` identity. Build and trade zones get separate Paperclip companies. Worker assignment and reporting references must belong to the selected company.
 
-This is a single-computer, trusted local deployment. Paperclip uses authenticated/private mode with a generated local operator account. The bridge authenticates its server requests; Connect console session installs an HttpOnly local operator session for the native console only in the explicit single local-operator preview. Verified Supabase users cannot receive that board session and must sign into Paperclip with their own memberships. The account has broad board access. Distinct companies and bridge scoping are not sufficient isolation for untrusted local users or hosted tenants. Deploy authenticated Paperclip with company memberships and an identity integration before offering production multi-user Work Zones. Vercel cannot run this Docker service or reach a user's loopback address. Hosted access to this bridge is rejected. No Docker socket or host-source directory is mounted. Telemetry is disabled. Generated account credentials and signing secrets stay in ignored `.quanta/paperclip-auth.json` and `.quanta/paperclip.env`; never commit or publish them.
+This is a single-computer, trusted local deployment. Paperclip uses authenticated/private mode with a generated local operator account. The bridge authenticates its server requests; Connect console session installs an HttpOnly local operator session for the native console only in the explicit single local-operator preview. Verified Supabase users cannot receive that board session and must sign into Paperclip with their own memberships. The account has broad board access. Distinct companies and bridge scoping are not sufficient isolation for untrusted local users or hosted tenants. Deploy authenticated Paperclip with company memberships and an identity integration before offering production multi-user Work Zones. Vercel cannot run this Docker service or reach a user's loopback address. Hosted access to this bridge is rejected. No Docker socket or host-source directory is mounted. Telemetry is disabled. Generated account credentials, signing secrets, and recoverable connector keys use `.quanta/bootstrap-credentials.json`, encrypted through ProviderStore (Windows current-user DPAPI). The launcher decrypts the signing secret into the Docker process environment without writing a plaintext env file. Protect the Windows account, Docker access, and private Paperclip database.
 
 ## Knowledge model
 

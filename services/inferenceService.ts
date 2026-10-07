@@ -9,7 +9,7 @@ export interface ProviderConfigResponse {
 }
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
-  if (import.meta.env.PROD) {
+  if (import.meta.env.PROD && !['127.0.0.1', 'localhost', '[::1]'].includes(window.location.hostname)) {
     if (!isSupabaseConfigured) throw new Error('Hosted inference is not configured. Add the VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY build variables in Vercel.');
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.access_token) throw new Error('Sign in with your email link to use hosted model services.');

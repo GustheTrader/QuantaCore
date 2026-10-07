@@ -1,6 +1,9 @@
 import type { ComputeProvider } from '../types';
 
 export const COMPATIBLE_PROVIDERS = [
+  { id: 'claude', label: 'Claude', baseUrl: 'https://api.anthropic.com/v1', requiresKey: true, editableEndpoint: false, description: 'Claude API key connection using the official text compatibility endpoint. Claude subscription sign-in is separate.', docs: 'https://platform.claude.com/docs/en/cli-sdks-libraries/libraries/openai-sdk' },
+  { id: 'grok', label: 'Grok · xAI', baseUrl: 'https://api.x.ai/v1', requiresKey: true, editableEndpoint: false, description: 'Connect Grok with an xAI API key. Grok app subscriptions do not configure this API route.', docs: 'https://docs.x.ai/developers/quickstart' },
+  { id: 'google-api', label: 'Google · Gemini API', baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai', requiresKey: true, editableEndpoint: false, description: 'Gemini API key connection. Google API OAuth is available separately in this local panel.', docs: 'https://ai.google.dev/gemini-api/docs/openai' },
   { id: 'openai-compatible', label: 'OpenAI compatible', baseUrl: 'https://api.openai.com/v1', requiresKey: false, editableEndpoint: true, description: 'Connect OpenAI or another compatible server with its API URL and model ID.', docs: 'https://platform.openai.com/docs/api-reference/chat' },
   { id: 'local', label: 'Ollama Local', baseUrl: 'http://127.0.0.1:11434/v1', requiresKey: false, editableEndpoint: true, description: 'Use an installed local model. This connection stays on the local Ollama server.', docs: 'https://docs.ollama.com/api/openai-compatibility' },
   { id: 'ollama-cloud', label: 'Ollama Cloud', baseUrl: 'https://ollama.com/v1', requiresKey: true, editableEndpoint: false, description: 'Connect directly to Ollama Cloud with an Ollama API key.', docs: 'https://docs.ollama.com/api/openai-compatibility' },
@@ -31,7 +34,7 @@ export interface ProviderConnection {
 export interface ProviderModel { id: string; name?: string }
 
 export const getPreferredProvider = (): ComputeProvider => {
-  if (typeof localStorage === 'undefined') return 'gemini';
+  if (typeof localStorage === 'undefined') return 'local';
   const saved = localStorage.getItem('quanta_preferred_provider');
-  return PROVIDER_CHOICES.find(provider => provider.id === saved)?.id || 'gemini';
+  return PROVIDER_CHOICES.find(provider => provider.id === saved)?.id || 'local';
 };

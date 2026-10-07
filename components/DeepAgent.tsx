@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { runDeepAgentLoop, runAbacusAgentSession } from '../services/deepAgentService';
+import { runDeepAgentLoop } from '../services/deepAgentService';
 import { DeepAgentSession, DeepStep } from '../types';
 import { exportToBrowser } from '../services/utils';
 import { NeuralVoiceArchitect } from './NeuralVoiceArchitect';
@@ -17,7 +17,6 @@ const DeepAgent: React.FC = () => {
   
   // Abacus Config
   const [computeProvider, setComputeProvider] = useState<'gemini' | 'abacus'>('gemini');
-  const [abacusAgentId, setAbacusAgentId] = useState('');
   
   const logEndRef = useRef<HTMLDivElement>(null);
 
@@ -27,31 +26,18 @@ const DeepAgent: React.FC = () => {
 
   const handleDeepSearch = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
+    if (computeProvider === 'abacus') { window.location.assign('/hybrid.html'); return; }
     if (!input.trim() || isProcessing) return;
 
     setIsProcessing(true);
     setSession(null);
     
-    if (computeProvider === 'abacus') {
-      if (!abacusAgentId.trim()) {
-        alert("Please enter a valid Abacus Agent ID.");
-        setIsProcessing(false);
-        return;
-      }
-      await runAbacusAgentSession(input, abacusAgentId, (updatedSession) => {
-        setSession(updatedSession);
-        if (updatedSession.endTime) {
-          setIsProcessing(false);
-        }
-      });
-    } else {
       await runDeepAgentLoop(input, (updatedSession) => {
         setSession(updatedSession);
         if (updatedSession.endTime) {
           setIsProcessing(false);
         }
       });
-    }
   };
 
   const getStepIcon = (type: string) => {
@@ -118,12 +104,7 @@ const DeepAgent: React.FC = () => {
 
               {computeProvider === 'abacus' && (
                 <div className="mb-8 animate-in slide-in-from-top-2">
-                  <input 
-                    value={abacusAgentId}
-                    onChange={(e) => setAbacusAgentId(e.target.value)}
-                    placeholder="Enter Abacus Agent ID (e.g. 2d3c...)"
-                    className="w-full bg-slate-950/50 border border-indigo-500/30 rounded-2xl py-4 px-6 text-white font-mono text-xs focus:border-indigo-500 outline-none text-center"
-                  />
+                  <p className="text-sm text-indigo-200">Configure your deployment and review cloud jobs in the local Hybrid Cloud panel.</p>
                 </div>
               )}
 
@@ -145,10 +126,10 @@ const DeepAgent: React.FC = () => {
               />
               <button 
                 onClick={handleDeepSearch}
-                disabled={isProcessing || !input.trim()}
+                disabled={isProcessing || (computeProvider !== 'abacus' && !input.trim())}
                 className="w-full mt-10 py-8 quanta-btn-primary text-white rounded-[2.5rem] font-black uppercase tracking-[0.5em] text-[12px] shadow-2xl flex items-center justify-center space-x-4 active:scale-95 disabled:opacity-30"
               >
-                {isProcessing ? 'Synchronizing & Launching Loop...' : `Launch ${computeProvider === 'abacus' ? 'Abacus' : 'Deep'} Agent`}
+                {isProcessing ? 'Synchronizing & Launching Loop...' : computeProvider === 'abacus' ? 'Open Hybrid Cloud' : 'Launch Deep Agent'}
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
               </button>
             </div>

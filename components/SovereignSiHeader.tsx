@@ -29,7 +29,7 @@ export default function SovereignSiHeader({ compact = false, onNavigate }: Props
       <div aria-hidden="true" className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-orange-300/80 to-transparent" />
       <div className="relative">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <span className="inline-flex items-center gap-2.5 rounded-full border border-orange-300/25 bg-orange-400/[.08] px-3 py-2 text-[10px] font-bold uppercase tracking-[.18em] text-orange-200 sm:text-[11px]"><Blocks size={15} aria-hidden="true" /> Sovereign <span className="text-orange-300">SI</span> · Lego Builder</span>
+          <span className="inline-flex flex-wrap items-center gap-2.5 rounded-2xl border border-cyan-300/50 bg-gradient-to-r from-cyan-400/15 via-violet-500/20 to-fuchsia-500/20 px-4 py-3 text-sm font-black uppercase tracking-[.08em] shadow-[0_0_28px_rgba(34,211,238,.18)] sm:text-base"><Blocks size={20} className="text-cyan-300" aria-hidden="true" /><span className="text-cyan-300">Sovereign Intelligence <span className="text-amber-300">SI</span></span><span className="text-white">-</span><span className="text-fuchsia-300">Lego Builder/Modular</span></span>
           <span className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[.16em] text-slate-400"><span aria-hidden="true" className="h-1 w-6 bg-gradient-to-r from-cyan-400 to-emerald-400" /> Compose. Connect. Own.</span>
         </div>
 

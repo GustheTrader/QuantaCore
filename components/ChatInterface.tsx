@@ -36,6 +36,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile }) => {
   const [isReflectionEnabled, setIsReflectionEnabled] = useState(true);
   const [lastReflection, setLastReflection] = useState<ReflectionResult | null>(null);
   const [computeProvider, setComputeProvider] = useState<ComputeProvider>(getPreferredProvider);
+  const [chatModel, setChatModel] = useState('');
   const [activeContextCount, setActiveContextCount] = useState(0);
   const [isAmbientActive, setIsAmbientActive] = useState(false);
   const [useFPT, setUseFPT] = useState(false); // First Principles Toggle
@@ -160,13 +161,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile }) => {
   const toggleAmbient = () => isAmbientActive ? stopAmbient() : startAmbient();
 
   const setDefaultMessage = () => {
-    const initial = [{ role: 'model', content: `Neural connection established. Welcome back, ${profile.callsign}. [${activeAgent}] online via ${computeProvider.toUpperCase()} compute. Source grounding active.`, timestamp: Date.now() }] as ChatMessage[];
+    const initial = [{ role: 'model', content: `Welcome back, ${profile.callsign}. Choose a connected provider and model above to chat with ${activeAgent}. Configure connections in Settings.`, timestamp: Date.now() }] as ChatMessage[];
     setMessages(initial);
     localStorage.setItem(storageKey, JSON.stringify(initial));
   };
 
   const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  useEffect(scrollToBottom, [messages, isReflecting, isLoading]);
+  useEffect(() => { scrollToBottom(); }, [messages, isReflecting, isLoading]);
 
   const handleOptimizeContext = async () => {
     if (!input.trim() || isOptimizing) return;
@@ -203,7 +204,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile }) => {
         agentConfig.skills, 
         profile, 
         computeProvider,
-        useFPT
+        useFPT,
+        undefined,
+        true,
+        chatModel.trim() || undefined
       );
       
       const modelMessage: ChatMessage = {
@@ -260,6 +264,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile }) => {
 
   const switchProvider = (p: ComputeProvider) => {
     setComputeProvider(p);
+    setChatModel('');
     localStorage.setItem('quanta_preferred_provider', p);
   };
 
@@ -329,7 +334,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile }) => {
             </button>
 
             <div className="bg-slate-950 p-1.5 rounded-2xl border border-slate-800 flex shadow-inner">
-              <select aria-label="Inference provider" value={computeProvider} onChange={event => switchProvider(event.target.value as ComputeProvider)} className="max-w-[180px] rounded-xl bg-slate-950 px-3 py-2 text-xs text-slate-300 outline-none focus:ring-2 focus:ring-blue-400">{PROVIDER_CHOICES.map(provider => <option key={provider.id} value={provider.id}>{provider.label}</option>)}</select>
+              <select aria-label="Inference provider" value={computeProvider} onChange={event => switchProvider(event.target.value as ComputeProvider)} className="max-w-[180px] rounded-xl bg-slate-950 px-3 py-2 text-xs text-slate-300 outline-none focus:ring-2 focus:ring-blue-400">{PROVIDER_CHOICES.map(provider => <option key={provider.id} value={provider.id}>{provider.label}</option>)}</select><input aria-label="Chat model ID" disabled={isLoading} value={chatModel} onChange={event => setChatModel(event.target.value)} placeholder="Model ID (configured default)" className="max-w-[180px] rounded-xl bg-slate-950 px-3 py-2 text-xs text-slate-300" /><a href="#/settings" className="px-2 py-2 text-xs text-cyan-300">Connect models</a>
             </div>
             <button 
               onClick={() => setIsNeuralLinkActive(!isNeuralLinkActive)}

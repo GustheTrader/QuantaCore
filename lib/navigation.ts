@@ -84,6 +84,7 @@ export const NAVIGATION_GROUPS: NavigationGroup[] = [
     caption: 'Privacy, security, policy & your data',
     accent: 'emerald',
     items: [
+      { name: 'Data Intake', path: '/data-intake', icon: folderIcon, description: 'Preview, validate and assign local trading, business, personal and chat data' },
       { name: 'Sovereign Knowledge', path: '/notebook', icon: bookIcon, description: 'Your knowledge library and source documents' },
       { name: 'Projects', path: '/projects', icon: folderIcon, description: 'Your saved work and project context' }
     ]

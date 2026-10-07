@@ -1,8 +1,10 @@
+import { logConnection } from './services/connectionLog';
 
 import React, { Component, useState, useEffect, ErrorInfo, ReactNode } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
+import StartupConnection from './components/StartupConnection';
 import ChatInterface from './components/ChatInterface';
 import DeepAgent from './components/DeepAgent';
 import DeepDiverAgent from './components/DeepDiverAgent';
@@ -15,6 +17,7 @@ import TaskBoard from './components/TaskBoard';
 import AuthPage from './components/AuthPage';
 import ProfileSetup from './components/ProfileSetup';
 import Notebook from './components/Notebook';
+import DataIntake from './components/DataIntake';
 import Council from './components/Council';
 import Projects from './components/Projects';
 import SMEBuilder from './components/SMEBuilder';
@@ -81,10 +84,10 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
           <h1 className="text-4xl font-outfit font-black text-white mb-4 uppercase tracking-tighter">Neural Link Severed</h1>
           <p className="text-slate-500 max-w-md mb-8 font-mono text-xs leading-relaxed uppercase tracking-widest">{this.state.error?.message || "Internal Kernel Panic within Quanta-OS Engine."}</p>
           <button 
-            onClick={() => { localStorage.clear(); window.location.reload(); }}
+            onClick={() => window.location.reload()}
             className="px-10 py-5 bg-indigo-600 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-2xl active:scale-95 transition-all"
           >
-            Purge Memory & Reboot
+            Reload · preserve saved settings
           </button>
         </div>
       );
@@ -95,6 +98,9 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
 
 const App: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [pendingAgent, setPendingAgent] = useState<UserTrack | null>(null);
+  const [startupReviewed, setStartupReviewed] = useState(() => sessionStorage.getItem('quanta_startup_reviewed') === '1');
+  const finishStartup = () => { sessionStorage.setItem('quanta_startup_reviewed', '1'); setStartupReviewed(true); window.location.hash = '/'; };
   const [session, setSession] = useState<{ email: string, track: UserTrack, userId?: string } | null>(null);
   const [profile, setProfile] = useState<{ name: string, callsign: string, personality: string } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -133,7 +139,7 @@ const App: React.FC = () => {
           setLoading(false);
           return;
         }
-        const allowedTracks: UserTrack[] = ['personal', 'consumer', 'business', 'trading', 'education', 'guest', 'investing', 'growth'];
+        const allowedTracks: UserTrack[] = ['personal', 'consumer', 'business', 'trading', 'education', 'guest', 'investing', 'growth', 'credit', 'rwa-defi', 'asset-recovery', 'prediction'];
         const requestedTrack = user.user_metadata?.track;
         const sessionEmail = user.email || user.user_metadata?.contact_email || `guest-${String(user.id).slice(0, 8)}@guest.invalid`;
         const nextSession = { email: String(sessionEmail).toLowerCase(), userId: String(user.id), track: allowedTracks.includes(requestedTrack) ? requestedTrack as UserTrack : 'personal' as UserTrack };
@@ -183,13 +189,16 @@ const App: React.FC = () => {
     }
   };
 
-  const handleActivateAgent = (track: UserTrack) => {
+  const launchAgent = (track: UserTrack) => {
     if (!session) return;
+    logConnection("Agent workspace", "opened", track + " · workspace opened; no task automatically started");
     const nextSession = { ...session, track };
     localStorage.setItem('quanta_session', JSON.stringify(nextSession));
     setSession(nextSession);
     window.location.hash = track === 'personal' || track === 'consumer' ? `/openmuse?agent=${track}` : '/agent?mode=work';
   };
+
+  const handleActivateAgent = (track: UserTrack) => { setPendingAgent(track); };
 
   const handleLogout = async () => {
     localStorage.removeItem('quanta_session');
@@ -244,6 +253,7 @@ const App: React.FC = () => {
           <ProfileSetup onComplete={handleProfileComplete} email={session.email} track={session.track} />
         ) : (
           <>
+          {pendingAgent && <div role="dialog" aria-modal="true" aria-label="Agent launch connection check" className="fixed inset-0 z-[10000] overflow-y-auto bg-slate-950 p-5 sm:p-10"><div className="mx-auto max-w-6xl"><div className="mb-5 flex justify-between gap-4"><h2 className="text-xl font-bold text-white">Before opening your {pendingAgent} agent</h2><button autoFocus className="text-cyan-300" onClick={() => setPendingAgent(null)}>Cancel launch</button></div><StartupConnection prelaunch onSetup={() => setPendingAgent(null)} onContinue={() => { const track = pendingAgent; setPendingAgent(null); launchAgent(track); }} /></div></div>}
           <Routes>
             <Route path="/terminal" element={<QuantaCliTerminal standalone />} />
             <Route path="/agent" element={<AgentControlPlane track={session.track} profile={profile} email={session.email} onActivateAgent={handleActivateAgent} onOpenTerminal={openTerminal} />} />
@@ -269,7 +279,8 @@ const App: React.FC = () => {
               <div className="flex-1 overflow-y-auto p-6 lg:p-14 custom-scrollbar">
                 <div className="max-w-7xl mx-auto w-full h-full relative">
                   <Routes>
-                    <Route path="/" element={<Dashboard track={session.track} profile={profile} onOpenChat={openChat} onActivateAgent={handleActivateAgent} onOpenTerminal={openTerminal} />} />
+                    <Route path="/" element={startupReviewed ? <Dashboard track={session.track} profile={profile} onOpenChat={openChat} onActivateAgent={handleActivateAgent} onOpenTerminal={openTerminal} /> : <StartupConnection onContinue={finishStartup} />} />
+                    <Route path="/startup" element={<StartupConnection onContinue={finishStartup} />} />
                     <Route path="/coding-harness" element={<CodingHarness onOpenTerminal={openTerminal} />} />
                     <Route path="/harness-router" element={<GnoesisSiHarnessRouter />} />
                     <Route path="/agent-house" element={<AgentHouseChannel key={session.userId || session.email} owner={session.userId || session.email} />} />
@@ -296,6 +307,7 @@ const App: React.FC = () => {
                     <Route path="/videos" element={<VideoGenerator />} />
                     <Route path="/tasks" element={<TaskBoard />} />
                     <Route path="/notebook" element={<Notebook />} />
+                    <Route path="/data-intake" element={<DataIntake />} />
                     <Route path="/sme-builder" element={<SMEBuilder />} />
                     <Route path="/memory" element={<PersistentMemory />} />
                     <Route path="/settings" element={<Settings />} />

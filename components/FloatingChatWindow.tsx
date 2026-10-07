@@ -1,6 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { ChatWindowSession, ChatMessage } from '../types';
+import { ChatWindowSession, ChatMessage, ComputeProvider } from '../types';
+import { PROVIDER_CHOICES, getPreferredProvider } from '../lib/inference-providers';
 import { chatWithSME } from '../services/geminiService';
 import { X, Minus, Maximize2, Send, Terminal, Cpu, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -24,13 +25,15 @@ export const FloatingChatWindow: React.FC<FloatingChatWindowProps> = ({
 }) => {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [provider, setProvider] = useState<ComputeProvider>(getPreferredProvider);
+  const [model, setModel] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  useEffect(scrollToBottom, [session.messages]);
+  useEffect(() => { scrollToBottom(); }, [session.messages]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,14 +57,20 @@ export const FloatingChatWindow: React.FC<FloatingChatWindowProps> = ({
         session.agentName,
         undefined,
         ['search'],
-        profile
+        profile,
+        provider,
+        false,
+        undefined,
+        true,
+        model.trim() || undefined
       );
 
       const modelMessage: ChatMessage = {
         role: 'model',
         content: response.text,
         timestamp: Date.now(),
-        sources: response.sources
+        sources: response.sources,
+        provider
       };
 
       onAddMessage(session.id, modelMessage);
@@ -116,7 +125,7 @@ export const FloatingChatWindow: React.FC<FloatingChatWindowProps> = ({
             <h3 className="text-xs font-black uppercase tracking-widest text-white">{session.agentName}</h3>
             <div className="flex items-center space-x-2 mt-0.5">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span className="text-[8px] font-bold uppercase tracking-widest text-slate-500">Neural Link Active</span>
+              <span className="text-[8px] font-bold uppercase tracking-widest text-slate-500">Model connection selected</span>
             </div>
           </div>
         </div>
@@ -130,6 +139,13 @@ export const FloatingChatWindow: React.FC<FloatingChatWindowProps> = ({
         </div>
       </div>
 
+      <div className="px-6 py-3 border-b border-slate-800 space-y-2">
+        <select aria-label="Neural Chat provider" disabled={isLoading} value={provider} onChange={e => { setProvider(e.target.value as ComputeProvider); setModel(''); }} className="w-full rounded-lg bg-slate-900 p-2 text-xs text-white">
+          {PROVIDER_CHOICES.map(choice => <option key={choice.id} value={choice.id}>{choice.label}</option>)}
+        </select>
+        <input aria-label="Neural Chat model ID" disabled={isLoading} value={model} onChange={e => setModel(e.target.value)} placeholder="Model ID · blank uses configured model" className="w-full rounded-lg bg-slate-900 p-2 text-xs text-white" />
+        <a href="#/settings" className="block text-xs text-cyan-300">Connect / configure models in Settings</a>
+      </div>
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar bg-slate-950/50">
         {session.messages.map((m, idx) => (

@@ -2,6 +2,7 @@ import express from 'express';
 import { existsSync, readFileSync, mkdirSync, writeFileSync, renameSync } from 'node:fs';
 import { randomUUID, createHash } from 'node:crypto';
 import path from 'node:path';
+import { ProviderStore } from './provider-store';
 import { WORKER_HARNESSES, type TrainingReview, type WorkerKnowledge, type WorkZone } from '../lib/workzone-contract';
 
 type Workspace = { companyId?: string; reviews: TrainingReview[]; knowledge: WorkerKnowledge[]; watchlist: string[] };
@@ -11,6 +12,7 @@ const text = (value: unknown, limit: number, label: string) => {
   return value.trim();
 };
 export function createWorkzoneRouter(root: string) {
+  const secrets = new ProviderStore(path.join(root, '.quanta'));
   const router = express.Router();
   const file = path.join(root, '.quanta', 'operator-workzones.json');
   const records: Record<string, Workspace> = existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) : {};
@@ -19,9 +21,8 @@ export function createWorkzoneRouter(root: string) {
   let boardSetCookies: string[] = [];
   async function boardSession() {
     if (boardCookie && Date.now() - boardCookieAt < 30 * 60 * 1000) return boardCookie;
-    const authFile = path.join(root, '.quanta', 'paperclip-auth.json');
-    if (!existsSync(authFile)) throw new Error('Run node scripts/setup-paperclip.mjs after Paperclip starts.');
-    const credentials = JSON.parse(readFileSync(authFile, 'utf8'));
+    const credentials = (await secrets.getOAuthCredentials('bootstrap')).paperclipAuth;
+    if (!credentials) throw new Error('Run node scripts/setup-paperclip.mjs after Paperclip starts.');
     const response = await fetch(BASE + '/api/auth/sign-in/email', { method: 'POST', headers: { Origin: BASE, 'Content-Type': 'application/json' }, body: JSON.stringify(credentials), redirect: 'error', signal: AbortSignal.timeout(20000) });
     if (!response.ok) throw new Error('Paperclip operator login failed. Run the local setup script.');
     boardSetCookies = response.headers.getSetCookie();

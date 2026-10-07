@@ -8,7 +8,7 @@ import SovereignTokensShowcase from './SovereignTokensShowcase';
 import SovereignSiHeader from './SovereignSiHeader';
 import HarnessRouterShowcase from './HarnessRouterShowcase';
 import NeuralLinkWelcome from './NeuralLinkWelcome';
-import { getAgentTrack } from '../lib/agent-tracks';
+import { AGENT_TRACKS, getAgentTrack } from '../lib/agent-tracks';
 import type { UserTrack } from '../types';
 import { isSupabaseConfigured, signInAsTestGuest } from '../services/supabaseService';
 
@@ -82,6 +82,8 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
       border: "border-orange-500/20"
     }
   ];
+  const splashSpecialistIds: UserTrack[] = ['credit', 'rwa-defi', 'asset-recovery', 'prediction'];
+  const featuredSpecialists = AGENT_TRACKS.filter(agent => splashSpecialistIds.includes(agent.id));
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -193,6 +195,52 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
               </div>
             ))}
           </div>
+
+          <section aria-labelledby="specialist-agents-title" className="mt-28 text-left">
+            <div className="mx-auto mb-10 max-w-3xl text-center">
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-orange-300">Specialist hands · built for real workflows</p>
+              <h2 id="specialist-agents-title" className="mt-4 text-3xl font-outfit font-black uppercase tracking-tight text-white sm:text-5xl">Four more agents. Clear use cases.</h2>
+              <p className="mt-4 text-sm leading-6 text-slate-400 sm:text-base">Bring focused analysis into your sovereign agent system. Each specialist starts with a role, practical examples and a suggested harness fit.</p>
+            </div>
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
+              {featuredSpecialists.map(agent => (
+                <article key={agent.id} className="sme-card-enhanced group flex h-full flex-col rounded-[2rem] border p-6 transition-all duration-500 hover:-translate-y-1" style={{ borderColor: `${agent.from}55`, background: `linear-gradient(145deg, ${agent.from}14, rgba(2,6,23,.94) 56%, ${agent.to}12)` }}>
+                  <div className="mb-5 flex items-center justify-between gap-3">
+                    <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-slate-950/75" style={{ color: agent.from }}>
+                      <svg aria-hidden="true" className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d={agent.icon} /></svg>
+                    </span>
+                    <span className="rounded-full border border-white/10 bg-slate-950/50 px-3 py-1 text-[9px] font-bold uppercase tracking-[.14em] text-slate-300">{agent.directoryGroup}</span>
+                  </div>
+                  <h3 className="text-xl font-outfit font-black leading-tight text-white">{agent.label}</h3>
+                  <p className="mt-2 min-h-10 text-xs leading-5 text-slate-400">{agent.description}</p>
+
+                  <div className="mt-5">
+                    <h4 className="text-[9px] font-black uppercase tracking-[.18em]" style={{ color: agent.from }}>Use cases</h4>
+                    <ul className="mt-3 space-y-3">
+                      {agent.caseStudies.map(useCase => <li key={useCase.title} className="border-l-2 pl-3" style={{ borderColor: `${agent.from}70` }}>
+                        <p className="text-xs font-bold leading-5 text-slate-200">{useCase.title}</p>
+                        <p className="mt-0.5 text-[11px] leading-5 text-slate-400">{useCase.outcome}</p>
+                      </li>)}
+                    </ul>
+                  </div>
+
+                  <div className="mt-5 rounded-xl border border-cyan-300/15 bg-slate-950/55 p-3">
+                    <p className="text-[9px] font-black uppercase tracking-[.16em] text-cyan-300">Suggested harness · candidate</p>
+                    <p className="mt-1 text-xs font-bold text-white">{agent.harnessFit.primary}</p>
+                    <p className="mt-1 text-[10px] leading-4 text-slate-400">{agent.harnessFit.rationale}</p>
+                  </div>
+
+                  <button type="button" onClick={() => {
+                    setTrack(agent.id);
+                    authFormRef.current?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+                  }} className="mt-auto inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-xs font-black uppercase tracking-[.12em] text-slate-950 transition-transform hover:scale-[1.02] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white" style={{ background: `linear-gradient(115deg, ${agent.from}, ${agent.to})`, marginTop: '1.25rem' }}>
+                    Choose {agent.label}
+                    <span aria-hidden="true">→</span>
+                  </button>
+                </article>
+              ))}
+            </div>
+          </section>
 
           <SovereignTrustSection />
 

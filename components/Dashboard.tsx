@@ -1,3 +1,4 @@
+import ConnectionSummary from './ConnectionSummary';
 import React from 'react';
 import { motion } from 'motion/react';
 import { Link } from 'react-router-dom';
@@ -117,6 +118,8 @@ const Dashboard: React.FC<DashboardProps> = ({ profile, track = 'personal', onOp
     <div className="p-6 sm:p-10 animate-in fade-in duration-700">
       <header className="mb-8">
         <SovereignSiHeader compact />
+        <div className="mt-5"><ConnectionSummary /></div>
+        <a href="#/startup" className="mt-4 inline-block rounded-xl border border-cyan-400/40 px-4 py-3 text-sm font-semibold text-cyan-200">Connect & start · check models, agents and tools →</a>
         <div className="grid md:grid-cols-2 gap-4 mt-6 mb-8">{[{path:'/work-zone',name:'Operator Work Zone',text:'Build your digital workforce. Org chart, onboarding, harness assignment and evidence-based training reviews.'},{path:'/quantatrade',name:'QuantaTrade',text:'Your SME trading desk. Source-backed research, bull and bear debate, risk review and a decision journal.'}].map(zone=><a key={zone.path} href={'#'+zone.path} className="rounded-2xl border border-cyan-900 bg-gradient-to-br from-indigo-950 to-slate-950 p-6 hover:border-orange-500 transition-colors"><h2 className="text-xl font-bold text-cyan-300">{zone.name} →</h2><p className="text-sm text-slate-400 mt-3">{zone.text}</p></a>)}</div>
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>

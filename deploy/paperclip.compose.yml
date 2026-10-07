@@ -15,8 +15,8 @@ services:
       PAPERCLIP_DEPLOYMENT_EXPOSURE: private
       PAPERCLIP_PUBLIC_URL: http://127.0.0.1:3210
       PAPERCLIP_TELEMETRY_DISABLED: "1"
-    env_file:
-      - ../.quanta/paperclip.env
+      PAPERCLIP_HTTP_ADAPTER_PRIVATE_ENDPOINT_ALLOWLIST: "http://host.docker.internal:3000"
+      BETTER_AUTH_SECRET: "${PAPERCLIP_BETTER_AUTH_SECRET:?Use node scripts/paperclip-compose.mjs}"
     volumes:
       - paperclip-data:/paperclip
     mem_limit: 2g
