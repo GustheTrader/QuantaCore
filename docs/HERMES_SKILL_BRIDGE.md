@@ -1,6 +1,6 @@
 # Hermes skill bridge (design)
 
-Status: **proposed design, not implemented.** Written October 17, 2026 against the installed Hermes agent under `%LOCALAPPDATA%/hermes/hermes-agent` and the current SkillGrowthLab code. No Hermes skill, pending record or library state was changed to produce it.
+Status: **read-only reader, library import and proposal-review UI implemented locally; Hermes write-back remains proposed.** Written October 17, 2026 against the installed Hermes agent under `%LOCALAPPDATA%/hermes/hermes-agent` and the current SkillGrowthLab code. The integration reads pending files and imports an explicitly reviewed candidate into the operator's browser library. It does not apply, reject or roll back a Hermes file.
 
 ## Goal
 
@@ -128,7 +128,13 @@ These have no Hermes pending record, so they use a direct write:
 | 5. Rollback / direct write | bridge | Backup, atomic write, reload, hash verification |
 | 6. Live check | — | One real Hermes-proposed edit taken through import → evaluation → apply → verified hash in `gnoesis-work`, recorded with evidence. This must happen before calling the bridge working |
 
-## Open questions
+## Current app integration
+
+Open Skills & growth → Growth loop → Review staged skill edits. Choose Work or Personal, manually read pending proposals, inspect the plain-text baseline and proposed content, and supply an import note. Import re-reads the source, requires the configured write-approval setting, verifies both text hashes and refuses stale or ambiguous records. It changes only the browser review library. Imported Hermes versions stay out of Quanta request context. Their local adoption remains blocked until a separately reviewed write-back adapter verifies the deployed artifact. Rejecting a local candidate does not remove its Hermes pending record.
+
+Profile configuration is not proof of the running Hermes process's gate state. This UI does not restart Hermes or change its settings. Recorded holdout counts remain operator assertions; neither reading nor importing executes a model evaluation.
+
+## Remaining design questions
 
 1. **Matching skill IDs between Hermes and the lab.** Should the lab's seeded `skillforge` and the Hermes `autonomous-ai-agents/skillforge` be linked as one skill, or tracked separately? This design keeps them separate (`skillforge` vs `hermes:work:skillforge`).
 2. **Pending volume.** If background review stages many proposals, the lab may want filters (by skill or origin) or a "reject all older than N days" action, which would still be operator-triggered.

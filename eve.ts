@@ -8,6 +8,7 @@ import { createInferenceRouters } from './server/inference-router';
 import { createCliRouter } from './server/cli-router';
 import { ResearchManager } from './server/research-manager';
 import { createResearchRouter } from './server/research-router';
+import { createHermesSkillRouter } from './server/hermes-skill-router';
 import { createMemoryRouter } from './server/memory-router';
 import { createHarnessRouterApi } from './server/harness-router';
 import { createWorkzoneRouter } from './server/workzone-router';
@@ -46,6 +47,7 @@ async function startServer() {
   app.use('/api/inference', inference.api);
   app.use('/api/mcp/zo', createZoMcpRouter(providerStore));
   app.use('/api/trading', createResearchRouter(research));
+  app.use('/api/hermes', createHermesSkillRouter());
   app.use('/api/cli', createCliRouter(providerStore, research));
   app.use('/api/memory', createMemoryRouter());
   app.use('/api/harness-router', createHarnessRouterApi(providerStore));

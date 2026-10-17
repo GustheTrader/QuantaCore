@@ -13,7 +13,8 @@
     "research:types": "node scripts/generate-research-contract.mjs",
     "test:research": "node --import tsx --test server/research-*.test.ts services/researchService.test.ts",
     "test:hybrid": "node --import tsx --test server/hybrid-manager.test.ts scripts/evaluate-hybrid-pilot.test.mjs",
-    "hybrid": "node scripts/hybrid-cloud.mjs"
+    "hybrid": "node scripts/hybrid-cloud.mjs",
+    "test:skills": "node --import tsx --test lib/skill-growth.test.ts lib/skill-growth-hermes.test.ts server/hermes-skill-bridge.test.ts services/hermesSkillBridge.test.ts"
   },
   "dependencies": {
     "@google/genai": "^1.34.0",

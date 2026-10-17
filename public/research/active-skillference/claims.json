@@ -1,0 +1,476 @@
+{
+  "agent_epistemic_commit": {
+    "description": "",
+    "source": "src.kernels.examples.agent_example",
+    "units": "nats",
+    "value": 0.079881
+  },
+  "agent_epistemic_sample": {
+    "description": "",
+    "source": "src.kernels.examples.agent_example",
+    "units": "nats",
+    "value": 0.146311
+  },
+  "agent_g_commit": {
+    "description": "",
+    "source": "src.kernels.examples.agent_example",
+    "units": "nats",
+    "value": 0.613267
+  },
+  "agent_g_sample": {
+    "description": "",
+    "source": "src.kernels.examples.agent_example",
+    "units": "nats",
+    "value": 0.546837
+  },
+  "agent_preferred_action": {
+    "description": "",
+    "source": "src.kernels.examples.agent_example",
+    "units": "",
+    "value": 0.0
+  },
+  "agent_regime_switch_precision": {
+    "description": "",
+    "source": "src.kernels.examples.agent_example",
+    "units": "",
+    "value": 0.95
+  },
+  "bayes_posterior_present_given_positive": {
+    "description": "",
+    "source": "src.kernels.examples.inference_examples",
+    "units": "",
+    "value": 0.166667
+  },
+  "bmr_log_bayes_factor": {
+    "description": "",
+    "source": "src.kernels.examples.model_reduction_examples",
+    "units": "nats",
+    "value": 0.172252
+  },
+  "bmr_log_evidence_full": {
+    "description": "",
+    "source": "src.kernels.examples.model_reduction_examples",
+    "units": "nats",
+    "value": -2.823461
+  },
+  "bmr_log_evidence_reduced": {
+    "description": "",
+    "source": "src.kernels.examples.model_reduction_examples",
+    "units": "nats",
+    "value": -2.995713
+  },
+  "bp_marginal_neighbor_node_state0": {
+    "description": "",
+    "source": "src.kernels.examples.message_passing_examples",
+    "units": "",
+    "value": 0.74
+  },
+  "bp_marginal_observed_node_state0": {
+    "description": "",
+    "source": "src.kernels.examples.message_passing_examples",
+    "units": "",
+    "value": 0.9
+  },
+  "bp_smoothing_lift_over_prior": {
+    "description": "",
+    "source": "src.kernels.examples.message_passing_examples",
+    "units": "",
+    "value": 0.24
+  },
+  "cross_entropy_biased_under_fair": {
+    "description": "",
+    "source": "src.kernels.examples.information_bound_examples",
+    "units": "",
+    "value": 0.693147
+  },
+  "cross_entropy_gap_equals_kl": {
+    "description": "",
+    "source": "src.kernels.examples.information_bound_examples",
+    "units": "",
+    "value": 0.368064
+  },
+  "dirichlet_expected_dense": {
+    "description": "",
+    "source": "src.kernels.examples.dirichlet_examples",
+    "units": "",
+    "value": 0.5
+  },
+  "dirichlet_expected_log_positive": {
+    "description": "",
+    "source": "src.kernels.examples.learning_examples",
+    "units": "nats",
+    "value": -0.30202
+  },
+  "dirichlet_expected_log_sparse": {
+    "description": "",
+    "source": "src.kernels.examples.dirichlet_examples",
+    "units": "",
+    "value": -0.833333
+  },
+  "dirichlet_expected_sparse": {
+    "description": "",
+    "source": "src.kernels.examples.dirichlet_examples",
+    "units": "",
+    "value": 0.5
+  },
+  "dirichlet_jensen_gap_dense": {
+    "description": "",
+    "source": "src.kernels.examples.dirichlet_examples",
+    "units": "",
+    "value": 0.012656
+  },
+  "dirichlet_jensen_gap_sparse": {
+    "description": "",
+    "source": "src.kernels.examples.dirichlet_examples",
+    "units": "",
+    "value": 0.140186
+  },
+  "dirichlet_posterior_mean_positive": {
+    "description": "",
+    "source": "src.kernels.examples.learning_examples",
+    "units": "",
+    "value": 0.75
+  },
+  "dirichlet_prior_mean_positive": {
+    "description": "",
+    "source": "src.kernels.examples.learning_examples",
+    "units": "",
+    "value": 0.5
+  },
+  "efe_ambiguity_crisp_state": {
+    "description": "",
+    "source": "src.kernels.examples.efe_ambiguity_examples",
+    "units": "nats",
+    "value": 0.325083
+  },
+  "efe_ambiguity_uniform_belief": {
+    "description": "",
+    "source": "src.kernels.examples.efe_ambiguity_examples",
+    "units": "nats",
+    "value": 0.509115
+  },
+  "efe_epistemic_certain": {
+    "description": "",
+    "source": "src.kernels.examples.efe_examples",
+    "units": "nats",
+    "value": 0.0
+  },
+  "efe_epistemic_uncertain": {
+    "description": "",
+    "source": "src.kernels.examples.efe_examples",
+    "units": "nats",
+    "value": 0.368064
+  },
+  "efe_identity_epistemic": {
+    "description": "",
+    "source": "src.kernels.examples.efe_decomposition_examples",
+    "units": "",
+    "value": 0.349517
+  },
+  "efe_identity_pragmatic": {
+    "description": "",
+    "source": "src.kernels.examples.efe_decomposition_examples",
+    "units": "",
+    "value": -0.993039
+  },
+  "efe_identity_residual": {
+    "description": "",
+    "source": "src.kernels.examples.efe_decomposition_examples",
+    "units": "",
+    "value": 0.0
+  },
+  "efe_identity_total": {
+    "description": "",
+    "source": "src.kernels.examples.efe_decomposition_examples",
+    "units": "",
+    "value": 0.643522
+  },
+  "efe_pragmatic_certain": {
+    "description": "",
+    "source": "src.kernels.examples.efe_examples",
+    "units": "nats",
+    "value": -0.325083
+  },
+  "elbo_posterior": {
+    "description": "",
+    "source": "src.kernels.examples.evidence_bound_examples",
+    "units": "",
+    "value": -2.823461
+  },
+  "elbo_uniform": {
+    "description": "",
+    "source": "src.kernels.examples.evidence_bound_examples",
+    "units": "",
+    "value": -3.117354
+  },
+  "entropy_biased_coin": {
+    "description": "",
+    "source": "src.kernels.examples.info_examples",
+    "units": "nats",
+    "value": 0.325083
+  },
+  "entropy_deficit_biased": {
+    "description": "",
+    "source": "src.kernels.examples.information_bound_examples",
+    "units": "",
+    "value": 0.368064
+  },
+  "entropy_fair_coin": {
+    "description": "",
+    "source": "src.kernels.examples.info_examples",
+    "units": "nats",
+    "value": 0.693147
+  },
+  "entropy_fair_die": {
+    "description": "",
+    "source": "src.kernels.examples.info_examples",
+    "units": "nats",
+    "value": 1.791759
+  },
+  "entropy_max_two_state": {
+    "description": "",
+    "source": "src.kernels.examples.information_bound_examples",
+    "units": "",
+    "value": 0.693147
+  },
+  "evidence_bound_slack_posterior": {
+    "description": "",
+    "source": "src.kernels.examples.evidence_bound_examples",
+    "units": "",
+    "value": 0.0
+  },
+  "evidence_bound_slack_uniform": {
+    "description": "",
+    "source": "src.kernels.examples.evidence_bound_examples",
+    "units": "",
+    "value": 0.293893
+  },
+  "evidence_probability_positive": {
+    "description": "",
+    "source": "src.kernels.examples.inference_examples",
+    "units": "",
+    "value": 0.0594
+  },
+  "kl_asymmetry_gap": {
+    "description": "",
+    "source": "src.kernels.examples.information_bound_examples",
+    "units": "",
+    "value": 0.142761
+  },
+  "kl_biased_vs_fair": {
+    "description": "",
+    "source": "src.kernels.examples.info_examples",
+    "units": "nats",
+    "value": 0.368064
+  },
+  "kl_fair_vs_biased": {
+    "description": "",
+    "source": "src.kernels.examples.information_bound_examples",
+    "units": "",
+    "value": 0.510826
+  },
+  "mutual_info_correlated": {
+    "description": "",
+    "source": "src.kernels.examples.info_examples",
+    "units": "nats",
+    "value": 0.192745
+  },
+  "mutual_info_independent": {
+    "description": "",
+    "source": "src.kernels.examples.information_bound_examples",
+    "units": "",
+    "value": 0.0
+  },
+  "mutual_info_skewed": {
+    "description": "",
+    "source": "src.kernels.examples.information_bound_examples",
+    "units": "",
+    "value": 0.001121
+  },
+  "neg_log_evidence_positive": {
+    "description": "",
+    "source": "src.kernels.examples.inference_examples",
+    "units": "nats",
+    "value": 2.823461
+  },
+  "param_disease_prior_absent": {
+    "description": "",
+    "source": "src.kernels.examples.model_parameter_examples",
+    "units": "",
+    "value": 0.99
+  },
+  "param_disease_prior_present": {
+    "description": "",
+    "source": "src.kernels.examples.model_parameter_examples",
+    "units": "",
+    "value": 0.01
+  },
+  "param_informative_sensor_precision": {
+    "description": "",
+    "source": "src.kernels.examples.model_parameter_examples",
+    "units": "",
+    "value": 0.9
+  },
+  "param_sensor_false_positive": {
+    "description": "",
+    "source": "src.kernels.examples.model_parameter_examples",
+    "units": "",
+    "value": 0.05
+  },
+  "param_sensor_true_positive": {
+    "description": "",
+    "source": "src.kernels.examples.model_parameter_examples",
+    "units": "",
+    "value": 0.99
+  },
+  "pc_observation": {
+    "description": "",
+    "source": "src.kernels.examples.predictive_coding_examples",
+    "units": "",
+    "value": 2.0
+  },
+  "pc_posterior_estimate": {
+    "description": "",
+    "source": "src.kernels.examples.predictive_coding_examples",
+    "units": "",
+    "value": 1.333333
+  },
+  "pc_prior_prediction_error": {
+    "description": "",
+    "source": "src.kernels.examples.predictive_coding_examples",
+    "units": "",
+    "value": 1.333333
+  },
+  "pc_sensory_prediction_error": {
+    "description": "",
+    "source": "src.kernels.examples.predictive_coding_examples",
+    "units": "",
+    "value": 0.666667
+  },
+  "plan_best_policy_posterior": {
+    "description": "",
+    "source": "src.kernels.examples.planning_examples",
+    "units": "",
+    "value": 0.915376
+  },
+  "plan_greedy_policy_g": {
+    "description": "",
+    "source": "src.kernels.examples.planning_examples",
+    "units": "nats",
+    "value": 3.028255
+  },
+  "plan_lookahead_gain_coupled": {
+    "description": "",
+    "source": "src.kernels.examples.planning_examples",
+    "units": "nats",
+    "value": 0.820981
+  },
+  "plan_lookahead_gain_decoupled": {
+    "description": "",
+    "source": "src.kernels.examples.planning_examples",
+    "units": "nats",
+    "value": 0.0
+  },
+  "plan_optimal_policy_g": {
+    "description": "",
+    "source": "src.kernels.examples.planning_examples",
+    "units": "nats",
+    "value": 2.207275
+  },
+  "policy_best_mass_high_precision": {
+    "description": "",
+    "source": "src.kernels.examples.policy_precision_examples",
+    "units": "",
+    "value": 0.999775
+  },
+  "policy_entropy_high_precision": {
+    "description": "",
+    "source": "src.kernels.examples.policy_precision_examples",
+    "units": "",
+    "value": 0.002113
+  },
+  "policy_entropy_low_precision": {
+    "description": "",
+    "source": "src.kernels.examples.policy_precision_examples",
+    "units": "",
+    "value": 1.098297
+  },
+  "policy_entropy_low_precision_deficit": {
+    "description": "",
+    "source": "src.kernels.examples.policy_precision_examples",
+    "units": "",
+    "value": 0.000315
+  },
+  "policy_entropy_reference_precision": {
+    "description": "",
+    "source": "src.kernels.examples.policy_precision_examples",
+    "units": "",
+    "value": 0.999229
+  },
+  "policy_entropy_uniform_ceiling": {
+    "description": "",
+    "source": "src.kernels.examples.policy_precision_examples",
+    "units": "",
+    "value": 1.098612
+  },
+  "posterior_mean_analytic_residual": {
+    "description": "",
+    "source": "src.kernels.examples.precision_weighting_examples",
+    "units": "",
+    "value": 0.0
+  },
+  "posterior_mean_confident_prior": {
+    "description": "",
+    "source": "src.kernels.examples.precision_weighting_examples",
+    "units": "",
+    "value": 1.176471
+  },
+  "posterior_mean_confident_sensor": {
+    "description": "",
+    "source": "src.kernels.examples.precision_weighting_examples",
+    "units": "",
+    "value": 3.823529
+  },
+  "posterior_mean_precision_shift": {
+    "description": "",
+    "source": "src.kernels.examples.precision_weighting_examples",
+    "units": "",
+    "value": 2.647059
+  },
+  "precision_weight_on_observation": {
+    "description": "",
+    "source": "src.kernels.examples.precision_weighting_examples",
+    "units": "",
+    "value": 0.058824
+  },
+  "softmax_top_high_precision": {
+    "description": "",
+    "source": "src.kernels.examples.softmax_examples",
+    "units": "",
+    "value": 0.95033
+  },
+  "softmax_top_low_precision": {
+    "description": "",
+    "source": "src.kernels.examples.softmax_examples",
+    "units": "",
+    "value": 0.665241
+  },
+  "surprise_rare_event": {
+    "description": "",
+    "source": "src.kernels.examples.info_examples",
+    "units": "nats",
+    "value": 4.60517
+  },
+  "vfe_descent_end": {
+    "description": "",
+    "source": "src.kernels.examples.inference_examples",
+    "units": "nats",
+    "value": 2.823461
+  },
+  "vfe_descent_start": {
+    "description": "",
+    "source": "src.kernels.examples.inference_examples",
+    "units": "nats",
+    "value": 3.117354
+  }
+}

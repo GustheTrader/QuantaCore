@@ -1,0 +1,36 @@
+{
+  "repository": "https://github.com/ActiveInferenceInstitute/Active_Skillference",
+  "commit": "1f1030f053f2922f1c16ea7170e62635b511d603",
+  "fetchedAt": "2026-10-17T18:13:16.685Z",
+  "files": [
+    {
+      "path": "LICENSE",
+      "filename": "LICENSE",
+      "bytes": 1076,
+      "sha256": "72f87c6cb562ffc6f870dc124d86b45ee0df5460e83fe8443d8e2ae65777e978",
+      "localPath": "LICENSE.txt"
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES.md",
+      "filename": "THIRD_PARTY_NOTICES.md",
+      "bytes": 2121,
+      "sha256": "044588362b6ec388eb405a51e3dd6e8401f23828014ca1878df16e3d31aaf545",
+      "localPath": "THIRD_PARTY_NOTICES.md"
+    },
+    {
+      "path": "output/data/skilltree_project.json",
+      "filename": "output__data__skilltree_project.json",
+      "bytes": 3702245,
+      "sha256": "9e905563876a45c960f1f081aa3f62b6be844058fd199b5c34e7f39b97265cce",
+      "localPath": "skilltree_project.json"
+    },
+    {
+      "path": "output/data/claims.json",
+      "filename": "output__data__claims.json",
+      "bytes": 12606,
+      "sha256": "68bcc9ec67b536dbfececa6dc2257bb12e9edabed1cfd728dad436287618ada6",
+      "localPath": "claims.json"
+    }
+  ],
+  "scope": "Pinned reference artifacts; upstream kernels not regenerated; no live SkillTree scoring."
+}

@@ -39,6 +39,7 @@ import OpenDotsAgent from './components/OpenDotsAgent';
 import AgentDirectory from './components/AgentDirectory';
 import QuantaCliTerminal from './components/QuantaCliTerminal';
 import GnoesisResearch from './components/GnoesisResearch';
+import SkillGrowthLab from './components/SkillGrowthLab';
 import OperatorWorkZone from './components/OperatorWorkZone';
 import QuantaTrade from './components/QuantaTrade';
 import { isLocalResearchHost } from './services/researchService';
@@ -106,7 +107,7 @@ const App: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [terminalOpen, setTerminalOpen] = useState(false);
   const [currentHash, setCurrentHash] = useState(window.location.hash);
-  const localResearchRoute = isLocalResearchHost() && ['/research', '/work-zone', '/quantatrade'].includes(currentHash.replace(/^#/, '').split('?')[0]);
+  const localResearchRoute = isLocalResearchHost() && ['/research', '/work-zone', '/quantatrade', '/rsi-lab/skills'].includes(currentHash.replace(/^#/, '').split('?')[0]);
   const localResearchAccess = localResearchRoute && (!session || !profile);
   const { windows, openChat, closeChat, toggleMinimize, focusWindow, addMessage } = useChatWindows();
   const openTerminal = () => {
@@ -243,8 +244,8 @@ const App: React.FC = () => {
           <div className="min-h-screen bg-[#020617] text-gray-100 p-5 md:p-10">
             <div className="max-w-7xl mx-auto">
               <a href="#/" className="inline-block text-sm text-slate-400 hover:text-white mb-6">← QuantaCore</a>
-              <div className="flex gap-5 mb-6 text-sm text-cyan-300"><a href="#/work-zone">Work Zone</a><a href="#/quantatrade">QuantaTrade</a><a href="#/research">Research</a><span className="ml-auto text-slate-500">Trusted local operator</span></div>
-              {currentHash.startsWith('#/work-zone') ? <OperatorWorkZone /> : currentHash.startsWith('#/quantatrade') ? <QuantaTrade /> : <GnoesisResearch />}
+              <div className="flex flex-wrap gap-5 mb-6 text-sm text-cyan-300"><a href="#/work-zone">Work Zone</a><a href="#/quantatrade">QuantaTrade</a><a href="#/research">Research</a><a href="#/rsi-lab/skills">Skills & growth</a><span className="ml-auto text-slate-500">Trusted local operator</span></div>
+              {currentHash.startsWith('#/rsi-lab/skills') ? <SkillGrowthLab /> : currentHash.startsWith('#/work-zone') ? <OperatorWorkZone /> : currentHash.startsWith('#/quantatrade') ? <QuantaTrade /> : <GnoesisResearch />}
             </div>
           </div>
         ) : !session ? (
@@ -300,6 +301,7 @@ const App: React.FC = () => {
                     <Route path="/work-zone" element={<OperatorWorkZone />} />
                     <Route path="/quantatrade" element={<QuantaTrade />} />
                     <Route path="/research" element={<GnoesisResearch />} />
+                    <Route path="/rsi-lab/skills" element={<SkillGrowthLab owner={session.email} />} />
                     <Route path="/council" element={<Council track={session.track} />} />
                     <Route path="/projects" element={<Projects />} />
                     <Route path="/mcp" element={<MCPConnectors />} />
