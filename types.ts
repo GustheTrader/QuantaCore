@@ -25,8 +25,8 @@ export interface TaskAttachment {
   synced: boolean;
 }
 
-export type ComputeProvider = 'gemini' | 'claude' | 'grok' | 'google-api' | 'groq' | 'local' | 'abacus' | 'novita' | 'openai-compatible' | 'ollama-cloud' | 'openrouter' | 'fireworks' | 'omniroute';
-export type UserTrack = 'personal' | 'consumer' | 'business' | 'trading' | 'education' | 'guest' | 'investing' | 'growth' | 'credit' | 'rwa-defi' | 'asset-recovery' | 'prediction';
+export type ComputeProvider = 'gemini' | 'claude' | 'grok' | 'google-api' | 'groq' | 'local' | 'abacus' | 'novita' | 'openai-compatible' | 'ollama-cloud' | 'openrouter' | 'fireworks' | 'omniroute' | 'deepseek' | 'mistral' | 'cerebras' | 'moonshot' | 'minimax' | 'nvidia' | 'huggingface' | 'together' | 'baseten' | 'cheaper-inference';
+export type UserTrack = 'personal' | 'consumer' | 'business' | 'trading' | 'education' | 'guest' | 'investing' | 'growth' | 'credit' | 'rwa-defi' | 'asset-recovery' | 'prediction' | 'clipping';
 
 export interface FPTAudit {
   deconstruction: string[]; // Breaking down the problem
@@ -72,6 +72,9 @@ export interface SourceNode {
     url?: string;
     wordCount?: number;
     summary?: string;
+    // Model-distilled notes are unreviewed until the operator approves or shares them.
+    origin?: 'model-distilled' | 'user';
+    reviewStatus?: 'unreviewed' | 'approved';
   };
 }
 

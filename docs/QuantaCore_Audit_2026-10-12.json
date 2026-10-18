@@ -1,0 +1,304 @@
+{
+  "schemaVersion": 1,
+  "auditDate": "2026-10-12",
+  "timezone": "America/Los_Angeles",
+  "project": "QuantaCore",
+  "checkout": "C:\\QuantaCore",
+  "scope": "Current local source, running services, offline validation, persisted research outcomes and read-only hosted deployment evidence",
+  "verdict": {
+    "productionReadinessScore": 52,
+    "band": "Risky",
+    "scoreIsCompletionPercentage": false,
+    "recommendation": "Supervised local R&D or a qualified limited internal beta; do not represent all advertised workflows as production complete",
+    "publicAutonomousLaunchBlocked": true,
+    "liveFinancialExecutionValidated": false
+  },
+  "release": {
+    "branch": "main",
+    "remote": "https://github.com/GustheTrader/QuantaCore.git",
+    "head": "14b1b7963bba332aedd3e90725a9665e23f977c2",
+    "remoteMainMatchesHead": true,
+    "modifiedOrUntrackedEntriesAtAuditStart": 94,
+    "githubWorkflowDirectoryPresent": false,
+    "publicFrontend": "https://quanta-core.vercel.app/",
+    "publicFrontendHttpStatus": 200,
+    "exactVercelDeploymentCommit": null,
+    "deploymentCommitLimitation": "Connected deployment tools returned access errors",
+    "publicBundleBytes": 1897639,
+    "publicRouteStrings": {
+      "/rsi-lab": false,
+      "/smb": false,
+      "/alexandria": false,
+      "/agent-house": true,
+      "/hermes": true,
+      "/work-zone": true,
+      "/quantatrade": true
+    },
+    "vercelDeploysLocalExpressServer": false
+  },
+  "validation": {
+    "typescript": { "status": "pass", "command": "tsc --noEmit" },
+    "productionBuild": {
+      "status": "pass",
+      "modules": 3218,
+      "mainChunkKb": 2078.29,
+      "mainChunkGzipKb": 578.60,
+      "hybridChunkKb": 848.09,
+      "hybridChunkGzipKb": 235.38,
+      "chunkSizeWarning": true
+    },
+    "nodeOffline": {
+      "status": "fail",
+      "total": 93,
+      "passed": 92,
+      "failed": 1,
+      "durationSeconds": 635.759,
+      "failure": "Hermes approval test expects old error message; unoffered scope is rejected with a different message",
+      "isolatedRerun": "same assertion failure"
+    },
+    "tradingPython": {
+      "status": "fail",
+      "total": 18,
+      "passed": 17,
+      "failed": 1,
+      "durationSeconds": 824.78,
+      "failure": "Real HTTP fixture did not become ready within 90 seconds; cancellation and owner-death assertions were not reached",
+      "focusedHttpRerun": "same 90-second readiness failure reproduced",
+      "focusedHttpRerunDurationSeconds": 156.65
+    },
+    "rsiPython": {
+      "status": "pass",
+      "total": 7,
+      "passed": 7,
+      "durationSeconds": 159.77
+    },
+    "localGetEndpointsSampled": 21,
+    "protectedNegativeProbes": { "endpoints": 5, "requests": 10, "rejectedWith403": 10 },
+    "bundleExactSecretMatchScan": {
+      "jsFiles": 6,
+      "nonemptyCurrentLocalSecretsChecked": 3,
+      "matchedNames": [],
+      "exhaustive": false
+    },
+    "dependencyAdvisories": {
+      "status": "incomplete",
+      "command": "npm audit --omit=dev --json",
+      "usableResult": false,
+      "attemptStopped": true,
+      "vulnerabilityCount": null,
+      "dependenciesChanged": false
+    },
+    "hostMemoryPointInTime": { "totalGiB": 15.82, "freeGiB": 1.14, "rootCauseProven": false },
+    "browser": {
+      "workZoneEmptyOrganizationStateObserved": true,
+      "completeVisualRouteCoverage": false,
+      "mobileCoverage": false,
+      "limitation": "Repeated browser automation timeouts"
+    }
+  },
+  "runtime": [
+    { "id": "quanta", "port": 3000, "status": "responding", "mode": "development", "loopback": true },
+    { "id": "hindsight", "port": 8888, "status": "responding", "workflowValidated": false },
+    { "id": "honcho", "port": 8000, "status": "responding", "workflowValidated": false },
+    { "id": "paperclip", "port": 3210, "status": "healthy", "workflow": "blocked by local operator authentication; browser user organization unprovisioned" },
+    { "id": "harnessrouter", "port": 3100, "status": "responding on retry", "version": "463e02c094d0b6f240959c3395b468884f9d7bbb-quanta-font-rangefix", "liveTaskValidated": false },
+    { "id": "opendots", "port": 4310, "status": "responding on retry", "dotCount": 2, "browserConfigured": true, "intelligenceConfigured": false, "modelConfigured": false },
+    { "id": "trading-worker", "port": 8788, "status": "ready", "researchOnly": true, "version": "0.5.1", "commit": "35543d0248bf89fcb92b17a15858ad0c0e940687" },
+    { "id": "hermes", "status": "connected", "chatReady": true, "liveTaskValidated": false },
+    { "id": "openmuse", "status": "unavailable" },
+    { "id": "ollama-local", "port": 11434, "status": "unavailable" },
+    { "id": "omniroute", "port": 20128, "status": "unavailable" },
+    { "id": "obsidian-sync", "status": "not running" }
+  ],
+  "providers": {
+    "listedAdapters": 11,
+    "preferred": "openrouter",
+    "keyAndModelConfigured": ["openrouter", "ollama-cloud"],
+    "freshLiveInferenceValidated": false,
+    "localUiPolicy": {
+      "model": "openrouter/free",
+      "textOnly": true,
+      "maxInputBytes": 16000,
+      "maxOutputTokens": 512,
+      "requestsPerMinute": 5,
+      "monthlyCalls": 100,
+      "monthlyCapUsd": 1,
+      "reservePerCallUsd": 0.01,
+      "latestRecordedRequest": "failed"
+    }
+  },
+  "hosted": {
+    "supabaseProject": "ovugynuxvtvfkwjkyxby",
+    "anonymousSignupEnabled": true,
+    "newSignupValidated": false,
+    "emailDeliveryValidated": false,
+    "liveDatabaseRlsValidated": false,
+    "functions": [
+      { "name": "quanta-inference", "version": 3, "status": "ACTIVE", "verifyJwt": true },
+      { "name": "quanta-memory", "version": 4, "status": "ACTIVE", "verifyJwt": true },
+      { "name": "quanta-harness-router", "version": 2, "status": "ACTIVE", "verifyJwt": true }
+    ],
+    "openRouterSecretNamePresent": true,
+    "upstashSecretNamesPresent": true,
+    "hindsightSecretNamePresent": false,
+    "honchoSecretNamePresent": false,
+    "harnessRouterConnectionAndAllowlistSecretNamesPresent": false
+  },
+  "research": {
+    "realJournalRuns": 5,
+    "realJournalErroredRuns": 5,
+    "realJournalCompletedDecisions": 0,
+    "providerAuthenticationFailures": 3,
+    "frozenBudgetExhaustedRuns": 2,
+    "newPaidRunLaunched": false,
+    "fixtureResultsCountAsLiveSuccess": false,
+    "rsiUpstreamCommit": "be50316e1db05914068a973f322770ef08ed7ba1",
+    "liveRsiImprovementValidated": false,
+    "tradingPerformanceValidated": false
+  },
+  "findings": [
+    {
+      "id": "F01", "severity": "P1", "confidence": "high", "status": "open",
+      "title": "Paperclip operator authentication blocks existing Work Zone workspaces",
+      "evidence": ["GET build and trade workspace state: 503 operator login failed", "Paperclip health: 200", "Browser user: organization unprovisioned"],
+      "fix": "Reconcile bootstrap identity without resetting stored workspaces; qualify organization, worker, task and review workflow"
+    },
+    {
+      "id": "F02", "severity": "P1", "confidence": "high", "status": "open",
+      "title": "No completed real research outcome in the inspected journal",
+      "evidence": ["5 real runs, all errored", "3 provider 401 failures at Market Analyst", "2 frozen budget exhaustion failures"],
+      "fix": "Provider preflight, graph budget feasibility and one reviewed bounded successful result; preserve frozen configuration"
+    },
+    {
+      "id": "F03", "severity": "P1", "confidence": "high", "status": "open",
+      "title": "Legacy chat automatically shares distilled knowledge and mutates live prompts",
+      "scope": "Within the user's legacy knowledge store; no cross-user leak demonstrated",
+      "source": ["components/ChatInterface.tsx:230", "components/ChatInterface.tsx:255", "services/geminiService.ts:296", "services/geminiService.ts:317"],
+      "fix": "Private-agent admission, explicit master KB promotion, reviewed prompt candidates and fail-closed evaluation parsing",
+      "majorBehaviorChange": true
+    },
+    {
+      "id": "F04", "severity": "P1", "confidence": "high", "status": "open",
+      "title": "Production-mode localhost routes memory to hosted Edge Functions",
+      "source": ["services/agentMemoryService.ts:17", "services/inferenceService.ts:13"],
+      "fix": "Explicit reviewed runtime selection with local custody default and tests for dev, local production and hosted deployment"
+    },
+    {
+      "id": "F05", "severity": "P1", "confidence": "medium", "status": "open",
+      "title": "Local harness read-only restrictions are prompt instructions rather than verified tool enforcement",
+      "source": ["server/harness-router.ts:153"],
+      "limitation": "Actual downstream harness permissions were not exercised; no side-effect exploit demonstrated",
+      "fix": "Deterministic capability profiles and verification of tools, mounts, network and approvals",
+      "majorBehaviorChange": true
+    },
+    {
+      "id": "F06", "severity": "P1", "confidence": "high", "status": "open",
+      "title": "Current local system is not the published main or fully configured hosted release",
+      "evidence": ["94 mixed working-tree entries at audit start", "Recent local route strings absent from public bundle", "Hosted memory and harness connection secrets absent", "Static Vercel configuration does not deploy local Express"],
+      "fix": "Reviewed release inventory, hosted capability mapping, CI and exact deployment identity"
+    },
+    {
+      "id": "F07", "severity": "P2", "confidence": "high", "status": "open",
+      "title": "Legacy browser credential path shares application privileges with external runtime script",
+      "source": ["services/browserCredentials.ts:7", "index.html:8"],
+      "limitation": "No currently stored browser Gemini key or active theft established",
+      "fix": "Server gateway for legacy calls, compiled Tailwind and reviewed restrictive CSP"
+    },
+    {
+      "id": "F08", "severity": "P2", "confidence": "high", "status": "open",
+      "title": "Memory admission does not install defense policy or establish private-agent Hindsight recall",
+      "source": ["server/memory-router.ts:118", "supabase/functions/quanta-memory/index.ts:69"],
+      "limitation": "Existing live bank policies could not be inspected within timeout",
+      "fix": "Reviewed per-bank screening, agent scope, provenance, corrections and explicit shared promotion",
+      "majorBehaviorChange": true
+    },
+    {
+      "id": "F09", "severity": "P2", "confidence": "high", "status": "open",
+      "title": "Prototype execution and telemetry can be mistaken for operational evidence",
+      "source": ["components/AgenticOS.tsx:59", "components/IronClawAgent.tsx:44", "services/agentos/tools.ts:30", "services/edgeService.ts:15", "services/langfuseService.ts:4"],
+      "fix": "Explicit prototype labels and real persisted execution/trace results"
+    },
+    {
+      "id": "F10", "severity": "P2", "confidence": "high", "status": "open",
+      "title": "Validation baseline is not fully green and CI does not cover the system",
+      "evidence": ["1 failing Node assertion, reproduced in isolation", "1 Python HTTP readiness failure, reproduced in isolation", "No .github workflow directory"],
+      "fix": "Semantic approval tests, worker startup diagnostics, verified cleanup and unified CI commands"
+    },
+    {
+      "id": "F11", "severity": "P2", "confidence": "medium", "status": "open",
+      "title": "Live schema ownership, complete migrations and restore evidence remain incomplete",
+      "evidence": ["Repository migrations cover contacts and Agent House", "Legacy cloud table references have no matching repository migrations", "Live effective RLS and restore drill not verified"],
+      "fix": "Versioned schema/RLS inventory and disposable owner-isolation plus recovery tests"
+    },
+    {
+      "id": "F12", "severity": "P2", "confidence": "high", "status": "open",
+      "title": "Large frontend and floating runtime artifacts reduce startup and release reliability",
+      "evidence": ["2,078.29 kB main chunk", "848.09 kB HybridCloud chunk", "Floating Docker latest tags", "Package version 0.0.0", "Slow host checks and repeated browser timeouts"],
+      "fix": "Lazy workspaces, optional service profiles, pinned artifacts and measured resource budgets"
+    },
+    {
+      "id": "F13", "severity": "P2", "confidence": "high", "status": "open",
+      "title": "FPT specialist routing and trained-model improvements are not demonstrated production pipelines",
+      "evidence": ["FPT manual toggle and prompt injection", "Fireworks unconfigured", "No live qualified model promotion"],
+      "fix": "Reviewed solver dispatch contract and one candidate evaluation/promotion lifecycle",
+      "majorBehaviorChange": true
+    }
+  ],
+  "capabilities": [
+    { "name": "Local app shell", "status": "implemented_checked" },
+    { "name": "13 agent role cards", "status": "implemented_ui", "independentWorkersValidated": false },
+    { "name": "Mission Control and blue control plane", "status": "partial" },
+    { "name": "Provider gateway and budgets", "status": "implemented_offline_checked" },
+    { "name": "Hindsight and Honcho", "status": "connected_partial" },
+    { "name": "Obsidian sync", "status": "inactive_partial" },
+    { "name": "Memory Defense", "status": "policy_unverified_partial" },
+    { "name": "Agent House and KB ownership", "status": "implemented_offline_checked" },
+    { "name": "Paperclip Work Zone", "status": "blocked" },
+    { "name": "HarnessRouter CE", "status": "connected_partial" },
+    { "name": "Coding CLI and terminal", "status": "partial_unverified" },
+    { "name": "Hermes", "status": "connected_partial" },
+    { "name": "OpenMuse", "status": "blocked" },
+    { "name": "OpenDots computer", "status": "blocked_reasoning" },
+    { "name": "Agentic OS, IronClaw and edge telemetry", "status": "prototype_partial" },
+    { "name": "FPT Omega router", "status": "partial_illustrative" },
+    { "name": "TradingAgents research", "status": "real_outcome_blocked" },
+    { "name": "RRSI Lab", "status": "scaffold_checked_live_unverified" },
+    { "name": "Dream-RSI and QS subpages", "status": "partial_research_drafts" },
+    { "name": "Alexandria", "status": "adapter_paid_retrieval_unverified" },
+    { "name": "FireRouter, Nexus and fine-tuning", "status": "partial_unverified" },
+    { "name": "Hybrid and Zo", "status": "configured_restricted_unverified" },
+    { "name": "SMB and ERP", "status": "local_planning_partial" },
+    { "name": "Whitepaper PDFs", "status": "artifacts_present_claim_review_needed" },
+    { "name": "Vercel and Supabase", "status": "partial_hosted" }
+  ],
+  "orderedPlan": [
+    "Repair and qualify one Work Zone organization-worker-task-review workflow",
+    "Make offline validation reproducibly green",
+    "Verify provider preflight and one reviewed bounded research result",
+    "Fix memory custody and private-to-master knowledge promotion",
+    "Enforce harness tools and reviewed prompt/model improvement",
+    "Label prototypes and qualify each optional runtime",
+    "Package intended source with CI, schema/RLS and release identity",
+    "Reduce startup footprint and add real operational traces"
+  ],
+  "missingEvidence": [
+    "Fresh successful live inference and provider entitlement",
+    "Completed real research decision with independently reviewed sources",
+    "Memory retain-restart-recall isolation and active bank policy",
+    "Master KB promotion and multi-worker conversation",
+    "Real coding harness or agent computer execution",
+    "New guest signup, contact capture, SMTP and effective live RLS",
+    "Exact Vercel deployment SHA",
+    "Restore exercise and full browser/mobile route coverage",
+    "Live RSI improvement or qualified trained-model promotion",
+    "Leakage-safe executable trading performance",
+    "Usable current dependency advisory result"
+  ],
+  "evidenceDirectory": "C:\\QuantaCore\\.quanta\\audit-2026-10-12",
+  "applicationCodeChanged": false,
+  "credentialConfigurationChanged": false,
+  "memoryWritesPerformed": false,
+  "paidInferencePerformed": false,
+  "financialActionsPerformed": false,
+  "publishedOrDeployed": false
+}

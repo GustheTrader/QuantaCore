@@ -4,7 +4,7 @@ import { GoogleGenAI, Modality, LiveServerMessage, FunctionDeclaration, Type } f
 import { NeuralOptimizationWindow } from './NeuralOptimizationWindow';
 import { OptimizationTelemetry, ChatMessage } from '../types';
 import { getSMEContext, distillMemoryFromChat } from '../services/geminiService';
-import { getLocalGeminiApiKey } from '../services/browserCredentials';
+import { createGeminiLiveClient } from '../services/geminiClient';
 
 interface VoiceAgentProps {
   agentName: string;
@@ -178,13 +178,8 @@ export const VoiceAgent: React.FC<VoiceAgentProps> = ({
       
       try {
         // Safe API Key Retrieval
-        const apiKey = getLocalGeminiApiKey();
-        
-        if (!apiKey) {
-          throw new Error("API Key not detected. Please verify Neural Link credentials.");
-        }
-
-        const ai = new GoogleGenAI({ apiKey });
+        // On this computer the server issues a short-lived single-use token; no key in the browser.
+        const ai = await createGeminiLiveClient();
         const inputCtx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
         const outputCtx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
         audioContextRef.current = outputCtx;

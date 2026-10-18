@@ -5,17 +5,13 @@ import { syncMemoryToSupabase, logReflection, archiveAndActivatePrompt, fetchMem
 import { chatWithOpenAICompatible } from "./groqService";
 import { deductCloudCredits, checkHasCredits } from "./creditService";
 import { FPT_SYSTEM_PROMPT } from "./fptContent";
-import { createTrace, scoreTrace } from "./langfuseService";
+import { createTrace, scoreTrace, updateTrace } from "./langfuseService";
 import { AGENT_TRACKS, getAgentTrack } from '../lib/agent-tracks';
 import { getPreferredProvider, isCompatibleProvider } from '../lib/inference-providers';
 import { completeWithProvider } from './inferenceService';
-import { getLocalGeminiApiKey } from './browserCredentials';
+import { createGeminiClient } from './geminiClient';
 
-const getAI = () => {
-  const apiKey = getLocalGeminiApiKey();
-  if (!apiKey) throw new Error("Configure Gemini in Settings, or select a configured model connection.");
-  return new GoogleGenAI({ apiKey });
-};
+const getAI = (): GoogleGenAI => createGeminiClient();
 
 const gmailTool: FunctionDeclaration = {
   name: "interact_with_gmail",
@@ -39,7 +35,7 @@ const handleGeminiError = (e: any) => {
   throw e;
 };
 
-export const safeGenerateContent = async (model: string, contents: any, config?: any, provider: ComputeProvider = getPreferredProvider(), signal?: AbortSignal): Promise<any> => {
+export const safeGenerateContent = async (model: string, contents: any, config?: any, provider: ComputeProvider = getPreferredProvider(), signal?: AbortSignal, correlationId?: string): Promise<any> => {
   if (isCompatibleProvider(provider)) {
     if (config?.tools?.length) throw new Error('This route does not implement Gemini tools or Google Search. Attach source material, or explicitly choose Gemini for web research.');
     const items = typeof contents === 'string' ? [{ role: 'user', parts: [{ text: contents }] }] : Array.isArray(contents) ? contents : [{ role: 'user', ...contents }];
@@ -50,7 +46,7 @@ export const safeGenerateContent = async (model: string, contents: any, config?:
     let instruction = config?.systemInstruction || '';
     if (config?.responseMimeType === 'application/json') instruction += `\nReturn valid JSON only.${config.responseSchema ? ` Use this JSON schema: ${JSON.stringify(config.responseSchema)}.` : ''}`;
     if (instruction) messages.unshift({ role: 'system', content: instruction });
-    const response = await completeWithProvider(provider, { messages, ...(config?.temperature !== undefined ? { temperature: config.temperature } : {}) }, signal);
+    const response = await completeWithProvider(provider, { messages, ...(config?.temperature !== undefined ? { temperature: config.temperature } : {}) }, signal, correlationId);
     const text = response.choices?.[0]?.message?.content;
     if (typeof text !== 'string') throw new Error('The selected model did not return text. Choose a chat model in Settings.');
     return { text, usageMetadata: response.usage, candidates: [] };
@@ -187,7 +183,8 @@ export const chatWithSME = async (
   useFPT: boolean = false,
   signal?: AbortSignal,
   includeMemory: boolean = true,
-  modelOverride?: string
+  modelOverride?: string,
+  correlationId?: string
 ) => {
   if (provider === 'gemini' && !checkHasCredits('cloud')) {
     throw new Error("Neural Energy Depleted: Refill Cloud Intelligence tokens to continue.");
@@ -205,7 +202,7 @@ export const chatWithSME = async (
   const fullSystemInstruction = `${systemBase}\n\n${ctx.fullHeader}`;
 
   if (isCompatibleProvider(provider)) {
-    const response = await chatWithOpenAICompatible(message, history, `${fullSystemInstruction}\nNo live web search is available on this connection. Do not claim to have browsed or executed tools.`, provider, modelOverride, signal);
+    const response = await chatWithOpenAICompatible(message, history, `${fullSystemInstruction}\nNo live web search is available on this connection. Do not claim to have browsed or executed tools.`, provider, modelOverride, signal, correlationId);
     let text = response.text;
     let fptAudit;
     if (useFPT) {
@@ -293,7 +290,12 @@ export const reflectAndRefine = async (history: ChatMessage[], currentPrompt: st
     contents: `Evaluate the SME Agent: ${agentName}.\n\nPROMPT: ${currentPrompt}\n\nHISTORY: ${context}`,
     config: { responseMimeType: "application/json" }
   }).catch(handleGeminiError);
-  try { return JSON.parse(response.text || "{}"); } catch (e) { return { score: 5, analysis: "Bypassed", suggestedPrompt: null, weaknesses: [], strengths: ["Stability"] }; }
+  // A malformed evaluation is an error, never a passing score.
+  let data: any;
+  try { data = JSON.parse(response.text || ''); } catch { throw new Error('The reviewer returned an unreadable evaluation.'); }
+  if (typeof data?.score !== 'number' || !Number.isFinite(data.score) || typeof data.analysis !== 'string') throw new Error('The reviewer returned an incomplete evaluation.');
+  return { score: data.score, analysis: data.analysis, suggestedPrompt: typeof data.suggestedPrompt === 'string' && data.suggestedPrompt.trim() ? data.suggestedPrompt : null,
+    weaknesses: Array.isArray(data.weaknesses) ? data.weaknesses.map(String) : [], strengths: Array.isArray(data.strengths) ? data.strengths.map(String) : [] };
 };
 
 export const distillMemoryFromChat = async (recentMessages: ChatMessage[], agentName: string, provider: ComputeProvider = getPreferredProvider()): Promise<SourceNode | null> => {
@@ -314,8 +316,10 @@ export const distillMemoryFromChat = async (recentMessages: ChatMessage[], agent
         content: data.content,
         category: data.category,
         type: 'distilled',
-        assignedAgents: [agentName, "All Agents"], 
-        timestamp: Date.now()
+        // Private to the agent that produced it. Sharing with all agents is a reviewed step in the Notebook.
+        assignedAgents: [agentName],
+        timestamp: Date.now(),
+        metadata: { origin: 'model-distilled', reviewStatus: 'unreviewed', summary: 'Model-written note from a conversation; not a verified fact.' }
       };
       const existing = JSON.parse(localStorage.getItem('quanta_notebook') || "[]");
       localStorage.setItem('quanta_notebook', JSON.stringify([memory, ...existing]));
@@ -398,7 +402,8 @@ export const optimizeContextWithLangfuse = async (rawInput: string): Promise<Con
     const latency = Date.now() - startTime;
     const data = JSON.parse(response.text || '{}');
     
-    scoreTrace(trace.id, "context-quality", 1, "Successful restructuring");
+    scoreTrace(trace.id, "structured-output-present", typeof data.optimized === 'string' && !!data.optimized.trim() ? 1 : 0);
+    updateTrace(trace.id, { status: 'success', latency });
 
     return {
       original: rawInput,
@@ -410,7 +415,7 @@ export const optimizeContextWithLangfuse = async (rawInput: string): Promise<Con
     };
   } catch (e: any) {
     console.error("Optimization failed", e);
-    scoreTrace(trace.id, "context-quality", 0, e.message);
+    updateTrace(trace.id, { status: 'error', latency: Date.now() - startTime });
     throw e;
   }
 };

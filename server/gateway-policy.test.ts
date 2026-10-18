@@ -41,3 +41,25 @@ test('request rate remains enforced after restart', async () => {
     assert.throws(()=>reopened.admit(id,'local/fixture',request(),'http://127.0.0.1:11434/v1',''),/rate/);
   } finally { rmSync(directory,{recursive:true,force:true}); }
 });
+
+test('agent clients (Gnoesis Bot) may stream and call tools only after explicit approval', async () => {
+  const directory = mkdtempSync(path.join(os.tmpdir(),'gateway-agent-')); let secrets: any = {};
+  const store: any = { directory, connection: async () => ({ baseUrl:'https://api.x.ai/v1',model:'fixture',apiKey:'fixture-key' }), getOAuthCredentials:async()=>secrets,setOAuthCredentials:async(d:any)=>{secrets=d;} };
+  const body = { name:'Gnoesis Bot',provider:'grok',model:'fixture',enabled:true,approveCloud:true,profile:'agent',maxInputBytes:2000000,maxOutputTokens:16384,requestsPerMinute:60,monthlyCalls:100,monthlyCapUsd:5,reservePerCallUsd:0.01 };
+  const agentRequest = () => ({ stream:true, tools:[{type:'function',function:{name:'read_file',parameters:{}}}], max_tokens:4000, messages:[{role:'system',content:'You are an agent'},{role:'user',content:[{type:'text',text:'Fix the bug'}]},{role:'assistant',content:null,tool_calls:[{id:'1',type:'function',function:{name:'read_file',arguments:'{}'}}]},{role:'tool',tool_call_id:'1',content:'file text'}] });
+  try {
+    const p=new GatewayPolicy(store);
+    await assert.rejects(p.configure(body),/Approve streaming and tool calls/);
+    await assert.rejects(p.configure({...body,approveAgentTools:true},true),/external clients/);
+    await assert.rejects(p.configure({...body,profile:undefined,maxInputBytes:2000000,approveAgentTools:true}),/Invalid integer/);
+    const c=await p.configure({...body,approveAgentTools:true}); const id=p.authenticate('Bearer '+c.key);
+    assert.equal(p.profile(id),'agent');
+    assert.equal(p.status().textOnly,false);
+    const ids=[1,2,3,4].map(()=>p.admit(id,'grok/fixture',agentRequest(),'https://api.x.ai/v1','fixture-key'));
+    assert.throws(()=>p.admit(id,'grok/fixture',agentRequest(),'https://api.x.ai/v1','fixture-key'),/active/);
+    p.complete(ids[0],{}); const again=p.admit(id,'grok/fixture',agentRequest(),'https://api.x.ai/v1','fixture-key'); p.complete(again,{});
+    assert.throws(()=>p.admit(id,'grok/fixture',{...agentRequest(),plugins:[{}]},'https://api.x.ai/v1','fixture-key'),/plugins/);
+    assert.throws(()=>p.admit(id,'grok/other',agentRequest(),'https://api.x.ai/v1','fixture-key'),/not authorized/);
+    assert.throws(()=>p.admit(id,'grok/fixture',{...agentRequest(),max_tokens:20000},'https://api.x.ai/v1','fixture-key'),/Output token/);
+  } finally { rmSync(directory,{recursive:true,force:true}); }
+});

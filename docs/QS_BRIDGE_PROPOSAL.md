@@ -1,9 +1,9 @@
 # QuantaCore to QS Terminal bridge proposal
 
-Status: proposed; no bridge activated or trading behavior changed.
+Status: wider research-proposal handoff remains proposed. A narrower manual read-only Quanta adapter is now prepared; see [QS_READ_ONLY_BRIDGE.md](QS_READ_ONLY_BRIDGE.md). No QS service, endpoint pin or trading behavior was activated by this work.
 
 Verified source locations: C:\QuantaCore and C:\Users\jeffg\Desktop\QS.Terminal.
-Quanta full server startup currently fails in ProviderStore.getOAuthCredentials during bootstrap-secret migration. Preserve protected files; restore decryption under the owning Windows identity before activation. Local built-UI preview does not provide API services.
+Historical startup blocker: ProviderStore.getOAuthCredentials failed during bootstrap-secret migration. The Quanta server now responds on port 3000 with local APIs. Protected files were preserved. A built-UI-only preview still does not provide API services.
 
 ## Recommended first bridge
 Use a narrow server-to-server HTTP JSON adapter over loopback, plus SSE for research job status. Keep QS existing market WebSocket feeds within QS. Avoid a shared database and a general-purpose agent tool interface for the trading path.
@@ -18,7 +18,7 @@ Each snapshot/proposal carries schema version, correlation ID, market ID, separa
 ## Operational gates
 Use fixed allowlisted routes, bounded payloads, timeouts, no redirect following, schema validation, finite-number checks and a local audit ledger. Deduplicate proposals by stable ID; reconnect status streams using sequence IDs. No auto execution or paid inference enabled by bridge setup.
 
-Port 8000 is occupied by honcho-quanta-core-api-1, not QS. Reserve a distinct verified QS backend port (candidate 8010), configuring both its frontend and the adapter consistently after approval; do not stop Honcho to claim that port.
+Earlier inspection found Honcho on port 8000. During October 17 bridge preparation, neither candidate port 8000 nor 8010 responded. Do not assume a port identifies QS; the prepared adapter verifies the reviewed service title/version and pins the OpenAPI hash before accepting inventory. Activating QS needs its own concrete scope.
 
 ## Review and validation
 1. Restore full Quanta startup without resetting credentials.

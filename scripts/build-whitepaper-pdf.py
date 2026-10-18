@@ -13,7 +13,7 @@ from reportlab.platypus import BaseDocTemplate, PageTemplate, Frame, Paragraph, 
 from reportlab.platypus.tableofcontents import TableOfContents
 
 ROOT = Path(__file__).resolve().parents[1]
-OUT = ROOT / 'public/whitepapers/QuantaOS_Sovereign_Intelligence_Whitepaper_v1.4.pdf'
+OUT = ROOT / 'public/whitepapers/QuantaOS_Sovereign_Intelligence_Whitepaper_v1.5.pdf'
 ART = ROOT / 'public/images/quanta-sovereign-whitepaper-cover.png'
 SOURCE = ROOT / 'services/whitepaperContent.ts'
 NAVY = colors.HexColor('#07162c')
@@ -26,7 +26,7 @@ pdfmetrics.registerFont(TTFont('Quanta', 'C:/Windows/Fonts/arial.ttf'))
 pdfmetrics.registerFont(TTFont('QuantaBold', 'C:/Windows/Fonts/arialbd.ttf'))
 pdfmetrics.registerFontFamily('Quanta', normal='Quanta', bold='QuantaBold', italic='Quanta', boldItalic='QuantaBold')
 
-body = ParagraphStyle('Body', fontName='Quanta', fontSize=10, leading=14.5, textColor=INK, spaceAfter=8, allowWidows=0, allowOrphans=0)
+body = ParagraphStyle('Body', fontName='Quanta', fontSize=10, leading=14, textColor=INK, spaceAfter=6, allowWidows=0, allowOrphans=0)
 heading = ParagraphStyle('Chapter', fontName='QuantaBold', fontSize=16, leading=20, textColor=NAVY, spaceBefore=20, spaceAfter=10, keepWithNext=True)
 subheading = ParagraphStyle('Subchapter', parent=heading, fontSize=12, leading=17, spaceBefore=14)
 bullets = ParagraphStyle('List', parent=body, leftIndent=14, firstLineIndent=-10, spaceAfter=5)
@@ -59,8 +59,9 @@ def cover(c, doc):
     c.drawString(50, 624, 'Your rules.')
     c.setFont('Quanta', 14)
     c.setFillColor(colors.HexColor('#d1e0f2'))
-    c.drawString(50, 586, 'Composable Sovereign AI')
-    c.drawString(50, 565, 'and ownership of your agentic system')
+    c.setFillColor(colors.HexColor('#b6ff36'))
+    c.drawString(50, 586, 'Sovereign Agentic Composable SI')
+    c.drawString(50, 565, 'Systems that U Own!')
     c.drawImage(str(ART), 38, 215, width=536, height=302, preserveAspectRatio=True, anchor='c', mask='auto')
     c.setFillColor(colors.HexColor('#87cbd9'))
     c.setFont('QuantaBold', 9)
@@ -71,7 +72,7 @@ def cover(c, doc):
     c.setStrokeColor(colors.HexColor('#334964'))
     c.line(50, 112, 562, 112)
     c.setFont('Quanta', 9)
-    c.drawString(50, 88, 'Product whitepaper  |  Version 1.4  |  October 2026')
+    c.drawString(50, 88, 'Product whitepaper  |  Version 1.5  |  October 9 2026')
     c.drawString(50, 71, 'Quanta-OS Research Initiative')
     c.restoreState()
 
@@ -85,7 +86,7 @@ def page_chrome(c, doc):
     c.setStrokeColor(colors.HexColor('#d6e1ec'))
     c.line(54, 48, PAGE_W-54, 48)
     c.setFont('Quanta', 8)
-    c.drawString(54, 32, 'WHITEPAPER v1.4  •  OCTOBER 2026')
+    c.drawString(54, 32, 'WHITEPAPER v1.5  •  OCTOBER 9 2026')
     c.drawRightString(PAGE_W-54, 32, str(doc.page))
     c.restoreState()
 
@@ -115,6 +116,27 @@ class Architecture(Flowable):
         c.setFillColor(colors.HexColor('#c5d5e6'))
         c.drawString(18, 17, 'Choose components. Define boundaries. Preserve a practical exit path.')
 
+class HybridArchitecture(Flowable):
+    def __init__(self):
+        Flowable.__init__(self)
+        self.width, self.height = 504, 174
+    def draw(self):
+        c=self.canv
+        c.setFillColor(NAVY);c.roundRect(0,0,504,174,10,fill=1,stroke=0)
+        c.setFont('QuantaBold',9);c.setFillColor(colors.HexColor('#b6ff36'))
+        c.drawString(16,154,'LOCAL CUSTODY WITH EXPLICIT PROCESSING ROUTES')
+        c.setFont('Quanta',9);c.setFillColor(colors.white)
+        c.drawCentredString(252,132,'Operator policy / Work, Personal or Ideas / selected task harness')
+        c.setStrokeColor(colors.HexColor('#87cbd9'));c.line(252,124,252,114)
+        for x,label,detail,color in [(16,'LOCAL MODEL','Local runtime and weights','#b6ff36'),(179,'CLOUD MODEL','Approved context and budget','#87cbd9'),(342,'REMOTE WORKER','Approved files and execution','#ffb258')]:
+            c.setFillColor(colors.HexColor('#122b47'));c.roundRect(x,70,146,44,6,fill=1,stroke=0)
+            c.setFillColor(colors.HexColor(color));c.setFont('QuantaBold',9);c.drawCentredString(x+73,97,label)
+            c.setFont('Quanta',8);c.setFillColor(colors.white);c.drawCentredString(x+73,81,detail)
+            c.setStrokeColor(colors.HexColor(color));c.line(x+73,70,x+73,58)
+        c.setFillColor(colors.HexColor('#122b47'));c.roundRect(16,17,472,41,6,fill=1,stroke=0)
+        c.setFillColor(colors.white);c.setFont('QuantaBold',9);c.drawCentredString(252,41,'LOCAL SOURCE STORE / VERSIONED DRAFTS / REVIEWED KNOWLEDGE')
+        c.setFont('Quanta',8);c.drawCentredString(252,26,'Cloud and remote routes receive only their approved scope; return results for local review.')
+
 text = SOURCE.read_text(encoding='utf-8')
 text = text.split('export const WHITEPAPER_TEXT = `', 1)[1].rsplit('`;', 1)[0].strip()
 content = text[text.index('ABSTRACT'):].split('\n---\nEnd of Document')[0].strip()
@@ -128,7 +150,9 @@ story = [Spacer(1, 1), NextPageTemplate('Body'), PageBreak()]
 story.append(Paragraph('Inside this whitepaper', ParagraphStyle('ContentsTitle', parent=heading, fontSize=25, leading=30, spaceBefore=0)))
 story.append(Paragraph('The case for operator control, the architecture that supports it, and the boundaries between working components and the production roadmap.', body))
 toc = TableOfContents()
-toc.levelStyles = [ParagraphStyle('TOC0', fontName='Quanta', fontSize=9.5, leading=13, textColor=INK, spaceBefore=6), ParagraphStyle('TOC1', fontName='Quanta', fontSize=9, leading=12, leftIndent=14, textColor=MUTED, spaceBefore=3)]
+toc.levelStyles = [ParagraphStyle('TOC0', fontName='Quanta', fontSize=9.5, leading=12, textColor=INK, spaceBefore=3), ParagraphStyle('TOC1', fontName='Quanta', fontSize=9, leading=12, leftIndent=14, textColor=MUTED, spaceBefore=3)]
+toc.tableStyle.add('TOPPADDING', (0,0), (-1,-1), 0)
+toc.tableStyle.add('BOTTOMPADDING', (0,0), (-1,-1), 0)
 story.extend([toc, PageBreak()])
 
 pending = []
@@ -143,8 +167,13 @@ for line in content.splitlines():
     if is_heading:
         flush()
         is_sub = bool(re.match(r'^\d+\.\d+', line))
-        display = line.title().replace('Ai', 'AI').replace('Ip', 'IP').replace('Kb', 'KB').replace('Fpt-Omega', 'FPT-Omega').replace('Sme', 'SME')
+        display = line.title().replace('Ai', 'AI').replace('Ip', 'IP').replace('Kb', 'KB').replace('Fpt-Omega', 'FPT-Omega').replace('Sme', 'SME').replace('Rsi', 'RSI').replace('Rl', 'RL')
+        if line.startswith('25. '):
+            story.append(PageBreak())
         story.append(Paragraph(escape(display), subheading if is_sub else heading))
+        if line.startswith('17. '):
+            story.append(HybridArchitecture())
+            story.append(Spacer(1, 12))
     elif not line:
         flush()
     elif line.startswith('• ') or re.match(r'^\d+\. ', line):
@@ -159,6 +188,8 @@ for folder in ['docs', 'dist/whitepapers']:
     destination = ROOT / folder
     destination.mkdir(parents=True, exist_ok=True)
     shutil.copy2(OUT, destination / OUT.name)
+for folder in ['docs', 'public/whitepapers', 'dist/whitepapers']:
+    shutil.copy2(OUT, ROOT / folder / 'QuantaOS_Sovereign_Intelligence_Whitepaper_v1.4.pdf')
 print(OUT)
 
 # Render the actual PDF for visual inspection, separate from deliverables.

@@ -1,7 +1,7 @@
 {
   "name": "quantaai-agents",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.9.0",
   "type": "module",
   "scripts": {
     "dev": "tsx eve.ts",
@@ -12,9 +12,14 @@
     "start": "tsx eve.ts --production",
     "research:types": "node scripts/generate-research-contract.mjs",
     "test:research": "node --import tsx --test server/research-*.test.ts services/researchService.test.ts",
+    "test:skills": "node --import tsx --test lib/skill-growth.test.ts lib/skill-growth-hermes.test.ts server/hermes-skill-bridge.test.ts services/hermesSkillBridge.test.ts",
     "test:hybrid": "node --import tsx --test server/hybrid-manager.test.ts scripts/evaluate-hybrid-pilot.test.mjs",
     "hybrid": "node scripts/hybrid-cloud.mjs",
-    "test:skills": "node --import tsx --test lib/skill-growth.test.ts lib/skill-growth-hermes.test.ts server/hermes-skill-bridge.test.ts services/hermesSkillBridge.test.ts"
+    "test": "node --import tsx --test \"server/**/*.test.ts\" \"lib/**/*.test.ts\" \"services/**/*.test.ts\" \"scripts/**/*.test.mjs\"",
+    "test:python": "cd rsi && python -m pytest -q && cd ../trading && uv run pytest -q",
+    "check:secrets": "node scripts/check-secrets.mjs",
+    "release:info": "node scripts/release-info.mjs",
+    "validate": "npm run check:secrets && npm run lint && npm test && npm run build"
   },
   "dependencies": {
     "@google/genai": "^1.34.0",
@@ -25,6 +30,7 @@
     "@upstash/ratelimit": "^2.2.0",
     "@upstash/redis": "^1.39.0",
     "@vectorize-io/hindsight-client": "^0.10.1",
+    "@xterm/xterm": "6.0.0",
     "ajv": "^8.20.0",
     "express": "^5.2.1",
     "html2canvas": "^1.4.1",
@@ -32,16 +38,23 @@
     "jspdf": "^4.2.0",
     "lucide-react": "^0.577.0",
     "motion": "^12.35.0",
+    "node-pty": "1.1.0",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "react-router-dom": "^7.11.0",
     "recharts": "^3.6.0",
-    "tsx": "^4.23.15"
+    "tsx": "^4.23.15",
+    "ws": "8.22.0"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^22.14.0",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^5.0.0",
+    "postcss": "^8.5.30",
     "supabase": "^2.118.0",
+    "tailwindcss": "^4.3.3",
     "typescript": "~5.8.2",
     "vite": "^6.2.0"
   }

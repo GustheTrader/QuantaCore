@@ -1,3 +1,4 @@
+import CosmicBrand from './CosmicBrand';
 import React, { useId } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import { BrainCircuit, Hand, Network, ShieldCheck, Blocks, Database, Cpu, Workflow, Sparkles } from 'lucide-react';
@@ -28,6 +29,7 @@ export default function SovereignSiHeader({ compact = false, onNavigate }: Props
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 opacity-[.14]" style={{ backgroundImage: 'radial-gradient(#93c5fd .8px,transparent .8px)', backgroundSize: '22px 22px', maskImage: 'linear-gradient(90deg,transparent,black)' }} />
       <div aria-hidden="true" className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-orange-300/80 to-transparent" />
       <div className="relative">
+        <div className="mb-6"><CosmicBrand size={compact ? 56 : 76} /></div>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <span className="inline-flex flex-wrap items-center gap-2.5 rounded-2xl border border-cyan-300/50 bg-gradient-to-r from-cyan-400/15 via-violet-500/20 to-fuchsia-500/20 px-4 py-3 text-sm font-black uppercase tracking-[.08em] shadow-[0_0_28px_rgba(34,211,238,.18)] sm:text-base"><Blocks size={20} className="text-cyan-300" aria-hidden="true" /><span className="text-cyan-300">Sovereign Intelligence <span className="text-amber-300">SI</span></span><span className="text-white">-</span><span className="text-fuchsia-300">Lego Builder/Modular</span></span>
           <span className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[.16em] text-slate-400"><span aria-hidden="true" className="h-1 w-6 bg-gradient-to-r from-cyan-400 to-emerald-400" /> Compose. Connect. Own.</span>

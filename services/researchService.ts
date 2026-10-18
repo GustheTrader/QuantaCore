@@ -15,6 +15,10 @@ export type ResearchEstimate = {
   estimated_cost_usd: number | null;
   price_known: boolean;
   warnings: string[];
+  // Budget fit is checked before approval; a run that cannot fit is refused by the server.
+  estimated_input_tokens_with_context_growth?: number;
+  fits_budget?: boolean;
+  budget_problems?: string[];
 };
 
 export type ResearchBatch = {

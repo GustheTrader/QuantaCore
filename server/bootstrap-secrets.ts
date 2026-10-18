@@ -1,10 +1,13 @@
 import { promises as fs } from 'node:fs';
+import { existsSync } from 'node:fs';
 import path from 'node:path';
 import type { ProviderStore } from './provider-store';
-export async function migrateBootstrapSecrets(store: ProviderStore) {
+export async function migrateBootstrapSecrets(store: ProviderStore, readExisting = true) {
+  const sources = [['paperclip-auth.json', 'paperclipAuth'], ['business-connector-keys.json', 'connectorKeys'], ['paperclip.env', 'paperclipServerSecret']] as const;
+  if (!readExisting && !sources.some(([file]) => existsSync(path.join(store.directory, file)))) return {};
   const saved = await store.getOAuthCredentials('bootstrap');
   const pending: string[] = [];
-  for (const [file, field] of [['paperclip-auth.json', 'paperclipAuth'], ['business-connector-keys.json', 'connectorKeys'], ['paperclip.env', 'paperclipServerSecret']] as const) {
+  for (const [file, field] of sources) {
     const target = path.join(store.directory, file); let text: string;
     try { text = await fs.readFile(target, 'utf8'); } catch (e: any) { if (e.code === 'ENOENT') continue; throw e; }
     const value = file.endsWith('.env') ? text.match(/^BETTER_AUTH_SECRET=([A-Za-z0-9_-]+)\s*$/)?.[1] : JSON.parse(text);

@@ -131,6 +131,33 @@ export class ProviderStore {
     return data.connections[id] || { baseUrl: COMPATIBLE_PROVIDERS.find(provider => provider.id === id)!.baseUrl, model: '', apiKey: '' };
   }
 
+  // Status surfaces need metadata and credential presence, not decryption of
+  // every saved key. Resolve only the selected route when a run is reviewed.
+  async publicConnectionSummaries() {
+    let saved: any = {};
+    try { saved = JSON.parse(await fs.readFile(path.join(this.directory, 'providers.json'), 'utf8')); }
+    catch (error: any) { if (error.code !== 'ENOENT') throw new Error('Cannot read provider metadata. Saved configuration was preserved.'); }
+    return COMPATIBLE_PROVIDERS.map(provider => {
+      const cached = this.cached?.connections[provider.id], entry = saved.connections?.[provider.id];
+      const envModel = provider.id === 'openrouter' ? process.env.OPENROUTER_MODEL?.trim() || '' : '';
+      const envKey = provider.id === 'openrouter' ? process.env.OPENROUTER_API_KEY?.trim() || '' : '';
+      return { id: provider.id, model: cached?.model || entry?.model || envModel,
+        baseUrl: cached?.baseUrl || entry?.baseUrl || provider.baseUrl,
+        hasKey: cached ? Boolean(cached.apiKey) : Boolean(entry?.credential || envKey) };
+    });
+  }
+
+  async selectedConnection(id: CompatibleProvider): Promise<Connection> {
+    if (this.cached) return this.cached.connections[id] || { baseUrl: COMPATIBLE_PROVIDERS.find(p => p.id === id)!.baseUrl, model: '', apiKey: '' };
+    let saved: any = {};
+    try { saved = JSON.parse(await fs.readFile(path.join(this.directory, 'providers.json'), 'utf8')); }
+    catch (error: any) { if (error.code !== 'ENOENT') throw new Error('Cannot read the selected provider. Saved configuration was preserved.'); }
+    const entry = saved.connections?.[id];
+    return { baseUrl: entry?.baseUrl || (id === 'openrouter' ? process.env.OPENROUTER_BASE_URL?.trim() : '') || COMPATIBLE_PROVIDERS.find(p => p.id === id)!.baseUrl,
+      model: entry?.model || (id === 'openrouter' ? process.env.OPENROUTER_MODEL?.trim() : '') || '',
+      apiKey: (entry?.credential ? await this.unprotect(entry.credential) : '') || (id === 'openrouter' ? process.env.OPENROUTER_API_KEY?.trim() : '') || '' };
+  }
+
   async harnessRouterKey(): Promise<string> {
     return (await this.read()).harnessRouterApiKey;
   }
@@ -161,7 +188,7 @@ export class ProviderStore {
   }
 
   private oauthWriteQueue: Promise<void> = Promise.resolve();
-  async getOAuthCredentials(namespace: 'chatgpt' | 'google' | 'bootstrap' | 'gateway' = 'chatgpt'): Promise<Record<string, any>> {
+  async getOAuthCredentials(namespace: 'chatgpt' | 'google' | 'bootstrap' | 'gateway' | 'openrouter' = 'chatgpt'): Promise<Record<string, any>> {
     await this.oauthWriteQueue.catch(() => {});
     try {
       const saved = JSON.parse(await fs.readFile(path.join(this.directory, `${namespace}-credentials.json`), 'utf8'));
@@ -171,7 +198,7 @@ export class ProviderStore {
       throw new Error('Cannot read protected OAuth credentials. Existing data was preserved.');
     }
   }
-  async setOAuthCredentials(data: Record<string, any>, namespace: 'chatgpt' | 'google' | 'bootstrap' | 'gateway' = 'chatgpt'): Promise<void> {
+  async setOAuthCredentials(data: Record<string, any>, namespace: 'chatgpt' | 'google' | 'bootstrap' | 'gateway' | 'openrouter' = 'chatgpt'): Promise<void> {
     this.oauthWriteQueue = this.oauthWriteQueue.catch(() => {}).then(async () => {
       await fs.mkdir(this.directory, { recursive: true, mode: 0o700 });
       const file = path.join(this.directory, `${namespace}-credentials.json`);

@@ -1,0 +1,8 @@
+{
+  "repository": "https://github.com/google-research/rrsi.git",
+  "commit": "be50316e1db05914068a973f322770ef08ed7ba1",
+  "python": "3.11",
+  "license": "Apache-2.0",
+  "dreamReference": "https://github.com/zhengkid/Dream-RSI",
+  "dreamImplementation": "Quanta recorded-tree replay adapter; official Dream-RSI code is not included"
+}

@@ -82,7 +82,7 @@ export default function NeuralLinkWelcome({ onComplete }: NeuralLinkWelcomeProps
             </h1>
             <motion.p animate={reducedMotion ? { opacity: 1 } : { opacity: [0.85, 1, 0.85] }} transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }} className="mt-6 max-w-xl font-outfit text-2xl font-bold leading-tight tracking-tight sm:text-3xl" style={{ color: '#b6ff36', textShadow: '0 0 24px #a3ff3655' }}>Sovereign Agentic Composable SI<br />Systems that U Own!</motion.p>
             <p className="mx-auto mt-6 max-w-lg text-sm leading-7 text-slate-400 sm:text-base md:mx-0">
-              Bring your agents into one deliberate operating field. QuantaCore-SI-OS gives each task a place to think, route, and return useful work.
+              Bring your agents into one deliberate operating field. QuantaCore-SI-OS gives each task a place to think, route, and return actionable work—autonomously or with Human Near the Loop (HNTL).
             </p>
             <p className="mx-auto mt-4 max-w-lg text-sm leading-7 text-slate-300 sm:text-base md:mx-0">
               <span className="font-semibold text-emerald-200">Sovereign Composability SI</span> for local and cloud AI. You choose your privacy, model, and data. Harness intelligence with custom guardrails, security, transparency, and trust—a Lego builder system you own.
@@ -90,6 +90,11 @@ export default function NeuralLinkWelcome({ onComplete }: NeuralLinkWelcomeProps
             <p className="mx-auto mt-3 max-w-lg text-xs leading-6 text-slate-500 md:mx-0">
               Initialize the signal, then enter QuantaCore-SI-OS. Model and provider connections remain yours to configure explicitly.
             </p>
+            <div className="mt-4 flex flex-wrap justify-center gap-x-4 gap-y-2 text-xs text-cyan-200 md:justify-start">
+              <a href="/papers/skillforge-2604.08618v2.pdf" target="_blank" rel="noreferrer" className={focus}>SkillForge paper ↗</a>
+              <a href="https://github.com/ActiveInferenceInstitute/Active_Skillference" target="_blank" rel="noreferrer" className={focus}>Active Skillference ↗</a>
+              <a href="#/rsi-lab/skills" className={focus}>Skill policy & learning loop →</a>
+            </div>
 
             <div className="mt-8 flex flex-wrap justify-center gap-x-5 gap-y-2 font-mono text-[9px] uppercase tracking-[0.14em] text-slate-500 md:justify-start">
               <span><span className="mr-2 text-emerald-300">01</span>Choose your agents</span>

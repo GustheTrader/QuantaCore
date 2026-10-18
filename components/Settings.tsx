@@ -5,6 +5,11 @@ import { invokeEdgeFunction } from '../services/supabaseService';
 import { ConfirmationModal } from './ConfirmationModal';
 import SystemSetup from './SystemSetup';
 import HybridCloud from './HybridCloud';
+import SpendSettlement from './SpendSettlement';
+import ModelsPanel from './ModelsPanel';
+import { usesServerGemini } from '../services/geminiClient';
+import { release, releaseLabel } from '../lib/release';
+import { loadProviderConnections, saveProviderConnection } from '../services/inferenceService';
 
 const Settings: React.FC = () => {
   const [settings, setSettings] = useState<ApiSettings>({
@@ -68,9 +73,22 @@ const Settings: React.FC = () => {
     }
   }, []);
 
-  const handleSaveSettings = () => {
-    localStorage.setItem('quanta_api_settings', JSON.stringify(settings));
-    setSaveStatus('Architecture Synced');
+  const handleSaveSettings = async () => {
+    let next = settings;
+    // On this computer the Gemini key goes to the protected local store, not the browser.
+    if (usesServerGemini() && settings.geminiKey.trim()) {
+      try {
+        const current = (await loadProviderConnections()).connections.find(c => c.id === 'google-api');
+        await saveProviderConnection('google-api', { baseUrl: current?.baseUrl || 'https://generativelanguage.googleapis.com/v1beta/openai', model: current?.model || '', apiKey: settings.geminiKey.trim() });
+        next = { ...settings, geminiKey: '' };
+        setSettings(next);
+      } catch (error) {
+        setSaveStatus(`Gemini key not saved: ${(error as Error).message}`);
+        return;
+      }
+    }
+    localStorage.setItem('quanta_api_settings', JSON.stringify(next));
+    setSaveStatus(next !== settings ? 'Gemini key stored protected on this computer' : 'Architecture Synced');
     setTimeout(() => setSaveStatus(null), 3000);
   };
 
@@ -129,13 +147,14 @@ const Settings: React.FC = () => {
           <button onClick={() => setActiveTab('storage')} className={`px-10 py-5 rounded-[2rem] text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'storage' ? 'bg-indigo-600 text-white shadow-2xl animate-glow' : 'text-slate-500 hover:text-slate-300'}`}>Storage</button>
           <button onClick={() => setActiveTab('infra')} className={`px-10 py-5 rounded-[2rem] text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'infra' ? 'bg-cyan-600 text-white shadow-2xl animate-glow' : 'text-slate-500 hover:text-slate-300'}`}>Infra Diagnostic</button>
           <button onClick={() => setActiveTab('hybrid')} className={`px-6 py-5 rounded-[2rem] text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'hybrid' ? 'bg-cyan-600 text-white' : 'text-slate-500 hover:text-slate-300'}`}>Hybrid Cloud</button>
-          <button onClick={() => setActiveTab('credits')} className={`px-10 py-5 rounded-[2rem] text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'credits' ? 'bg-emerald-600 text-white shadow-2xl animate-glow' : 'text-slate-500 hover:text-slate-300'}`}>Credits</button>
+          <button onClick={() => setActiveTab('credits')} className={`px-10 py-5 rounded-[2rem] text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'credits' ? 'bg-emerald-600 text-white shadow-2xl animate-glow' : 'text-slate-500 hover:text-slate-300'}`}>Spend & Settlement</button>
         </div>
       </div>
 
       <div className="glass-card p-12 rounded-[4rem] border-slate-800/50 shadow-2xl relative overflow-hidden">
         {activeTab === 'hybrid' ? <HybridCloud /> : activeTab === 'api' ? (
           <div className="space-y-12 animate-in slide-in-from-bottom-4 duration-500">
+            <ModelsPanel />
             <div className="p-8 bg-slate-950/50 border border-slate-800 rounded-[3rem] space-y-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -149,10 +168,11 @@ const Settings: React.FC = () => {
               </div>
             </div>
 
-            <SystemSetup geminiConnection={<div className="space-y-6">
+            <SystemSetup showConnectionHub={false} geminiConnection={<div className="space-y-6">
               <label className="text-emerald-400 text-[11px] font-black uppercase tracking-[0.4em] px-2">Personal Gemini Core</label>
               <input type="password" disabled={settings.computeMode === 'credits'} value={settings.geminiKey} onChange={(e) => setSettings({...settings, geminiKey: e.target.value})} placeholder={settings.computeMode === 'credits' ? "Using Platform Credits..." : "Enter Personal Gemini API Key..."} className="w-full bg-slate-950 border-2 border-slate-800 rounded-3xl py-8 px-10 text-white font-mono focus:border-emerald-500 transition-all outline-none shadow-inner" />
               <p className="text-sm text-slate-400">Save Gemini settings with Commit Architecture Changes below. Gemini is optional; choose it explicitly for text agents.</p>
+              {usesServerGemini() && <p className="text-xs text-emerald-300/80">On this computer the key is moved into the protected local store and removed from the browser. Text, research and video requests go through the local server. Gemini Live voice uses short-lived tokens issued by the local server.</p>}
             </div>} />
 
             <button onClick={handleSaveSettings} className="w-full py-10 quanta-btn-orange text-white rounded-[2.5rem] font-black uppercase tracking-[0.5em] text-[13px] transition-all">
@@ -168,6 +188,7 @@ const Settings: React.FC = () => {
                  <span>Purge Local Substrate</span>
                </button>
             </div>
+            <p className="text-center font-mono text-[10px] text-slate-600" title={release.builtAt ? `Built ${release.builtAt} for ${release.target}` : 'Development build'}>Quanta {releaseLabel()}</p>
           </div>
         ) : activeTab === 'infra' ? (
           <div className="space-y-12 animate-in slide-in-from-bottom-4 duration-500">
@@ -317,7 +338,7 @@ const Settings: React.FC = () => {
               {saveStatus || "Sync Storage Protocols"}
             </button>
           </div>
-        ) : (
+        ) : activeTab === 'credits' ? <SpendSettlement /> : (
           <div className="space-y-16 animate-in slide-in-from-right-4 duration-500">
              <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
                 <div className="glass-card p-10 rounded-[3rem] border-emerald-500/20 bg-emerald-500/5 relative group overflow-hidden">

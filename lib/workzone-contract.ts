@@ -6,10 +6,20 @@ export interface DigitalWorker {
 export interface WorkTask { id: string; identifier: string; title: string; status: string; assigneeAgentId: string | null; updatedAt: string }
 export interface TrainingReview { id: string; agentId: string; caseName: string; skillVersion: string; artifact: string; verdict: 'pass' | 'revise'; notes: string; reviewer: string; createdAt: string; adapterType: string }
 export interface WorkerKnowledge { id: string; agentId: string | 'master'; title: string; text: string; source: string; createdAt: string }
+export interface WorkflowDelivery {
+  id: string; agentId: string; taskId: string; taskIdentifier: string; runId?: string; runStatus?: string;
+  status: 'queued' | 'running' | 'in_review' | 'approved' | 'error';
+  createdAt: string; completedAt?: string; reviewedAt?: string;
+  output?: string; error?: string; evidenceSha256?: string;
+  checks?: { name: string; passed: boolean }[];
+  harness: 'http'; inferenceCalls: 0; externalActions: false;
+  executionProfile?: 'scoped_http_service' | 'low_trust_sandbox';
+}
 export interface OperatorWorkZone {
   reachable: boolean; scope: 'local-operator' | 'verified-operator'; error?: string;
   company: { id: string; name: string; issuePrefix: string } | null;
   agents: DigitalWorker[]; tasks: WorkTask[]; reviews: TrainingReview[]; knowledge: WorkerKnowledge[]; watchlist: string[];
+  deliveries: WorkflowDelivery[];
   consoleUrl: string; links: { org: string; tasks: string; training: string; agents: string };
 }
 export const WORKER_HARNESSES = ['http', 'codex_local', 'claude_local', 'opencode_local', 'hermes_local', 'gemini_local'] as const;

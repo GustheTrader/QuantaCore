@@ -12,7 +12,8 @@ let supabaseInstance: any;
 try {
   if (!isSupabaseConfigured) throw new Error('Supabase auth is not configured.');
   supabaseInstance = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+    // PKCE returns ?code=… instead of #access_token=…, which would collide with the app's #/ routes.
+    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: 'pkce' }
   });
 } catch (e) {
   if (import.meta.env.PROD) console.error("Supabase client is not configured.");
@@ -23,6 +24,7 @@ try {
       onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
       signInWithOtp: async () => ({ error: new Error("Supabase unavailable") }),
       signInAnonymously: async () => ({ data: { user: null }, error: new Error("Supabase unavailable") }),
+      signInWithOAuth: async () => ({ data: null, error: new Error("Supabase unavailable") }),
       signOut: async () => ({ error: null })
     },
     functions: {
@@ -128,6 +130,20 @@ export const signInWithMagicLink = async (email: string, track?: UserTrack) => {
     console.error("Sign in failed", e);
     throw e;
   }
+};
+
+export type SignInProvider = 'google' | 'github';
+
+/** Google or GitHub sign-in through Supabase Auth. The browser leaves for the provider and comes back signed in. */
+export const signInWithProvider = async (provider: SignInProvider, track?: UserTrack) => {
+  if (!isSupabaseConfigured) throw new Error('Sign-in is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+  // OAuth users have no track in their metadata yet; remember the agent they picked.
+  try { if (track) localStorage.setItem('quanta_pending_track', track); } catch {}
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider,
+    options: { redirectTo: `${window.location.origin}/`, ...(provider === 'github' ? { scopes: 'read:user user:email' } : {}) }
+  });
+  if (error) throw error;
 };
 
 /** Creates a temporary Supabase identity and records the tester's explicitly opted-in contact email. */

@@ -1,0 +1,264 @@
+YOUR INTELLIGENCE. YOUR RULES.
+COMPOSABLE SOVEREIGN AI AND OWNERSHIP OF YOUR AGENTIC SYSTEM
+A White Paper on Privacy, Business IP, Persistent Memory, and Voluntary Data Value
+
+Version 1.5 | October 9 2026
+Author: Quanta-OS Research Initiative
+
+ABSTRACT
+This October 9 revision adds the expanded agent directory, Hermes workspace, coding agents, embedded provider pages, local media workflows and the hybrid local plus cloud architecture. The operator retains local source custody and chooses each external processing route. Implementation statements below are based on inspected application source and local artifacts; they are not certification of live provider accounts, inference performance or complete deployment readiness.
+
+AI becomes part of an organization's intellectual infrastructure when it learns from its documents, reasoning, decisions and workflows. Control of that infrastructure must belong to its operator. Quanta-OS treats sovereignty as a required design principle: choose the data, model, memory, inference and task harness; define permissions; preserve knowledge; and retain a practical exit path. Composability makes these choices replaceable rather than permanently tied to one provider. Privacy and business IP protection require enforced boundaries throughout this system, not an ownership slogan. If an operator chooses to commercialize eligible data or knowledge, that choice should be deliberate, scoped and reviewable. This paper distinguishes those architectural commitments from capabilities that still require implementation.
+
+Quanta-OS is designed to combine operator-controlled data, persistent agent memory, and specialized reasoning. This revision defines the Hindsight–Gnoesis Neural Core: an architecture that can connect an Obsidian vault to a local memory service, retrieve source-linked context, and refresh synthesized knowledge. It summarizes Hindsight Memory Defense as an opt-in, per-bank safeguard for future writes. It also defines a conditional FPT-Omega route for deep research, novel problem solving, and cross-domain SME collaboration in engineering, physics, quantum physics, and metaphysics. The automatic route is an explicit design target; it must not be presented as operational until its runtime adapter, evidence checks, and deployment are validated.
+
+1. EXECUTIVE SUMMARY
+Our proposition is simple: compose your own intelligence system instead of surrendering its knowledge and operating choices to a single service. The Lego Builder starts with agent identity, roles and skills; the surrounding workspace supplies model, memory and inference connections. The intended system allows independent pieces to work together under the operator's boundaries.
+
+Ownership and control are mandatory to the sovereignty proposition. They are necessary foundations for privacy and protection of business IP, but they are not sufficient safeguards by themselves. Access control, approved inference routes, retention policies, exportability and audit evidence must make that control real.
+
+Sovereign intelligence is a property of the whole system: where source data resides, which services receive it, how claims are derived, and who can review changes. A local interface alone does not make a system private if an external model provider receives vault content. Quanta-OS therefore treats provider selection and data egress as explicit deployment choices.
+
+The memory architecture has four responsibilities:
+• Preserve the operator's source of truth and provenance.
+• Retrieve relevant memories through semantic, keyword, and entity relationships.
+• Keep supported facts distinct from time-varying observations, assumptions, and hypotheses.
+• Invoke expensive first-principles and expert collaboration only when a versioned router gate says the task warrants it.
+
+2. SOVEREIGNTY AND DATA FLOW
+The intended local deployment uses Obsidian as the canonical note store, a one-way sync process to send selected note changes to Hindsight, and a persistent Hindsight data volume for agent memory. The vault remains the source of truth. The sync process should mount the vault read-only and exclude application metadata and trash folders.
+
+The Hindsight–Gnoesis flow is:
+1. Retain: ingest source material and extract candidate memories with source identifiers.
+2. Index: make retained context available through semantic vectors, full-text search, and entity relationships.
+3. Recall: retrieve relevant passages and return their provenance to the requesting agent.
+4. Consolidate: reconcile new evidence with existing facts and observations while preserving change history.
+5. Refresh: update synthesized mental models and knowledge pages from reviewed memory.
+
+Local storage does not, by itself, guarantee local inference. Before any vault text is sent to an external model provider, the provider, data path, and intended use must be explicit. A local model is the preferred path for private vault content when available. If no approved provider is configured, memory operations that require model inference should fail clearly rather than silently fall back to a cloud service.
+
+2.1 PER-BANK MEMORY DEFENSE
+Memory Defense is a bank-level policy, not an automatic global scrubber. It remains off for a bank until a policy enables the sensitive-data rule. When enabled, each future retain item is scanned before persistence. A configured action can replace a recognized match with a marker such as [REDACTED:github_token], or reject the affected item when blocking is supported by the deployed version.
+
+The stored memory and document body contain the scrubbed text, so later recall, export, and reflect operations use the redacted version. The scanner covers known patterns for credentials, API keys, database connection strings, private keys, tokens, and common PII formats; pattern coverage is not exhaustive and should not be treated as a guarantee that every secret will be found.
+
+A policy change affects only future retain calls for that bank. It does not rescan existing memories. Existing content that may contain a secret needs a separately planned rescan or re-ingestion workflow. Redaction or blocking decisions can appear in an audit log when audit logging is enabled; webhook alerts require a bank webhook subscribed to the relevant event. These logging and notification controls are not implied by enabling the screening rule alone.
+
+3. CONDITIONAL FPT-OMEGA ROUTER
+FPT-Omega is a reasoning method, not a source of truth. It should be inserted at the Facts and Observations processing boundary as an optional route behind a smart gate. It should not run merely because a query contains a domain word.
+
+The router should require both:
+• A relevant domain: engineering, physics, quantum physics, or metaphysics; and
+• A task class that benefits from deeper work: deep research, a genuinely novel solution, or cross-domain SME collaboration.
+
+Ordinary factual questions, simple recall, and routine note updates remain on the normal Hindsight path. The gate should record its version, decision, and concise reason. Its eligibility threshold should be calibrated on representative tasks before production use rather than chosen as an unvalidated magic number.
+
+When selected, FPT-Omega should:
+1. State the problem boundary and define ambiguous terms.
+2. Separate retrieved evidence from assumptions, constraints, and open questions.
+3. Reduce the problem to explicit primitives and domain constraints.
+4. Derive candidate explanations or designs with an auditable chain of support.
+5. Identify contradictions, dimensional or mathematical errors, failure modes, and tests that could falsify the result.
+6. Send cross-domain work to named SME roles for critique and evidence review before memory is refreshed.
+
+Metaphysical or philosophical claims must be labeled as conceptual or interpretive unless they have independent empirical support. A first-principles derivation can expose assumptions and improve reasoning; it cannot turn an unsupported premise into an established fact.
+
+4. FACTS, OBSERVATIONS, AND DERIVATIONS
+Facts should contain claims supported by identifiable source material or verified measurements. Each fact should retain source references, timestamps, and enough context to re-check the claim.
+
+Observations should represent time-aware beliefs, changes, reconciliations, and derived interpretations. Every observation should carry an evidence class such as supported, derived, assumption, hypothesis, or unresolved. A derived claim must link to its premises and source IDs. Contradictions should be recorded as changes or unresolved conflicts, not silently overwritten.
+
+FPT-Omega output should first be staged as a derivation or hypothesis. It may update an Observation with its provenance and review status. It must not be promoted to a source-backed Fact solely because the reasoning trace is coherent. Novel or cross-domain conclusions require relevant SME review and supporting evidence before promotion.
+
+5. SME COLLABORATION AND VALIDATION
+For eligible research, use explicit roles: a domain proposer, a cross-domain critic when needed, and an evidence verifier. Each role should receive the same scoped question and cited context, while recording its domain and method. The verifier checks whether claims follow from the cited material; it does not treat majority agreement as proof.
+
+Before a result refreshes durable knowledge, validate source relevance, assumptions, units and dimensions where applicable, mathematical consistency, alternative explanations, and the proposed falsification checks. If evidence is weak or experts disagree, preserve the disagreement and mark the result unresolved. The system should abstain from asserting a settled answer when the evidence does not support one.
+
+6. PRODUCTION CONTROLS
+The router and FPT-Omega adapter should be versioned and observable. Keep an audit record containing the route decision and reason, source IDs, engine and prompt versions, model/provider identifier, evidence classes, SME decisions, timestamps, and resulting memory IDs. Avoid storing unnecessary sensitive note text in operational logs.
+
+Bound each routed run by time, token or compute budget, concurrency, and retry limits. Make updates idempotent so retries cannot duplicate memories. On timeout, provider failure, or failed validation, preserve the original source and return to the normal recall path or mark the candidate unresolved. Never let a failing FPT route block ordinary memory access.
+
+Evaluate the gate separately from the reasoning engine: measure unnecessary routes, missed eligible tasks, provenance retention, contradiction handling, reviewer agreement, and latency/cost. Keep the threshold and policy under version control and compare changes against a held-out set of representative tasks.
+
+7. IMPLEMENTATION STATUS AND OPERATING BOUNDARY
+The landing-page map and this paper define the target architecture. They do not certify that automatic FPT-Omega routing has been wired into Hindsight's runtime. The existing manual FPT capability is a separate control path until a production adapter and its checks are connected and verified. Similarly, an Obsidian sync container is not proof that note ingestion or model-backed consolidation is healthy.
+
+The deployment should expose local services only on loopback by default, persist memory in a named volume, and show clear health and provider status. Configure Memory Defense per bank when its policy is wanted; do not imply that screening is enabled simply because the extension is present. External inference must remain disabled until an explicit provider is configured for the intended data flow. This preserves operator control while the production route is evaluated.
+
+8. BRAIN, HANDS, NERVOUS SYSTEM AND GOVERNANCE AND SECURITY
+The product is organized around four tenets that together establish trust: Brain, Hands, Nervous System, and Governance and Security.
+
+Brain contains model and inference connections. Trust requires visibility into the chosen model, processing destination, capability limits and uncertainty. Hands contains the agents and task harnesses that use those models. Trust requires scoped authority, reviewable work and evidence that actions match the operator's intent. Nervous System contains the Gnoesis Neural Core, orchestration, connectors, memory paths and telemetry. Trust requires source provenance, dependable context flow and observable system state. Governance and Security, represented elsewhere as Governess, contains policies, permissions, budgets, credential protection, data boundaries, audit records and human review.
+
+All four tenets contribute to trust. Capable reasoning, bounded action, traceable context and enforced governance must work together so operators can understand, inspect and control their system. These are architectural responsibilities; naming them does not establish that every intended safeguard is enforced in every integration. Trust must be supported by operational evidence.
+
+The shared product card introduces this as "Your intelligence. Your rules." Its sovereign stack presents Data, Models, Memory, Inference and Agents, with an optional Inference Harness add-on. The builder currently defines agent identity, role and skills; provider and memory connections are configured through separate workspace controls. A complete visual builder that assembles and provisions every layer is a design direction, not a completed capability.
+
+The thirteen role definitions are Personal Agent, Consumer Agent, Business Agent, Trading Agent, Analyst Agent, Investing Agent, Personal Growth Agent, Education Agent, Credit Analyst Agent, RWA / DeFi Agent, Asset Recovery Agent, Prediction Agent Team and Clipping Agent. These are configured roles and instruction sets; a role card does not by itself establish live tool access or domain performance. Each card describes capabilities and three illustrative case studies. The Analyst Agent interprets supplied evidence, challenges assumptions and compares alternative explanations. Activating a role opens its full control plane. Chat supports conversation; Work uses bounded planning, drafting and review stages. Each run freezes its chosen provider and model, exposes progress and stop controls, preserves completed stages and allows a Markdown export. A model's review is a second reasoning pass, not independent empirical verification. Work produces proposed deliverables; this control plane does not execute shell commands, change project source files, place trades or take external actions.
+
+9. OPEN MODEL CONNECTIONS AND LOCAL API
+Text agents can connect through OpenAI-compatible endpoints, local Ollama, Ollama Cloud, OpenRouter, Fireworks AI and OmniRoute, alongside the existing Gemini, Groq and Novita integrations. Model catalogs are loaded from the selected provider rather than represented as a fixed list. Provider-specific tools, modalities and availability vary; a model listing does not imply every model supports chat, web search, JSON output or the same context length. Dedicated realtime voice, image and video integrations retain their existing Gemini path.
+
+The local server exposes a scoped OpenAI-compatible API at /v1: model discovery and chat completions, including upstream streaming. It requires a separate local Bearer key and is bound to loopback by default. This is a supported subset, not a claim of implementing the full OpenAI API. Configured model aliases select the provider explicitly. Requests do not silently fall back to a different provider.
+
+New connector keys are stored by the local server, encrypted with Windows CurrentUser credential protection on Windows. Public settings responses return key-presence indicators, not secrets. Other platforms use a local encryption key protected by filesystem permissions. This does not establish that legacy integrations, environment variables, browser storage or third-party gateways have equivalent protections. Endpoint validation allows plain HTTP only on loopback; hosted connections use HTTPS.
+
+10. DATA AND OUTPUT CONTROL
+Data location depends on the feature and deployment. Browser-managed control-plane records, local service databases, Supabase-backed collaboration and separately deployed agent services have different storage boundaries. The application must describe the actual path used for each workflow rather than imply that every record stays on the device. Files and project context should be scoped and bounded; notebook retrieval is explicitly selected for the control-plane run. Local Ollama uses a loopback inference endpoint. Cloud inference receives the submitted prompt and selected context, while OmniRoute follows its upstream routing configuration. Data locality depends on the route actually used, not only the location of the interface.
+
+The Neural Core console reports local HTTP availability separately from provider configuration. Neither is proof of model inference readiness, a healthy Obsidian ingestion pipeline or an enabled Memory Defense policy. Hindsight inference and vault synchronization must be configured for their own deployment. The conditional FPT-Omega memory route remains the target architecture described above until a runtime adapter and evidence checks are implemented and validated.
+
+11. COMPOSABILITY: THE LEGO BUILDER PRINCIPLE
+An agentic system has separable responsibilities. Data supplies evidence. Models supply reasoning capabilities. Memory supplies continuity. Inference supplies execution of model requests. Agents supply roles and workflows. A task harness supplies the execution loop, tools and workspace boundaries. Governess supplies the rules for how these pieces may interact.
+
+Composability means that one piece can change without losing the rest of the system. A business should be able to replace its model provider while retaining its source documents, agent definitions, reviewed knowledge and task history. An individual should be able to move a private workflow to local inference without rebuilding their identity or surrendering their memory. A specialist task should be able to select a suitable harness without inheriting unrelated permissions.
+
+The production design should use explicit interfaces and capability declarations rather than assume all providers and harnesses are interchangeable. Record the requested and actual model, provider and harness; check tool eligibility; preserve source identifiers; and expose limits in context length, modalities, streaming and tool support. Switching a component must not silently broaden data access or change the destination of private context.
+
+Every agent should have its own scoped knowledge workspace. A shared master KB should contain only explicitly published or approved knowledge. Collaboration should pass bounded, source-linked context rather than grant every agent unrestricted access to every private KB. Promotion into the master KB should preserve attribution, review status and change history. This is the intended knowledge boundary; automatic synchronization and review enforcement must be implemented and demonstrated for each integration before they are claimed as operational.
+
+12. OWN YOUR SYSTEM, PROTECT YOUR BUSINESS IP
+For this paper, ownership means practical control: custody of eligible source material, choice of processing route, authority over permissions, ability to inspect and export records, and a credible path to replace or leave a service. It does not mean that using Quanta automatically grants exclusive legal rights to every model, source document or generated output. Those rights depend on the relevant licenses, contracts and underlying material.
+
+Business IP includes more than uploaded documents. Prompts, customer context, research hypotheses, expert corrections, decision history and learned workflow patterns can expose how a business operates. Memory and operational logs deserve the same deliberate treatment as the source files from which they were derived.
+
+The production boundary should enforce:
+• Data classification before context is assembled: public, internal, confidential or restricted.
+• The minimum context required for a task, with separate agent and shared-KB access scopes.
+• Explicit destinations and approval for external inference or tool use.
+• Server-side credentials, bounded sessions and permission checks at the execution boundary.
+• Retention, deletion, backup and export procedures covering source records and derived memory.
+• Audit records that show what was accessed, where it went and which policy allowed it, without unnecessarily duplicating secrets.
+
+Keeping inference local can reduce provider exposure, but it does not eliminate risks from connectors, telemetry, backups, compromised endpoints or overly broad computer permissions. Cloud processing can be an informed choice when its terms and controls fit the workload. The operator must be able to see that choice, constrain it and revoke future access. Sovereignty is demonstrated through these controls, not inferred from a dark dashboard or a local URL.
+
+13. THE FREE-PRODUCT PROBLEM
+"If it is free, you are the product" is a useful question to ask of an opaque business model. What pays for the service? Which data is collected? Can it be used for training, advertising or profiling? How long is it retained? What changes when a user leaves?
+
+Price alone does not answer these questions. Free software can be funded transparently, and paid software can still impose unfavorable data-use terms. A free model endpoint is a cost option; it is not a privacy guarantee. Open-source code is valuable for inspection and replacement, but a hosted deployment still has an operator, infrastructure and data policies.
+
+Quanta's design principle is to make the exchange visible. Users should select a route with its destination, capabilities, cost and applicable data-use terms in view. Restricted context should not be sent through a free demo route merely because that route is available. A provider change should trigger review of the affected data boundary rather than preserve an outdated assumption about privacy.
+
+The goal is to keep the user in control of the intelligence they build: their accumulated context, decisions and reviewed knowledge should remain portable instead of becoming an unavoidable dependency on one vendor. Provider-term summaries, classification gates and automated policy enforcement remain implementation requirements wherever they are not yet present.
+
+14. OPTIONAL DATA MONETIZATION: YOUR CHOICE, YOUR TERMS
+Knowledge can create economic value, but commercialization must be optional. An operator may choose to offer a curated dataset, a research artifact, a specialist service or access to an agent workflow. Private memory should never become a commercial feed by default. Choosing not to monetize should remain a fully supported way to use the system.
+
+The intended workflow is:
+1. Select a bounded asset; leave raw private memory and unrelated source material outside it.
+2. Establish provenance and the operator's authority to share the selected material; flag third-party restrictions and personal information for review.
+3. Remove or minimize sensitive content and assess whether the remaining artifact still reveals confidential relationships or business methods.
+4. Define the recipient, permitted purpose, access duration, pricing and reuse conditions.
+5. Preview the exact asset and terms, then obtain explicit operator approval before release.
+6. Record the release, applicable terms and receipts; monitor access and revoke future access when supported.
+
+Redaction is not proof of anonymity. Once an asset has been downloaded, access revocation cannot reliably retrieve existing copies. The system should state those limits before release. Revenue depends on demand, quality and agreed terms; ownership does not guarantee a market or income.
+
+Quanta does not currently provide a completed data marketplace, licensing engine, billing or payout workflow, automated rights verification or post-release enforcement. This section defines a roadmap and acceptance boundary for voluntary monetization. It must not be advertised as a functioning revenue feature until those capabilities are implemented and validated.
+
+15. PRODUCTION ACCEPTANCE FOR SOVEREIGN COMPOSABILITY
+A production claim should be supported by observable evidence. For each deployed workflow, demonstrate that the operator can identify storage and inference destinations; replace an eligible model or harness without losing knowledge; export records in a documented format; restrict agent and computer access; and inspect the policy and provenance for a run.
+
+Verify that a denied data route remains denied, a revoked session cannot perform new actions, retries do not duplicate durable writes, and provider failure cannot silently redirect private context. Document what deletion covers and what remains in backups, external services or released copies. For knowledge sharing, demonstrate private-KB isolation and explicit publication to the master KB. For monetization, require a separate release preview, rights review and approval record before any asset is shared.
+
+These are acceptance requirements, not a declaration that all checks have passed. Existing model connections, role configuration, memory integrations and local services provide components of the architecture. Complete end-to-end composability, universal policy enforcement and a commercial data workflow require further implementation and evaluation.
+
+16. EXPANDED AGENT WORKSPACES
+The product slogan is Sovereign Agentic Composable SI Systems that U Own! The startup experience expresses that identity with neon green text, a radar signal and a brief color transition. The operating substance is a system in which users can choose agents and inference destinations while retaining control of eligible local data and reviewed outputs.
+
+Hands is the agent section. Herald Hermes provides a workspace for Overview, Hermes conversation, Missions, Memory, Files, Automation, Connections, Settings, Coding Agents and Clip Studio. Work, Personal and Ideas provide separate application spaces. Space scoping is an application boundary, not a separate operating-system user or a proof that every external service enforces equivalent isolation. The interface preserves the Herald design and theme choices while connecting to the shared local backend used by QuantaCore and QS Terminal.
+
+The new specialist roles extend the existing eight roles. Credit Analyst reviews selected financial documents and produces source-linked analysis for human review. RWA / DeFi compares asset disclosures, protocol documentation and read-only evidence without granting wallet authority. Asset Recovery organizes timelines and candidate matches without treating a lead as proof or automatically submitting claims. The Prediction Agent Team supports evidence review, forecasts and calibration records; its label does not demonstrate independently running workers or predictive edge. Clipping Agent prepares useful video and audio excerpts from a recording and a brief. Role instructions, capabilities and illustrative case studies are configured in the directory; measured effectiveness must be established on representative tasks.
+
+17. HYBRID LOCAL AND CLOUD ARCHITECTURE
+Hybrid execution has three distinct paths. Local inference sends selected context to a local model runtime such as Ollama. Provider inference sends an approved prompt and bounded context to a chosen hosted model. Remote worker execution sends an approved task and selected files to a separately configured execution environment. Running a terminal locally establishes the location of the harness, not necessarily the location of model reasoning. A cloud model may receive source code or retrieved memory even when every visible interface is on the desktop.
+
+The intended nesting is operator and policy, then application and shared local backend, then a space and its scoped data, then a task harness, then the selected inference or worker route. Permissions should become narrower at each inner boundary. The Lego principle makes each component replaceable through explicit contracts; replacing a model must not silently change its context destination, file scope, credentials or approval policy.
+
+A normal flow starts with a local task draft and retrieval of the minimum relevant source material. The operator selects a route and, for external processing, approves the data scope and spend. A submitted job retains its provider, model, inputs, budget and status. Returned results become local candidate artifacts, with hashes and provenance where the adapter supports them. Independent evaluation and operator review determine promotion into durable knowledge. Interrupted submissions that may already have incurred charges must remain uncertain rather than being automatically replayed. These controls are implemented in specific hybrid adapters; native coding tools and provider websites do not automatically inherit all of them.
+
+Local processing is the preferred route for private tasks when the installed model, available memory and required tools can support the work. Cloud use is an explicit option for capabilities or capacity the local setup lacks. The architecture does not promise equal quality across models or silent fallback. Routing should compare task quality, tool success, cost, latency, privacy constraints and failure modes on a controlled workload. A local model remains available only when its runtime and model weights are actually installed and usable.
+
+Zo Computer is the selected remote-worker destination for the proposed OpenHands orchestration. Gmail, Calendar and Drive are intended to use Zo-connected accounts. Those selections define the integration direction; this revision does not establish active Zo worker jobs, Google account connectivity or a completed OpenHands deployment. Remote execution requires its own authentication, permissions, budget, scoped input preview and evidence of a successful bounded task.
+
+18. CODING AGENTS FROM MODEL LABS AND OPEN SOURCE PROJECTS
+Coding Agents is a dedicated Hermes workspace surface. The inspected launcher defines OpenAI Codex, Anthropic Claude Code, Google Gemini CLI, Goose and Grok via Goose. Codex, Claude Code and Gemini retain their native account authentication and permission flows. Goose supplies an extensible open-source harness; the Grok entry configures the xAI provider through Goose and is not a separate native Grok coding agent. Provider authentication, billing and entitlement remain provider responsibilities. An installed executable or a catalog card does not establish an authenticated, usable account.
+
+Codex CLI and Gemini CLI have open-source implementations. That does not mean their default hosted models or accounts are locally owned. Claude Code is a provider coding tool and must not be described as an open-source model. Goose and OpenHands are open-source agent projects whose licenses and deployment editions must be checked for the selected use. A harness, an inference runtime and a set of model weights are different components with different rights and requirements.
+
+A coding session defaults to the selected space folder. Opening the application source root is a separate scope choice. The Codex launcher specifies workspace-write sandboxing and on-request approval; Claude, Gemini and Goose keep their respective native execution controls. A working directory by itself is not a filesystem sandbox, and native controls are not identical across harnesses. The local session service bounds concurrent sessions and visible terminal output and records session metadata. It does not prove complete code-change history, durable restoration of every running process or universal enforcement of a shared policy engine.
+
+The optional local intelligence bridge exposes five typed, read-only capabilities: runtime and mission overview, selected-space memory, space file listing, recent conversation titles and local intelligence-service availability. It requires an active coding session, the selected space and its session capability. Service availability does not query the complete stored memory corpus. Attaching this bridge allows the selected coding provider to receive returned context when its agent calls the tools; users must choose that sharing deliberately. The bridge is not unrestricted access to every database, a general shell API or automatic synchronization of all coding outputs into the master knowledge base.
+
+Authentication is intended to be completed once through the native flow and reused until the provider expires or revokes it. The app must report actual connection state and allow reauthentication. Subscription access to a provider website, native CLI access and API credits may have different entitlements. The whitepaper makes no promise that one login covers all tools, that sessions remain valid forever or that cloud usage is included at no additional cost.
+
+19. EMBEDDED WEB PAGES AND DESKTOP TABS
+The design includes both terminal sessions and actual provider web pages. The desktop shell implements embedded ChatGPT, Claude, Gemini and Grok pages with Electron WebContentsView. Persistent browser partitions are separated by provider and application space and stored beneath the local Hermes browser directory. Context isolation, disabled Node integration and renderer sandboxing are configured. Login popups use the corresponding partition. The current shell denies permission requests and downloads by default.
+
+This is a desktop browser surface, not a promise that third-party websites can be embedded in an ordinary iframe. Site login policies, authentication challenges and compatibility may change. Persistent cookies reduce repeated login while valid; they do not establish API access or connect the page automatically to local intelligence. Provider pages remain external services, and the shell does not inject local backend authority into those pages. Embedded login and page behavior still require live validation on the supported desktop release.
+
+20. OPEN MODEL RUNTIMES AND HARDWARE PROFILES
+Local AI combines a runtime, a chosen model artifact and local storage. Ollama supplies the existing local text-inference route. Compatible open-weight text and code models can be selected from the operator's installed catalog when the harness supports that endpoint and tool contract. Model families, quantization, context length, tool formatting and license terms must be recorded for the exact artifact; an open-source harness does not convert proprietary or restricted model weights into open-source software.
+
+The app also offers configured hosted connections, including OpenAI-compatible endpoints, OpenRouter, Fireworks and other existing adapters. A model catalog is discovery metadata, not a benchmark or guarantee that every model supports the same tools and modalities. The selected provider must remain visible for each run. Local custody of source files does not prevent approved excerpts from leaving the device through cloud inference or connectors.
+
+Clip Studio uses faster-whisper for local speech transcription and FFmpeg for media preparation and rendering. CPU fallback uses tiny with int8. Basic GPU uses small with CUDA and int8_float16, with a conservative 3 GB free-VRAM admission limit. Bigger GPU targets the planned 16 GB NVIDIA desktop using large-v3 and float16, with a 12 GB free-VRAM admission limit. These are configuration limits, not measured throughput or universal total-memory requirements. Compatible GPU architecture, CUDA 12 and cuDNN 9 are required for these GPU paths.
+
+At this revision, local tiny and small weight files are present. The larger weight download was incomplete in the prior installation record, so Bigger GPU requires setup and validation on the new desktop. The current installation record reports a 2 GB MX150 unsuitable for these GPU profiles. One heavy media job runs at a time and transcription models unload after the subprocess exits. Rendering currently uses CPU FFmpeg. GPU inference, real-recording quality and model concurrency with a local text model have not been validated; a 16 GB card alone does not guarantee all models can remain resident together.
+
+21. CLIP STUDIO AND LOCAL AUTOMATION
+Clip Studio imports video or audio, preserves the original with a source hash, generates an embedded preview and waveform, and retains timed transcripts. Users can correct transcript versions, set clip boundaries, choose landscape, portrait, square or audio output, render a draft, preview the export and download an optional SRT sidecar. Render manifests bind the source range, clip and transcript versions, output hashes, engine identity and artifact review state.
+
+Automatic highlight suggestions currently rank local transcript content against the brief; they are not a validated semantic editing model or proof of the best possible highlights. Discuss selection with Hermes prepares bounded review context for the chosen model route. Treat source speech and transcript text as untrusted evidence, not instructions that grant tool permissions. Manual trimming remains useful when transcription is unavailable or a recording has no audio.
+
+Folder automation watches an explicitly selected local inbox, waits for stable files, observes the configured daily source limit and produces imported sources and draft suggestions. Original inbox files are not moved or deleted. A persistent SQLite journal records queued, running, completed, failed and cancelled work. Interrupted work requires review and retry; cancellation and workflow pause have distinct meanings. The shared backend must remain open for these workflows to run.
+
+The clipping MCP adapter defines six scoped tools for status, sources, jobs, bounded transcript excerpts, draft proposals and typed local jobs. Registration and live tool discovery are separate milestones. Publishing, email delivery, Drive synchronization, social accounts, face tracking and burned-in captions are outside the completed local clipping path. Review markers identify a particular output; they do not publish it or grant future publishing authority.
+
+22. LOCAL DATA STORE AND SOVEREIGN KNOWLEDGE
+The local store is a set of feature-specific records rather than one universal database. Hermes space files and memory are stored under the local application data tree. Clip Studio uses a SQLite journal and local files for source recordings, previews, transcripts, versioned edits, exports and manifests. Coding session metadata and native provider credentials have separate paths and lifecycles. Embedded browser sessions have another local store. Hindsight and Honcho remain separately configured intelligence services with their own stores and readiness checks.
+
+Source material belongs in a source-linked knowledge store. Reviewed preferences, decisions and lessons belong in durable memory. Large structured data such as trading time series should remain in an appropriate structured store. Generated proposals should retain draft status until review. A shared master KB should receive only explicitly approved publication; automatic promotion from every transcript, cloud response or coding conversation is not established in this release.
+
+Local storage is custody, not automatic encryption, backup or disaster recovery. Existing protected provider credentials do not imply equivalent protection for every file, browser cookie, model cache or database. Operators need separate retention, deletion, access and backup policies for each store. Cloud providers retain responsibility for the data they receive under their own terms. Sovereignty includes knowing that boundary and keeping exportable records sufficient to replace a component without losing approved knowledge.
+
+23. TRADING RL / RSI LAB AND SANDBOX
+The Trading RL / RSI Lab is the optional research and improvement workspace for strategy logic and potential edge. Users can ask for direction on a hypothesis, help diagnosing a rule or model, or a bounded SI loop that proposes and evaluates improvements. The purpose is to make reasoning clearer, identify weaknesses and compare candidate changes against evidence. Improvement is a result to establish, not a promise made by the lab.
+
+When requested, an SI loop can follow a reviewable sequence: state the objective and baseline, inspect the logic and data assumptions, propose a change, critique alternatives, implement the candidate in a sandbox, measure it against the baseline, and review whether to retain or reject it. The user defines the scope, iteration limit, compute or cloud budget and stopping conditions. Reinforcement-learning experiments can explore declared states, actions and reward objectives where an appropriate environment and data are available. Optimization may address rules, features, parameters, risk constraints, model routing or workflow efficiency. Neither learning nor optimization should start as an unrestricted background process simply because the lab is present.
+
+The sandbox keeps candidate strategies, experimental code, training artifacts and paper results separate from approved production logic. Preserve dataset versions, source timestamps, model and prompt versions, trial history, costs and the reason for each proposed change. Large or material changes require explicit permission. Local models can assist private logic review; approved cloud models or coding agents may assist deeper critique and implementation using only the selected context. Results remain locally recorded for comparison and operator review.
+
+Claims of edge require evaluation that matches the intended market and execution conditions. Use data available at the decision time, separate training and tuning from held-out evaluation, account for fees and plausible execution costs, and examine drawdown, calibration, robustness and sensitivity as appropriate. Repeated optimization can overfit; preserve failed trials and report uncertainty. An SI critique, a favorable simulation or agreement among agents is not independent evidence of trading advantage. A failed experiment should remain a useful negative result rather than be silently discarded.
+
+The app already contains trading research, stored runs, decision records and evaluation surfaces. This section defines the requested RL / RSI lab and sandbox workflow; it does not establish that a reinforcement-learning trainer, automated optimization loop or validated trading edge is operational. Each loop needs its own configured harness and acceptance evidence. Trading work remains research or paper simulation unless the user separately authorizes a controlled execution integration. Requesting improvement does not authorize orders, funds movement or automatic promotion into live strategy code.
+
+24. RELEASE EVIDENCE AND NEXT ACCEPTANCE STEPS
+This revision records inspected source definitions and installed artifacts as of October 9 2026. It does not use an earlier successful build as proof of a live account or end-to-end workflow. The expanded roles, coding launcher, typed intelligence bridge, desktop embedding code, shared clipping endpoints and CPU/Basic media profiles are implemented components. Provider authentication, embedded-page login, runtime MCP discovery, GPU inference and an actual complete recording job require separate operational evidence.
+
+The next acceptance work should demonstrate a scoped coding session reading only approved intelligence, a successful local model task with network destinations recorded, and an explicitly approved cloud task with bounded context and spend. For desktop embedding, verify persistent login, space separation and session revocation. For clipping, verify a real source through transcription, edited boundaries and a reviewed export on CPU and the intended GPU. For remote workers, demonstrate a bounded OpenHands task on Zo before declaring orchestration active. These are future acceptance requirements, not checks performed during this documentation update.
+
+25. PRIMARY PROJECT AND PROVIDER REFERENCES
+External references describe upstream products, not the activation state of this app. Accessed October 9 2026. Installed versions, service terms and model licenses must be recorded at deployment.
+
+• OpenAI Codex CLI project: https://github.com/openai/codex
+• OpenAI local and cloud account workflows: https://help.openai.com/en/articles/11369540-using-codex-with-your-chatgpt-plan
+• Anthropic Claude Code CLI reference: https://docs.anthropic.com/en/docs/claude-code/cli-usage
+• Google Gemini CLI project: https://github.com/google-gemini/gemini-cli
+• Goose open-source agent project: https://github.com/aaif-goose/goose
+• OpenHands agent project: https://github.com/OpenHands/OpenHands
+• Ollama local runtime and cloud boundaries: https://docs.ollama.com/faq
+• FFmpeg media tooling: https://ffmpeg.org/
+• faster-whisper transcription implementation: https://github.com/SYSTRAN/faster-whisper
+
+CONCLUSION
+Your intelligence. Your rules. Composability turns that commitment into a system design: independent data, models, memory, inference, agents and harnesses connected under boundaries the operator controls. Ownership and practical control are required foundations for meaningful sovereignty, privacy and protection of business IP; careful implementation must make those foundations enforceable.
+
+The Hindsight–Gnoesis Neural Core provides the memory architecture; per-bank Memory Defense can screen future writes when enabled; and the proposed FPT-Omega route stages deeper reasoning behind evidence and review. Private agent KBs and a deliberately shared master KB should preserve both collaboration and separation. Facts, observations, hypotheses and expert disagreement must retain their provenance.
+
+When operators choose to create value from eligible data or knowledge, the system should help them define the asset, recipient and terms and approve the release. When they choose privacy, the system should support that choice without turning private memory into a product by default. The lasting objective is an intelligence system users can understand, govern, replace and carry with them.
+
+---
+End of Document

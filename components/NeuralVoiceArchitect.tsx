@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { GoogleGenAI } from "@google/genai";
-import { getLocalGeminiApiKey } from '../services/browserCredentials';
+import { createGeminiClient } from '../services/geminiClient';
 
 interface NeuralVoiceArchitectProps {
   isOpen: boolean;
@@ -97,9 +97,7 @@ export const NeuralVoiceArchitect: React.FC<NeuralVoiceArchitectProps> = ({ isOp
     }
 
     try {
-      const apiKey = getLocalGeminiApiKey();
-      if (!apiKey) throw new Error('Configure Gemini in Settings before using voice prompt refinement.');
-      const ai = new GoogleGenAI({ apiKey });
+      const ai = createGeminiClient();
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
         contents: `You are the Neural Voice Architect. Transform this rough spoken instruction into a high-density, professional deep research query for a ${agentType === 'DeepAgent' ? 'Recursive Research Loop' : 'Deep Abyssal Retrieval'}. Use First Principles Thinking. 

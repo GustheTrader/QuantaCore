@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { GoogleGenAI } from "@google/genai";
 import { GeneratedImage, UserCredits } from '../types';
 import { getCredits, deductVisualEnergy } from '../services/creditService';
-import { getLocalGeminiApiKey } from '../services/browserCredentials';
+import { createGeminiClient, geminiDownloadUrl } from '../services/geminiClient';
 
 const VIDEO_COST = 200;
 const LOADING_MESSAGES = [
@@ -57,9 +57,7 @@ const VideoGenerator: React.FC = () => {
 
     setIsGenerating(true);
     try {
-      const apiKey = getLocalGeminiApiKey();
-      if (!apiKey) throw new Error('Configure Gemini in Settings before generating a video.');
-      const ai = new GoogleGenAI({ apiKey });
+      const ai = createGeminiClient();
       let operation = await ai.models.generateVideos({
         model: 'veo-3.1-fast-generate-preview',
         prompt: prompt,
@@ -77,7 +75,8 @@ const VideoGenerator: React.FC = () => {
 
       const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
       if (downloadLink) {
-        const finalUrl = `${downloadLink}&key=${apiKey}`;
+        // Streams through the local server; the API key is never put in the link.
+        const finalUrl = geminiDownloadUrl(downloadLink);
         const newVideo: GeneratedImage = {
           id: Math.random().toString(36).substr(2, 9),
           url: finalUrl,

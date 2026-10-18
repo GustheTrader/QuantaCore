@@ -6,6 +6,7 @@ import { UserCredits } from '../types';
 import type { UserTrack } from '../types';
 import { getAgentTrack } from '../lib/agent-tracks';
 import { MISSION_CONTROL_NAV, NAVIGATION_GROUPS, AGENT_CATEGORIES } from '../lib/navigation';
+import { isHostedSite, localOnlyReason } from '../lib/hosted-capabilities';
 import type { NavigationItem, NavigationGroup } from '../lib/navigation';
 import { PROVIDER_CHOICES } from '../lib/inference-providers';
 import { ConfirmationModal } from './ConfirmationModal';
@@ -60,7 +61,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, onLogout, track, p
   };
 
   const renderNavLink = (item: NavigationItem, accent: NavigationGroup['accent'] = 'cyan') => {
-    const isActive = location.pathname === item.path;
+    const isActive = location.pathname === item.path || (item.path === '/rsi-lab' && location.pathname.startsWith('/rsi-lab/'));
     const styles = accentStyles[accent];
     return (
       <Link
@@ -75,6 +76,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, onLogout, track, p
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d={item.icon} />
         </svg>
         {isOpen && <span className="ml-3 font-semibold text-xs tracking-wide whitespace-nowrap">{item.name}</span>}
+        {isOpen && isHostedSite() && localOnlyReason(item.path) && <span className="ml-auto rounded-full border border-slate-700 px-1.5 text-[9px] text-slate-500" title={localOnlyReason(item.path) || ''}>Local app</span>}
         {isActive && isOpen && <span aria-hidden="true" className={'absolute right-2.5 w-1 h-1 rounded-full ' + styles.dot} />}
       </Link>
     );
@@ -117,6 +119,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, onLogout, track, p
         </div>
 
         <nav aria-label="Quanta operating model" className="flex-1 min-h-0 px-4 py-2 overflow-y-auto custom-scrollbar">
+          <div className="mb-2">{renderNavLink({ name: 'System setup', path: '/startup', icon: 'M12 3v9m-6-6a8 8 0 1012 0', description: 'Start with one agent and add optional modules' }, 'emerald')}</div>
           <div className="mb-2">{renderNavLink(MISSION_CONTROL_NAV)}</div>
           <button 
             onClick={() => onOpenChat('Neural Terminal')}

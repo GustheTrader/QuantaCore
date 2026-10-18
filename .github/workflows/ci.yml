@@ -1,0 +1,52 @@
+# Runs on every push and pull request. A change is releasable only when this is green.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Secret scan
+        run: npm run check:secrets
+      - name: Type check
+        run: npm run lint
+      - name: Node tests
+        run: npm test
+      - name: Production build
+        run: npm run build
+      - name: Release identity
+        run: cat dist/version.json
+
+  rsi-python:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: Install the pinned RRSI checkout (same pin as scripts/install-rsi.ps1)
+        run: |
+          REPO=$(python3 -c "import json;print(json.load(open('rsi/upstream.lock.json'))['repository'])")
+          COMMIT=$(python3 -c "import json;print(json.load(open('rsi/upstream.lock.json'))['commit'])")
+          PY=$(python3 -c "import json;print(json.load(open('rsi/upstream.lock.json'))['python'])")
+          git clone "$REPO" "$RUNNER_TEMP/rrsi" && git -C "$RUNNER_TEMP/rrsi" checkout --detach "$COMMIT"
+          uv venv --python "$PY" "$RUNNER_TEMP/rrsi/.venv"
+          uv pip sync --python "$RUNNER_TEMP/rrsi/.venv/bin/python" rsi/requirements.lock.txt
+          uv pip install --python "$RUNNER_TEMP/rrsi/.venv/bin/python" --no-deps --no-build-isolation -e "$RUNNER_TEMP/rrsi"
+          uv pip install --python "$RUNNER_TEMP/rrsi/.venv/bin/python" pytest
+      - name: RSI lab tests
+        working-directory: rsi
+        run: "$RUNNER_TEMP/rrsi/.venv/bin/python -m pytest -q"

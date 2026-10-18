@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { PrototypeBanner } from './PrototypeBanner';
 import { ActionHub } from './ActionHub';
+import RuntimeEvidencePanel from './RuntimeEvidencePanel';
 
 interface SecurityLog {
   id: string;
@@ -74,6 +76,7 @@ const IronClawAgent: React.FC = () => {
 
   return (
     <div className="animate-in fade-in duration-1000 max-w-7xl mx-auto space-y-12 pb-40">
+      <PrototypeBanner what="The sandbox stages (input sanitization, WASM execution) are timed animations; no sandbox runtime is called." />
       <header className="text-center mb-16">
         <div className="inline-block px-6 py-2 rounded-full border border-orange-600/30 bg-orange-900/20 text-orange-500 text-[10px] font-black uppercase tracking-[0.5em] mb-6 shadow-[0_0_30px_rgba(234,88,12,0.2)]">
           Rust Security Core
@@ -211,4 +214,5 @@ const IronClawAgent: React.FC = () => {
   );
 };
 
-export default IronClawAgent;
+const IronClawEvidence: React.FC = () => <RuntimeEvidencePanel kind="security" prototype={<IronClawAgent />} />;
+export default IronClawEvidence;

@@ -27,8 +27,10 @@ const errorResponse = (res: Response, error: any) => res.status(error.status || 
 
 export interface InferenceHooks {
   researchAuthorized(req: Request): boolean;
+  connectionForRun?(req: Request, provider: CompatibleProvider): Promise<{ baseUrl: string; model: string; apiKey: string }>;
   admit(req: Request, provider: string, model: string, baseUrl: string, body: Record<string, unknown>, controller: AbortController): unknown;
   complete(admission: any, result: any): void;
+  rejected?(admission: any, status: number): void;
 }
 export function createInferenceRouters(store: ProviderStore, hooks?: InferenceHooks, request: typeof fetch = fetch) {
   const policy = new GatewayPolicy(store);
@@ -126,10 +128,12 @@ export function createInferenceRouters(store: ProviderStore, hooks?: InferenceHo
     let accounted = false;
     let scopedAdmission: string | undefined;
     try {
-      const stored = await store.read();
+      const stored = res.locals.researchAuthorized && hooks?.connectionForRun ? { preferredProvider: '' } : await store.read();
       let provider = gateway ? stored.preferredProvider : String(req.body.provider || stored.preferredProvider);
       let model = typeof req.body.model === 'string' ? req.body.model : '';
       if (gateway && res.locals.gatewayClient) {
+        // "auto" (or "quanta/auto") means: this client's pinned route.
+        if (model === 'auto' || model === 'quanta/auto') model = '';
         const route = policy.routes(res.locals.gatewayClient)[0];
         provider = route?.slice(0, route.indexOf('/')) || '';
         model ||= route?.slice(route.indexOf('/') + 1) || '';
@@ -139,7 +143,7 @@ export function createInferenceRouters(store: ProviderStore, hooks?: InferenceHo
         if (isCompatibleProvider(prefix)) { provider = prefix; model = model.slice(prefix.length + 1); }
       }
       if (!isCompatibleProvider(provider)) throw fail('Select a configured OpenAI-compatible provider for this API.');
-      const config = await store.connection(provider);
+      const config = res.locals.researchAuthorized && hooks?.connectionForRun ? await hooks.connectionForRun(req, provider) : await store.connection(provider);
       model ||= config.model;
       if (!model || model.length > 256) throw fail('Configure a model ID for this provider.');
       if (getProviderDefinition(provider)!.requiresKey && !config.apiKey) throw fail('Configure this provider\'s API key in Settings.');
@@ -161,6 +165,7 @@ export function createInferenceRouters(store: ProviderStore, hooks?: InferenceHo
       if (!upstream.ok) {
         let message = `Provider returned HTTP ${upstream.status}.`;
         try { message = (await boundedJson(upstream)).error?.message || message; } catch {}
+        if (admission) hooks?.rejected?.(admission, upstream.status);
         throw fail(redactError(message, config.apiKey), upstream.status);
       }
       if (body.stream === true && !useResponses) {
@@ -168,10 +173,12 @@ export function createInferenceRouters(store: ProviderStore, hooks?: InferenceHo
         res.setHeader('Content-Type', 'text/event-stream');
         res.setHeader('Cache-Control', 'no-cache');
         await pipeline(Readable.fromWeb(upstream.body as any), res);
+        // A completed stream succeeded; usage is unknown, so the reservation stands.
+        if (scopedAdmission) { policy.complete(scopedAdmission, {}); accounted = true; }
       } else {
         const raw = await boundedJson(upstream);
         const result = useResponses ? responsesCompletion(raw) : raw;
-        if (scopedAdmission && (result.choices?.[0]?.finish_reason !== 'stop' || typeof result.choices?.[0]?.message?.content !== 'string' || !result.choices[0].message.content.trim() || result.choices[0].message.tool_calls)) throw fail('Scoped model response did not complete with usable text.', 502);
+        if (scopedAdmission && policy.profile(res.locals.gatewayClient) !== 'agent' && (result.choices?.[0]?.finish_reason !== 'stop' || typeof result.choices?.[0]?.message?.content !== 'string' || !result.choices[0].message.content.trim() || result.choices[0].message.tool_calls)) throw fail('Scoped model response did not complete with usable text.', 502);
         if (scopedAdmission) policy.complete(scopedAdmission, result);
         hooks?.complete(admission, result); accounted = true;
         if (body.stream === true) {

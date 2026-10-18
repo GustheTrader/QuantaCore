@@ -10,14 +10,16 @@ import HarnessRouterShowcase from './HarnessRouterShowcase';
 import NeuralLinkWelcome from './NeuralLinkWelcome';
 import { AGENT_TRACKS, getAgentTrack } from '../lib/agent-tracks';
 import type { UserTrack } from '../types';
-import { isSupabaseConfigured, signInAsTestGuest } from '../services/supabaseService';
+import { isSupabaseConfigured, signInAsTestGuest, signInWithProvider, type SignInProvider } from '../services/supabaseService';
 
 interface AuthPageProps {
   onLogin: (data: { email: string, track: UserTrack }) => void;
+  replayWelcome?: boolean;
 }
 
-const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
+const AuthPage: React.FC<AuthPageProps> = ({ onLogin, replayWelcome = false }) => {
   const [showNeuralWelcome, setShowNeuralWelcome] = useState(() => {
+    if (replayWelcome) return true;
     try {
       return window.localStorage.getItem('quanta_neural_link_initialized_v1') !== 'true';
     } catch {
@@ -82,8 +84,20 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
       border: "border-orange-500/20"
     }
   ];
-  const splashSpecialistIds: UserTrack[] = ['credit', 'rwa-defi', 'asset-recovery', 'prediction'];
+  const splashSpecialistIds: UserTrack[] = ['credit', 'rwa-defi', 'asset-recovery', 'prediction', 'clipping'];
   const featuredSpecialists = AGENT_TRACKS.filter(agent => splashSpecialistIds.includes(agent.id));
+
+  const [oauthBusy, setOauthBusy] = useState<SignInProvider | null>(null);
+  const handleProvider = async (provider: SignInProvider) => {
+    setOauthBusy(provider);
+    setAuthMessage('');
+    try { await signInWithProvider(provider, track); }
+    catch (error) {
+      console.error('Provider sign-in failed', error);
+      setAuthMessage(`${provider === 'google' ? 'Google' : 'GitHub'} sign-in could not start. Check that the provider is enabled in Supabase Authentication → Providers.`);
+      setOauthBusy(null);
+    }
+  };
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -144,15 +158,19 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
           }} />
           
           <h2 className="mb-4 text-4xl font-outfit font-black uppercase leading-[0.96] tracking-tighter sm:text-6xl md:text-[6rem]">
-            <span className="block text-white">Quanta-<span className="bg-gradient-to-r from-orange-400 via-amber-300 to-emerald-400 bg-clip-text text-transparent">Agentic</span> OS</span>
+            <span className="block text-white">QuantaCore-<span className="bg-gradient-to-r from-lime-300 via-cyan-300 to-fuchsia-300 bg-clip-text text-transparent">SI-OS</span></span>
             <span className="mt-2 block text-emerald-300">with Neural</span>
             <span className="block text-white">Logic Cores and Loops.</span>
           </h2>
           
+          <p className="my-6 font-outfit text-xl font-bold sm:text-3xl" style={{ color: '#b6ff36', textShadow: '0 0 24px #a3ff3655' }}>Sovereign Agentic Composable SI Systems that U Own!</p>
           <div className="mb-12 mt-6">
             <p className="text-lg font-outfit font-bold tracking-tight text-white sm:text-xl md:text-3xl">
               <span className="block">Your data. <span className="text-emerald-300">Your Pipeline.</span> Your Private Output.</span>
               <span className="mt-2 block">You own the Super <span className="bg-gradient-to-r from-orange-400 via-amber-300 to-emerald-400 bg-clip-text text-transparent">Intelligence.</span></span>
+            </p>
+            <p className="mx-auto mt-5 max-w-4xl text-sm leading-7 text-slate-300 sm:text-base md:text-lg">
+              <span className="font-bold text-emerald-300">Sovereign Composability SI</span> for local and cloud AI. You choose your privacy, model, and data. Harness intelligence with custom guardrails, security, transparency, and trust—a Lego builder system you own.
             </p>
           </div>
           
@@ -194,6 +212,16 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
                 </div>
               </div>
             ))}
+            <article className="sme-card-enhanced group flex flex-col rounded-[3rem] border border-lime-300/35 p-10 transition-all duration-500" style={{ background: 'linear-gradient(145deg, #b6ff3612, #020617 60%, #67e8f910)' }}>
+              <div aria-hidden="true" className="mb-8 flex h-14 w-14 items-center justify-center rounded-2xl border border-lime-300/30 bg-lime-300/10 text-lime-300">
+                <svg className="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 3v4m-2-2h4M5 10h14l-3 5h-3v3h4v3H7v-3h4v-3H8l-3-5Z" /></svg>
+              </div>
+              <p className="mb-3 text-[9px] font-black uppercase tracking-[0.2em] text-lime-300">Your vision · your agents</p>
+              <h3 className="mb-4 font-outfit text-2xl font-black leading-tight text-white">Forge your own Agent or Agentic Team</h3>
+              <p className="text-sm leading-6 text-slate-400">Define your agent’s purpose, personality and skills. Shape the roles and workflow for the team you want to build.</p>
+              <div className="my-6 flex flex-wrap gap-2 text-[10px] font-bold text-cyan-200"><span className="rounded-full border border-cyan-300/20 px-3 py-1.5">Purpose</span><span className="rounded-full border border-cyan-300/20 px-3 py-1.5">Skills</span><span className="rounded-full border border-cyan-300/20 px-3 py-1.5">Team roles</span></div>
+              <a href="#/sme-builder" onClick={() => authFormRef.current?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })} className="mt-auto inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-lime-300 px-5 py-3 text-xs font-black uppercase tracking-[0.12em] text-slate-950 transition-colors hover:bg-lime-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-lime-200">Open the Forge <span aria-hidden="true">→</span></a>
+            </article>
           </div>
 
           <section aria-labelledby="specialist-agents-title" className="mt-28 text-left">
@@ -270,6 +298,20 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
                   <span className="font-bold text-white">{selectedAgent.label}</span> selected. Activate your workspace below.
                 </p>
               </div>
+
+              {isSupabaseConfigured && <div className="space-y-4">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <button type="button" disabled={loading || !!oauthBusy} onClick={() => handleProvider('google')} className="flex items-center justify-center gap-3 rounded-2xl border-2 border-slate-700 bg-white py-5 text-sm font-bold text-slate-900 transition-colors hover:bg-slate-100 disabled:opacity-50">
+                    <svg aria-hidden="true" className="h-5 w-5" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.6l6.7-6.7C35.6 2.4 30.2 0 24 0 14.6 0 6.6 5.4 2.6 13.2l7.8 6C12.3 13.4 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.6c0-1.6-.1-3.1-.4-4.6H24v8.7h12.4c-.5 2.9-2.2 5.3-4.6 6.9l7.5 5.8c4.4-4 6.8-10 6.8-16.8z"/><path fill="#FBBC05" d="M10.4 28.8c-.5-1.4-.8-3-.8-4.8s.3-3.3.8-4.8l-7.8-6C.9 16.5 0 20.1 0 24s.9 7.5 2.6 10.8l7.8-6z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.5-5.8c-2.1 1.4-4.8 2.3-8.4 2.3-6.3 0-11.7-4.2-13.6-9.9l-7.8 6C6.6 42.6 14.6 48 24 48z"/></svg>
+                    {oauthBusy === 'google' ? 'Opening Google…' : 'Continue with Google'}
+                  </button>
+                  <button type="button" disabled={loading || !!oauthBusy} onClick={() => handleProvider('github')} className="flex items-center justify-center gap-3 rounded-2xl border-2 border-slate-700 bg-slate-900 py-5 text-sm font-bold text-white transition-colors hover:bg-slate-800 disabled:opacity-50">
+                    <svg aria-hidden="true" className="h-5 w-5" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+                    {oauthBusy === 'github' ? 'Opening GitHub…' : 'Continue with GitHub'}
+                  </button>
+                </div>
+                <p className="flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.3em] text-slate-600"><span className="h-px flex-1 bg-slate-800" />or continue as test guest<span className="h-px flex-1 bg-slate-800" /></p>
+              </div>}
 
               <div className="text-left space-y-4">
                 <label className="block text-orange-400 text-[10px] font-black uppercase tracking-[0.4em] px-2">Test Contact Email</label>

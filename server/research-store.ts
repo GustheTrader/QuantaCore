@@ -4,6 +4,7 @@ import { mkdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { EventEmitter } from 'node:events';
 import Ajv2020 from 'ajv/dist/2020';
+import { bindCurrentEntity } from './operating-evidence';
 import type { Run, RunRequest, RunStatus, Event, Usage } from '../lib/research-contract';
 export const ENGINE = { version: '0.5.1', commit: '35543d0248bf89fcb92b17a15858ad0c0e940687' };
 const schema = JSON.parse(readFileSync(new URL('../contracts/research.schema.json', import.meta.url), 'utf8'));
@@ -127,6 +128,7 @@ export class ResearchStore extends EventEmitter {
         throw failure('Idempotency key was used with another request.', 409); return run; }
     save(run: Run) { this.append(run.id, 'run.projection', { snapshot: run }); this.db.prepare('UPDATE runs SET value=? WHERE id=?').run(JSON.stringify(run), run.id); }
     append(id: string, type: string, payload: Record<string, unknown>, nodeId: string | null = null): Event {
+        bindCurrentEntity('research',id);
         if (!finite(payload) || Buffer.byteLength(JSON.stringify(payload)) > 2000000)
             throw failure('Worker event is invalid or exceeds 2 MB.');
         const last = this.db.prepare('SELECT value FROM events WHERE run_id=? ORDER BY seq DESC LIMIT 1').get(id);

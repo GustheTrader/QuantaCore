@@ -5,6 +5,15 @@ import path from 'node:path';
 import os from 'node:os';
 import { ProviderStore } from './provider-store';
 import { migrateBootstrapSecrets } from './bootstrap-secrets';
+
+test('startup can skip unlocking existing credentials when there are no migration sources', async () => {
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'bootstrap-startup-'));
+  try {
+    const store = { directory, getOAuthCredentials: async () => { throw new Error('Existing credentials stay locked.'); } } as unknown as ProviderStore;
+    assert.deepEqual(await migrateBootstrapSecrets(store, false), {});
+    await assert.rejects(migrateBootstrapSecrets(store), /Existing credentials stay locked/);
+  } finally { await fs.rm(directory, { recursive: true, force: true }); }
+});
 test('bootstrap migration verifies protected credentials before removing exact plaintext sources', async () => {
   const directory = await fs.mkdtemp(path.join(os.tmpdir(),'bootstrap-migration-'));
   try {

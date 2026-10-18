@@ -17,7 +17,7 @@ export default function ChatGptPlanCard() {
     return data;
   }
   async function refresh() {
-    const next: Status = await api('/status'); setStatus(next);
+    const next: Status = await api('/status'); setStatus(next); window.dispatchEvent(new Event('quanta_account_changed'));
     const same = next.activeAccountId && next.route.accountId === next.activeAccountId;
     setModel(same ? next.route.model : ''); setEnabled(Boolean(same && next.route.businessEnabled));
     setModels([]);

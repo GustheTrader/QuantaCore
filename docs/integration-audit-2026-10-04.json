@@ -1,0 +1,170 @@
+{
+  "schema_version": "ecc.agent-architecture-audit.report.v1",
+  "executive_verdict": {
+    "overall_health": "high_risk_for_unattended_operation",
+    "primary_failure_mode": "Different inference routes do not share one autonomous policy and spending boundary",
+    "most_urgent_fix": "Migrate remaining plaintext bootstrap secrets and design scoped autonomous routing"
+  },
+  "scope": {
+    "target_name": "QuantaCore local hybrid/model integration",
+    "model_stack": [
+      "ChatGPT plan OAuth",
+      "Google API OAuth",
+      "compatible-provider API keys",
+      "Business planning bridge",
+      "Hybrid jobs"
+    ],
+    "layers_to_audit": [
+      "authorization",
+      "routing",
+      "tool execution",
+      "transport",
+      "persistence",
+      "recovery"
+    ]
+  },
+  "findings": [
+    {
+      "severity": "high",
+      "title": "OpenAI request account race",
+      "mechanism": "Token acquisition followed active account after route validation",
+      "source_layer": "routing",
+      "root_cause": "No expected account parameter",
+      "evidence_refs": [
+        "server/chatgpt-oauth.ts:136",
+        "server/chatgpt-plan.ts:92"
+      ],
+      "confidence": 1,
+      "recommended_fix": "Implemented expected-account binding and catalog save recheck",
+      "status": "fixed"
+    },
+    {
+      "severity": "high",
+      "title": "Cloud Ollama behind local transport",
+      "mechanism": "Loopback route could invoke a cloud tag",
+      "source_layer": "tool execution",
+      "root_cause": "Transport locality treated as inference locality",
+      "evidence_refs": [
+        "server/business-bridge.ts:28"
+      ],
+      "confidence": 1,
+      "recommended_fix": "Known cloud tags blocked; isolate actual local runtime egress",
+      "status": "partially_fixed"
+    },
+    {
+      "severity": "high",
+      "title": "Unscoped general model gateway",
+      "mechanism": "General API key routing bypasses Hybrid job budgets",
+      "source_layer": "authorization",
+      "root_cause": "Separate control planes",
+      "evidence_refs": [
+        "server/inference-router.ts:118",
+        "server/inference-router.ts:174"
+      ],
+      "confidence": 1,
+      "recommended_fix": "Implemented revocable single-route scopes, pinned endpoint/credential, persisted call and reservation caps, bounded text-only requests, and legacy-key rejection.",
+      "status": "fixed"
+    },
+    {
+      "severity": "high",
+      "title": "Plaintext bootstrap secrets",
+      "mechanism": "Paperclip login reads ordinary JSON; recoverable connector keys remain on disk",
+      "source_layer": "persistence",
+      "root_cause": "Provisioning outside ProviderStore",
+      "evidence_refs": [
+        "server/business-bridge.ts:128",
+        "scripts/setup-business-bridge.mjs"
+      ],
+      "confidence": 1,
+      "recommended_fix": "Implemented verified protected-storage migration; preserved existing credentials and bindings without rotation.",
+      "status": "fixed"
+    },
+    {
+      "severity": "medium",
+      "title": "Unbounded OAuth JSON",
+      "mechanism": "Provider bodies were buffered without byte caps",
+      "source_layer": "transport",
+      "root_cause": "Direct response.json use",
+      "evidence_refs": [
+        "server/bounded-json.ts:2"
+      ],
+      "confidence": 1,
+      "recommended_fix": "Implemented bounded OAuth/catalog parsing; broaden to general inference",
+      "status": "partially_fixed"
+    },
+    {
+      "severity": "medium",
+      "title": "Google grant change during model selection",
+      "mechanism": "Stale catalog could be saved into a changed grant",
+      "source_layer": "routing",
+      "root_cause": "No grant identity recheck",
+      "evidence_refs": [
+        "server/google-oauth.ts:67"
+      ],
+      "confidence": 1,
+      "recommended_fix": "Implemented grant ID recheck",
+      "status": "fixed"
+    },
+    {
+      "severity": "medium",
+      "title": "Credential subprocess could stall",
+      "mechanism": "Hung DPAPI process blocks persistence queue",
+      "source_layer": "persistence",
+      "root_cause": "No timeout",
+      "evidence_refs": [
+        "server/provider-store.ts:20"
+      ],
+      "confidence": 1,
+      "recommended_fix": "Implemented 45-second timeout",
+      "status": "fixed"
+    },
+    {
+      "severity": "medium",
+      "title": "Incomplete Google response could pass",
+      "mechanism": "Nonempty partial text treated as connection success",
+      "source_layer": "tool interpretation",
+      "root_cause": "Termination status not checked",
+      "evidence_refs": [
+        "server/google-oauth.ts:75"
+      ],
+      "confidence": 1,
+      "recommended_fix": "Implemented STOP requirement",
+      "status": "fixed"
+    }
+  ],
+  "ordered_fix_plan": [
+    {
+      "order": 1,
+      "goal": "Protect remaining bootstrap credentials",
+      "why_now": "Existing secrets are outside encrypted store",
+      "expected_effect": "Consistent local secret protection"
+    },
+    {
+      "order": 2,
+      "goal": "Scope autonomous model routes and spending",
+      "why_now": "General gateway differs from reviewed jobs",
+      "expected_effect": "Explicit authorization and usage boundaries"
+    },
+    {
+      "order": 3,
+      "goal": "Isolate local-only inference",
+      "why_now": "Model tags alone cannot prove offline execution",
+      "expected_effect": "Enforced egress boundary"
+    },
+    {
+      "order": 4,
+      "goal": "Complete live provider conformance and recovery tests",
+      "why_now": "Fixture success is not operational readiness",
+      "expected_effect": "Evidence-based activation gates"
+    }
+  ],
+  "remediation": {
+    "date": "2026-10-04",
+    "report": "docs/integration-remediation-2026-10-04.md",
+    "remaining_limits": [
+      "Single trusted local operator and one server process",
+      "Reservations are not provider invoice guarantees",
+      "Local-only egress isolation and live provider conformance remain separate work"
+    ]
+  }
+}

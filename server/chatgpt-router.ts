@@ -43,8 +43,8 @@ export function createChatGptRouter(plan: ChatGptPlan) {
     const binding = req.get('cookie')?.split(';').map(v => v.trim()).find(v => v.startsWith('quanta_chatgpt_oauth='))?.slice('quanta_chatgpt_oauth='.length) || '';
     if (req.hostname !== '127.0.0.1' || !['127.0.0.1', '::ffff:127.0.0.1'].includes(req.socket.remoteAddress || '') || !transaction || transaction.expiresAt < Date.now() || !timingSafeEqual(transaction.binding, hash(binding))) { res.status(400).send('Invalid or expired browser-bound sign-in. Return to the local panel and start again.'); return; }
     transactions.delete(state); res.clearCookie('quanta_chatgpt_oauth', { path: '/auth/openai' });
-    try { await plan.oauth.callback(req.query); res.redirect(303, '/hybrid.html?chatgpt=connected'); }
-    catch { res.redirect(303, '/hybrid.html?chatgpt=failed'); }
+    try { await plan.oauth.callback(req.query); res.redirect(303, '/?auth_provider=openai-compatible&auth_result=connected#/startup'); }
+    catch { res.redirect(303, '/?auth_provider=openai-compatible&auth_result=failed#/startup'); }
   });
   return { api, callback };
 }

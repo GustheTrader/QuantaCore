@@ -44,9 +44,9 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   return data;
 }
 
-export const loadProviderConnections = () => request<ProviderConfigResponse>('/providers');
+export const loadProviderConnections = (signal?: AbortSignal) => request<ProviderConfigResponse>('/providers', { signal });
 export interface LocalRuntime { checkedAt: string; server: string; services: { id: string; label: string; status: string; latencyMs: number; httpStatus?: number }[] }
-export const loadLocalRuntime = () => request<LocalRuntime>('/runtime');
+export const loadLocalRuntime = (signal?: AbortSignal) => request<LocalRuntime>('/runtime', { signal });
 export const saveProviderConnection = (id: CompatibleProvider, connection: { baseUrl: string; model: string; apiKey?: string; clearKey?: boolean }) =>
   request<ProviderConfigResponse>(`/providers/${id}`, { method: 'PUT', body: JSON.stringify(connection) });
 export const loadProviderModels = async (id: CompatibleProvider) => (await request<{ data: ProviderModel[] }>(`/providers/${id}/models`)).data;
@@ -59,5 +59,5 @@ export const setPreferredInferenceProvider = async (provider: ComputeProvider) =
   localStorage.setItem('quanta_preferred_provider', provider);
   window.dispatchEvent(new Event('quanta_provider_changed'));
 };
-export const completeWithProvider = (provider: CompatibleProvider, body: Record<string, unknown>, signal?: AbortSignal) =>
-  request<any>('/chat/completions', { method: 'POST', body: JSON.stringify({ ...body, provider }), signal });
+export const completeWithProvider = (provider: CompatibleProvider, body: Record<string, unknown>, signal?: AbortSignal, correlationId?: string) =>
+  request<any>('/chat/completions', { method: 'POST', body: JSON.stringify({ ...body, provider }), signal, ...(correlationId ? { headers: { 'X-Quanta-Correlation-ID': correlationId } } : {}) });

@@ -41,7 +41,7 @@ export default function AgentDirectory({ onActivateAgent }: { onActivateAgent: (
     ...AGENT_TRACKS.map(track => ({
       id: `role-${track.id}`,
       name: track.label,
-      path: track.id === 'personal' || track.id === 'consumer' ? '/openmuse' : '/agent',
+      path: track.id === 'clipping' ? '/hermes?view=clips' : track.id === 'personal' || track.id === 'consumer' ? '/openmuse' : '/agent',
       description: track.description,
       role: track.instruction,
       category: track.directoryGroup,

@@ -1,0 +1,5 @@
+import React from 'react';
+import { READINESS_STAGES, type ReadinessCell } from '../lib/operating-contract';
+export default function ReadinessStrip({cells=[],useCase}:{cells?:ReadinessCell[];useCase:string}){
+  return <div className="mt-3"><ol aria-label={`Readiness for ${useCase}`} className="grid gap-2 sm:grid-cols-2">{READINESS_STAGES.map(stage=>{const cell=cells.find(c=>c.stage===stage.id),state=cell?.state||'unknown';return <li key={stage.id} title={cell?.reference||'No current evidence recorded.'} className={`rounded-lg border p-2 text-[11px] leading-5 ${state==='pass'?'border-emerald-400/30 text-emerald-200':state==='fail'?'border-rose-400/30 text-rose-200':state==='stale'?'border-amber-400/30 text-amber-200':'border-slate-700 text-slate-400'}`}><span className="block">{stage.label}</span><strong className="capitalize">{state}</strong>{cell?.basis&&<span className="block font-normal">{cell.basis}</span>}</li>;})}</ol><p className="mt-2 break-words text-[10px] leading-5 text-slate-500">Use case: {useCase}</p></div>;
+}

@@ -9,19 +9,12 @@ import { deductDeepAgentCredits, checkHasCredits } from './creditService';
 
 const NOVITA_BASE_URL = 'https://api.novita.ai/openai/v1/chat/completions';
 
+// No built-in key: a key shipped in frontend code is public to every visitor.
 const getNovitaConfig = () => {
-  const saved = localStorage.getItem('quanta_api_settings');
-  if (saved) {
-    const settings = JSON.parse(saved);
-    return {
-      key: settings.novitaKey || 'sk_zWjgBxMtUYbDX9IzHXjv7GdMhm4CtTodN_bDFDpDI5M',
-      model: settings.novitaModel || 'moonshotai/kimi-k2-thinking'
-    };
-  }
-  return {
-    key: 'sk_zWjgBxMtUYbDX9IzHXjv7GdMhm4CtTodN_bDFDpDI5M',
-    model: 'moonshotai/kimi-k2-thinking'
-  };
+  let settings: { novitaKey?: string; novitaModel?: string } = {};
+  try { settings = JSON.parse(localStorage.getItem('quanta_api_settings') || '{}'); } catch {}
+  if (!settings.novitaKey) throw new Error('Add your Novita API key in Settings to use Deep Dive.');
+  return { key: settings.novitaKey, model: settings.novitaModel || 'moonshotai/kimi-k2-thinking' };
 };
 
 export const streamNovitaDeepDive = async (

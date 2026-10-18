@@ -192,6 +192,13 @@ const Notebook: React.FC = () => {
     if (activeSourceId === id) setActiveSourceId(null);
   };
 
+  // Reviewed promotion: a model-written note becomes shared knowledge only when the operator approves it.
+  const approveAndShare = (id: string) => {
+    const updated = sources.map(s => s.id !== id ? s : { ...s, assignedAgents: [...new Set([...s.assignedAgents, 'All Agents'])], metadata: { ...s.metadata, reviewStatus: 'approved' as const } });
+    setSources(updated);
+    localStorage.setItem('quanta_notebook', JSON.stringify(updated));
+  };
+
   const activeSource = sources.find(s => s.id === activeSourceId);
 
   return (
@@ -365,6 +372,12 @@ const Notebook: React.FC = () => {
                       </div>
                       <span className="text-[8px] font-mono text-slate-500">{source.metadata?.wordCount || 0} words</span>
                    </div>
+                   {source.metadata?.reviewStatus === 'unreviewed' && (
+                     <div className="flex flex-wrap items-center justify-between gap-2 px-1">
+                       <span className="text-[9px] text-amber-300">Unreviewed · private to {source.assignedAgents.filter(a => a !== 'All Agents').join(', ') || 'one agent'}</span>
+                       <button type="button" onClick={(e) => { e.stopPropagation(); approveAndShare(source.id); }} className="rounded-md border border-amber-500/30 px-2 py-0.5 text-[9px] font-semibold text-amber-200 hover:bg-amber-500/10">Approve &amp; share with all agents</button>
+                     </div>
+                   )}
 
                    <button 
                      onClick={(e) => { e.stopPropagation(); setDeleteModal({ isOpen: true, id: source.id }); }}
@@ -380,7 +393,8 @@ const Notebook: React.FC = () => {
            {deleteModal && (
              <ConfirmationModal
                isOpen={deleteModal.isOpen}
-               onClose={() => setDeleteModal(null)}
+               onCancel={() => setDeleteModal(null)}
+               cancelLabel="Cancel"
                onConfirm={() => {
                  if (deleteModal.id) deleteSource(deleteModal.id);
                }}

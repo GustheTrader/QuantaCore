@@ -15,6 +15,8 @@ type Active = {
     calls: Set<AbortController>;
     settling?: boolean;
     effectiveDate?: string;
+    // Set when the model provider rejected the saved credential during this attempt.
+    authFailure?: { status: number; model: string };
 };
 export type Admission = {
     id: string;
@@ -28,6 +30,18 @@ const events = new Set(['node.started', 'node.completed', 'tool.started', 'tool.
 const nodes = new Set(['market_analyst', 'social_analyst', 'news_analyst', 'fundamentals_analyst', 'bull_researcher', 'bear_researcher', 'research_manager', 'trader', 'aggressive_analyst', 'conservative_analyst', 'neutral_analyst', 'portfolio_manager']);
 const budgetFailureMarker = 'Research budget exhausted before this inference call.';
 const budgetFailureMessage = 'The frozen inference budget blocked the next model call. No inference request was sent. Start a new reviewed run with a higher token limit or a narrower research configuration.';
+const authFailureMessage = 'The model provider rejected the saved credential (HTTP 401/403), so no research result was produced. Reconnect or replace the provider key in Settings, then resume or start a new run.';
+// Byte length overstates tokens roughly 3-4x; dividing by 3 stays conservative without
+// starving later graph nodes whose prompts carry earlier reports.
+export const reserveInputTokens = (bytes: number) => Math.ceil(bytes / 3) + 512;
+export function estimateCalls(request: RunRequest) {
+    const count = request.selected_analysts.length * 3 + request.debate_rounds * 2 + request.risk_rounds * 3 + 5;
+    // Later debate/risk/manager prompts include earlier reports. Assume half of each
+    // earlier output is carried forward, which is the growth the real runs hit.
+    let growth = 0;
+    for (let i = 0; i < count; i++) growth += 6000 + Math.floor(i * request.budget.max_output_tokens / 2);
+    return { count, input: count * 6000, growth, output: count * request.budget.max_output_tokens };
+}
 export class ResearchManager {
     readonly store: ResearchStore;
     readonly testMode: boolean;
@@ -166,7 +180,43 @@ export class ResearchManager {
     async routes(request: RunRequest) { if (request.mode === 'fixture' && this.testMode)
         return []; const catalog = await this.catalog(); return [...new Set(Object.values(request.models))].map(id => { const route = catalog.find(r => r.id === id); if (!route)
         throw failure('Research requires a configured compatible model route. Configure it in Settings.'); const { label, ...frozen } = route; return frozen; }); }
-    async estimate(request: RunRequest) { validateRequest(request, this.testMode); const routes = await this.routes(request); const count = request.selected_analysts.length * 3 + request.debate_rounds * 2 + request.risk_rounds * 3 + 5; const input = count * 6000, output = count * request.budget.max_output_tokens; const known = routes.length > 0 && routes.every(r => r.input_rate !== null && r.output_rate !== null); return { expected_calls: count, estimated_input_tokens: input, estimated_output_tokens: output, estimated_cost_usd: known ? input * Math.max(...routes.map(r => r.input_rate!)) + output * Math.max(...routes.map(r => r.output_rate!)) : null, price_known: known, warnings: ['Estimate assumes 6,000 input tokens per call; tool cycles and reflections can use more.', 'Hard admission limits may stop the pipeline before completion.', 'Historical online feeds may contain revised or later information; evaluation is indicative.', 'API price quotes exclude hardware, data vendor charges, and provider adjustments.'] }; }
+    async estimate(request: RunRequest) {
+        validateRequest(request, this.testMode);
+        const routes = await this.routes(request);
+        const { count, input, growth, output } = estimateCalls(request);
+        const known = routes.length > 0 && routes.every(r => r.input_rate !== null && r.output_rate !== null);
+        const fits = this.budgetFit(request);
+        return { expected_calls: count, estimated_input_tokens: input, estimated_input_tokens_with_context_growth: growth, estimated_output_tokens: output,
+            estimated_cost_usd: known ? growth * Math.max(...routes.map(r => r.input_rate!)) + output * Math.max(...routes.map(r => r.output_rate!)) : null, price_known: known,
+            fits_budget: fits.ok, budget_problems: fits.problems,
+            warnings: [...fits.risks, 'Estimate assumes 6,000 input tokens per call plus carried-forward reports; tool cycles and reflections can use more.', 'Hard admission limits may stop the pipeline before completion.', 'Historical online feeds may contain revised or later information; evaluation is indicative.', 'API price quotes exclude hardware, data vendor charges, and provider adjustments.'] };
+    }
+    budgetFit(request: RunRequest) {
+        const { count, input, growth, output } = estimateCalls(request), limit = request.budget, problems: string[] = [], risks: string[] = [];
+        // Blocking: limits below the minimum the graph needs guarantee a partial run.
+        if (limit.max_calls < count) problems.push(`This graph needs about ${count} model calls; the limit is ${limit.max_calls}. Raise max_calls or select fewer analysts/rounds.`);
+        if (limit.max_tokens < input + output) problems.push(`This graph needs at least ${(input + output).toLocaleString('en-US')} tokens; the limit is ${limit.max_tokens.toLocaleString('en-US')}. Raise max_tokens, lower max_output_tokens, or select fewer analysts/rounds.`);
+        // Advisory: carried-forward reports may push later risk/manager calls past the cap.
+        else if (limit.max_tokens < growth + output) risks.push(`Later debate and risk calls carry earlier reports and may need up to ${(growth + output).toLocaleString('en-US')} tokens; the limit is ${limit.max_tokens.toLocaleString('en-US')}. The run may stop before a decision.`);
+        return { ok: problems.length === 0, problems, risks };
+    }
+    // Checks the saved key without running inference, so a revoked key fails before any spend.
+    async preflight(routes: Route[], fetcher: typeof fetch = fetch) {
+        for (const route of routes) {
+            let config: { apiKey?: string } | undefined;
+            try { config = await this.providers.connection(route.provider as CompatibleProvider); } catch { continue; }
+            if (!config?.apiKey) continue;
+            const base = route.baseUrl.replace(/\/$/, '');
+            const url = /openrouter\.ai/.test(base) ? base + '/key' : base + '/models';
+            let status = 0;
+            try { const response = await fetcher(url, { headers: { Authorization: `Bearer ${config.apiKey}` }, redirect: 'error', signal: AbortSignal.timeout(10000) }); status = response.status; await response.body?.cancel(); } catch { continue; }
+            if (status === 401 || status === 403) {
+                const error = failure(`${route.id}: ${authFailureMessage.replace(', then resume or start a new run', ', then submit again')}`, 424);
+                Object.assign(error, { code: 'PROVIDER_AUTH_FAILED' });
+                throw error;
+            }
+        }
+    }
     async submit(request: RunRequest, key?: string, batchId: string | null = null) {
         validateRequest(request, this.testMode);
         if (key) {
@@ -177,6 +227,11 @@ export class ResearchManager {
         const routes = await this.routes(request);
         if (request.budget.max_cost_usd !== null && routes.some(r => r.input_rate === null || r.output_rate === null))
             throw failure('A USD cap requires known prices for both model routes. Use call, token and time limits or configure a priced model.');
+        if (request.mode !== 'fixture') {
+            const fit = this.budgetFit(request);
+            if (!fit.ok) throw Object.assign(failure(fit.problems.join(' '), 422), { code: 'BUDGET_TOO_SMALL' });
+            await this.preflight(routes);
+        }
         if (this.store.pending().length >= 50)
             throw failure('Queue limit reached.', 429);
         const run = this.store.create(request, routes, batchId, key);
@@ -205,6 +260,11 @@ export class ResearchManager {
         const routes = await this.routes(value.template);
         if (value.template.budget.max_cost_usd !== null && routes.some(r => r.input_rate === null || r.output_rate === null))
             throw failure('A USD cap requires known model prices.');
+        if (value.template.mode !== 'fixture') {
+            const fit = this.budgetFit(value.template);
+            if (!fit.ok) throw Object.assign(failure(fit.problems.join(' '), 422), { code: 'BUDGET_TOO_SMALL' });
+            await this.preflight(routes);
+        }
         if (this.store.pending().length + value.tickers.length * value.dates.length > 50)
             throw failure('Queue limit reached.', 429);
         const id = randomUUID();
@@ -310,7 +370,8 @@ export class ResearchManager {
                     else if (now.status === 'running') {
                         const detail = error as Error & { code?: string; errorId?: string };
                         const budgetBlocked = detail.code === 'RESEARCH_BUDGET_EXHAUSTED' || this.hasPersistedBudgetFailure(now);
-                        this.store.transition(run.id, 'error', 'run.error', {}, { error: { code: budgetBlocked ? 'RESEARCH_BUDGET_EXHAUSTED' : 'WORKER_FAILED', message: budgetBlocked ? budgetFailureMessage : 'The research worker stopped. Review persisted events and error details before retrying.', error_id: detail.errorId || randomUUID() } });
+                        const authBlocked = !budgetBlocked && (detail.code === 'PROVIDER_AUTH_FAILED' || !!active.authFailure);
+                        this.store.transition(run.id, 'error', 'run.error', {}, { error: { code: budgetBlocked ? 'RESEARCH_BUDGET_EXHAUSTED' : authBlocked ? 'PROVIDER_AUTH_FAILED' : 'WORKER_FAILED', message: budgetBlocked ? budgetFailureMessage : authBlocked ? authFailureMessage : 'The research worker stopped. Review persisted events and error details before retrying.', error_id: detail.errorId || randomUUID() } });
                     }
                 }
                 finally {
@@ -383,9 +444,10 @@ export class ResearchManager {
         }
         else if (event.type === 'error') {
             const isBudgetFailure = String(event.payload.message || '').includes(budgetFailureMarker);
+            const isAuthFailure = !isBudgetFailure && (!!active.authFailure || /AuthenticationError|Error code: 40[13]\b/.test(String(event.payload.message || '')));
             const errorId = String(event.payload.error_id || randomUUID()).slice(0, 80);
-            const code = isBudgetFailure ? 'RESEARCH_BUDGET_EXHAUSTED' : String(event.payload.code || 'WORKER_ERROR').slice(0, 80);
-            const message = isBudgetFailure ? budgetFailureMessage : 'Worker failed. Error details are retained by error identifier.';
+            const code = isBudgetFailure ? 'RESEARCH_BUDGET_EXHAUSTED' : isAuthFailure ? 'PROVIDER_AUTH_FAILED' : String(event.payload.code || 'WORKER_ERROR').slice(0, 80);
+            const message = isBudgetFailure ? budgetFailureMessage : isAuthFailure ? authFailureMessage : 'Worker failed. Error details are retained by error identifier.';
             this.store.append(id, 'worker.error', { code, message, error_id: errorId });
             const error = failure(message, 502);
             Object.assign(error, { code, errorId });
@@ -438,7 +500,7 @@ export class ResearchManager {
             body.max_completion_tokens = run.request.budget.max_output_tokens;
             delete body.max_tokens;
         }
-        const input = Buffer.byteLength(JSON.stringify({ messages: body.messages, tools: body.tools, response_format: body.response_format }), 'utf8') + 512, output = run.request.budget.max_output_tokens, cost = route.input_rate !== null && route.output_rate !== null ? input * route.input_rate + output * route.output_rate : null;
+        const input = reserveInputTokens(Buffer.byteLength(JSON.stringify({ messages: body.messages, tools: body.tools, response_format: body.response_format }), 'utf8')), output = run.request.budget.max_output_tokens, cost = route.input_rate !== null && route.output_rate !== null ? input * route.input_rate + output * route.output_rate : null;
         const usage = this.store.usage(id), limit = run.request.budget;
         const blockedBy = Date.now() - active.started > limit.max_duration_seconds * 1000 ? 'max_duration_seconds'
             : usage.calls + 1 > limit.max_calls ? 'max_calls'
@@ -476,6 +538,12 @@ export class ResearchManager {
         }
         const cost = admission.route.input_rate !== null && admission.route.output_rate !== null ? input * admission.route.input_rate + output * admission.route.output_rate : null;
         this.store.transaction(() => { this.store.db.prepare('UPDATE calls SET value=? WHERE id=?').run(JSON.stringify({ input, output, cost: cost || 0, estimated }), admission.id); const run = this.store.get(admission.runId); run.usage = this.store.usage(run.id); this.store.append(run.id, 'llm.completed', { call_id: admission.id, input_tokens: input, output_tokens: output, cost_usd: cost, estimated, response_sha256: result ? digest(result) : null }); this.store.save(run); });
+    }
+    // Called by the inference gateway when the provider rejects the credential for a research call.
+    rejected(admission: Admission | undefined, status: number) {
+        if (!admission || (status !== 401 && status !== 403)) return;
+        if (this.active?.id === admission.runId) this.active.authFailure = { status, model: admission.route.id };
+        this.store.append(admission.runId, 'warning', { message: `Model provider rejected the saved credential for ${admission.route.id} (HTTP ${status}).`, reason: 'provider_auth', status, model: admission.route.id });
     }
     async stop() { this.stopped = true; if (this.active)
         await this.cancel(this.active.id); this.child?.kill(); if (this.ownerTimer)

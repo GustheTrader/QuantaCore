@@ -33,8 +33,17 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile }) => {
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [isLearning, setIsLearning] = useState(false);
   const [isReflecting, setIsReflecting] = useState(false);
-  const [isReflectionEnabled, setIsReflectionEnabled] = useState(true);
-  const [lastReflection, setLastReflection] = useState<ReflectionResult | null>(null);
+  // Both learning features are opt-in. Learned notes stay private to this agent, and
+  // prompt suggestions wait for the operator to approve them.
+  const readFlag = (key: string) => { try { return localStorage.getItem(key) === 'on'; } catch { return false; } };
+  const saveFlag = (key: string, on: boolean) => { try { localStorage.setItem(key, on ? 'on' : 'off'); } catch {} };
+  const [isReflectionEnabled, setIsReflectionEnabled] = useState(() => readFlag('quanta_reflection_enabled'));
+  const [isDistillEnabled, setIsDistillEnabled] = useState(() => readFlag('quanta_distill_enabled'));
+  const [lastReflection, setLastReflection] = useState<(ReflectionResult & { sourceAgent: string; sourcePrompt: string }) | null>(null);
+  const reflectionRequest = useRef(0);
+  const currentAgent = useRef(activeAgent);
+  currentAgent.current = activeAgent;
+  const [reflectionError, setReflectionError] = useState<string | null>(null);
   const [computeProvider, setComputeProvider] = useState<ComputeProvider>(getPreferredProvider);
   const [chatModel, setChatModel] = useState('');
   const [activeContextCount, setActiveContextCount] = useState(0);
@@ -91,6 +100,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile }) => {
   };
 
   useEffect(() => {
+    reflectionRequest.current++;
+    setLastReflection(null); setReflectionError(null); setIsReflecting(false);
     syncHistory();
     const savedConfigs = JSON.parse(localStorage.getItem('quanta_agent_configs') || '{}');
     if (savedConfigs[activeAgent]) {
@@ -98,7 +109,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile }) => {
         prompt: savedConfigs[activeAgent].prompt, 
         skills: savedConfigs[activeAgent].skills || ['search'] 
       });
-    }
+    } else setAgentConfig({ prompt: null, skills: ['search'] });
     
     const savedProvider = localStorage.getItem('quanta_preferred_provider');
     if (savedProvider) setComputeProvider(savedProvider as ComputeProvider);
@@ -226,11 +237,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile }) => {
       localStorage.setItem(storageKey, JSON.stringify(finalMessages));
       if (computeProvider !== 'local') syncChatHistoryToSupabase(activeAgent, finalMessages);
 
-      setIsLearning(true);
-      distillMemoryFromChat(finalMessages.slice(-4), activeAgent, computeProvider).then(newMemory => {
-        if (newMemory) setTelemetry(prev => ({ ...prev, optimizations: [...prev.optimizations, `Knowledge Grounding: "${newMemory.title}" archived.`] }));
-        setIsLearning(false);
-      }).catch(() => setIsLearning(false));
+      if (isDistillEnabled) {
+        setIsLearning(true);
+        distillMemoryFromChat(finalMessages.slice(-4), activeAgent, computeProvider).then(newMemory => {
+          if (newMemory) setTelemetry(prev => ({ ...prev, optimizations: [...prev.optimizations, `Private note for ${activeAgent}: "${newMemory.title}" saved as unreviewed.`] }));
+          setIsLearning(false);
+        }).catch(() => setIsLearning(false));
+      }
 
       if (isReflectionEnabled && finalMessages.length % 14 === 0) {
         await triggerJudgeLoop(finalMessages, computeProvider);
@@ -248,18 +261,31 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile }) => {
   };
 
   const triggerJudgeLoop = async (currentMessages: ChatMessage[], provider: ComputeProvider = computeProvider) => {
-    setIsReflecting(true);
+    const sourceAgent = activeAgent, sourcePrompt = agentConfig.prompt || '', requestId = ++reflectionRequest.current;
+    setIsReflecting(true); setReflectionError(null);
     try {
+      // The reflection is only a candidate. The live prompt changes when the operator approves it.
       const reflection = await reflectAndRefine(currentMessages.slice(-10), agentConfig.prompt || "Default SME Logic", activeAgent, provider);
-      setLastReflection(reflection);
-      if (reflection.suggestedPrompt && reflection.score < 4) {
-        const updatedPrompt = reflection.suggestedPrompt;
-        setAgentConfig(prev => ({ ...prev, prompt: updatedPrompt }));
-        const savedConfigs = JSON.parse(localStorage.getItem('quanta_agent_configs') || '{}');
-        savedConfigs[activeAgent] = { ...savedConfigs[activeAgent], prompt: updatedPrompt };
-        localStorage.setItem('quanta_agent_configs', JSON.stringify(savedConfigs));
-      }
-    } catch (e) { console.error(e); } finally { setIsReflecting(false); }
+      if (requestId === reflectionRequest.current && currentAgent.current === sourceAgent) setLastReflection({ ...reflection, sourceAgent, sourcePrompt });
+    } catch (e) { if (requestId === reflectionRequest.current && currentAgent.current === sourceAgent) setReflectionError((e as Error).message || 'Reflection failed.'); }
+    finally { if (requestId === reflectionRequest.current && currentAgent.current === sourceAgent) setIsReflecting(false); }
+  };
+
+  const approveSuggestedPrompt = () => {
+    const updatedPrompt = lastReflection?.suggestedPrompt;
+    if (!updatedPrompt || lastReflection.sourceAgent !== activeAgent || lastReflection.sourcePrompt !== (agentConfig.prompt || '')) {
+      setReflectionError('The agent or baseline prompt changed. Request a fresh review.'); return;
+    }
+    try {
+      const savedConfigs = JSON.parse(localStorage.getItem('quanta_agent_configs') || '{}');
+      if ((savedConfigs[activeAgent]?.prompt || '') !== lastReflection.sourcePrompt) throw Error('The saved prompt changed in another view. Request a fresh review.');
+      const history = Array.isArray(savedConfigs[activeAgent]?.promptHistory) ? savedConfigs[activeAgent].promptHistory : [];
+      // Keep the previous prompt so the change can be undone.
+      savedConfigs[activeAgent] = { ...savedConfigs[activeAgent], prompt: updatedPrompt, promptHistory: [{ prompt: agentConfig.prompt || '', replacedAt: Date.now(), score: lastReflection?.score }, ...history].slice(0, 20) };
+      localStorage.setItem('quanta_agent_configs', JSON.stringify(savedConfigs));
+    } catch (e) { setReflectionError((e as Error).message || 'The reviewed prompt could not be saved.'); return; }
+    setAgentConfig(prev => ({ ...prev, prompt: updatedPrompt }));
+    setLastReflection(null);
   };
 
   const switchProvider = (p: ComputeProvider) => {
@@ -454,7 +480,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile }) => {
             
             <ConfirmationModal
               isOpen={isClearModalOpen}
-              onClose={() => setIsClearModalOpen(false)}
+              onCancel={() => setIsClearModalOpen(false)}
+              cancelLabel="Cancel"
               onConfirm={() => {
                 setActiveContextCount(0);
                 setMessages([]);
@@ -468,6 +495,36 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile }) => {
               isDestructive={true}
             />
             
+            {(reflectionError || lastReflection) && (
+              <div className={`mb-4 rounded-2xl border p-4 text-xs leading-relaxed ${reflectionError ? 'border-rose-500/30 bg-rose-500/5 text-rose-200' : 'border-amber-500/30 bg-amber-500/5 text-amber-100'}`}>
+                {reflectionError ? <p>Prompt review failed: {reflectionError} Nothing was changed.</p> : lastReflection && (
+                  <>
+                    <p className="font-semibold">Prompt review · score {lastReflection.score}/10 · {lastReflection.analysis}</p>
+                    {lastReflection.suggestedPrompt ? (
+                      <>
+                        <p className="mt-2 text-slate-400">Suggested replacement (not applied):</p>
+                        <pre className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap rounded-lg bg-black/30 p-2 text-[11px] text-slate-200">{lastReflection.suggestedPrompt}</pre>
+                        <div className="mt-3 flex gap-2">
+                          <button type="button" className="rounded-lg bg-amber-500/20 px-3 py-1.5 font-semibold text-amber-100 hover:bg-amber-500/30" onClick={approveSuggestedPrompt}>Approve and apply</button>
+                          <button type="button" className="rounded-lg border border-slate-700 px-3 py-1.5 text-slate-300 hover:text-white" onClick={() => setLastReflection(null)}>Dismiss</button>
+                        </div>
+                      </>
+                    ) : <button type="button" className="mt-2 text-slate-400 underline" onClick={() => setLastReflection(null)}>Dismiss</button>}
+                  </>
+                )}
+                {reflectionError && <button type="button" className="mt-2 text-rose-300 underline" onClick={() => setReflectionError(null)}>Dismiss</button>}
+              </div>
+            )}
+            <div className="mb-3 flex flex-wrap gap-4 text-[11px] text-slate-500">
+              <label className="flex cursor-pointer items-center gap-2" title="After each reply, a model writes a short note from the last few messages. Notes stay private to this agent and are marked unreviewed. Share one with all agents from the Notebook.">
+                <input type="checkbox" className="accent-emerald-500" checked={isDistillEnabled} onChange={event => { setIsDistillEnabled(event.target.checked); saveFlag('quanta_distill_enabled', event.target.checked); }} />
+                Save learned notes (this agent only)
+              </label>
+              <label className="flex cursor-pointer items-center gap-2" title="Every 14 messages, a model reviews this agent's prompt. Suggestions are shown for your approval and never applied automatically.">
+                <input type="checkbox" className="accent-amber-500" checked={isReflectionEnabled} onChange={event => { setIsReflectionEnabled(event.target.checked); saveFlag('quanta_reflection_enabled', event.target.checked); }} />
+                Suggest prompt improvements
+              </label>
+            </div>
             <form onSubmit={handleSubmit} className="flex items-center space-x-6 relative">
               <button 
                 type="button" 

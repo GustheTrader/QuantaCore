@@ -1,5 +1,6 @@
 import express, { type Request, type Response } from 'express';
 import { ProviderStore } from './provider-store';
+import { checkProfile, type CapabilityProfile } from '../lib/capability-profiles';
 
 const LOCAL_HOSTS = new Set(['127.0.0.1', 'localhost', '[::1]', '::1']);
 const HARNESS_ROUTER_ORIGIN = 'http://127.0.0.1:3100';
@@ -107,8 +108,12 @@ export function createHarnessRouterApi(store: ProviderStore) {
         label: String(base?.label || base?.id || 'Unknown harness').slice(0, 120),
         backend: String(base?.backend || '').slice(0, 80),
         status: String(base?.status || 'unknown').slice(0, 40),
-        tools: (Array.isArray(base?.tools) ? base.tools : []).map((tool: any) => String(tool?.name || '')).filter(Boolean).slice(0, 40)
-      })).filter((base: any) => base.id);
+        tools: (Array.isArray(base?.tools) ? base.tools : []).map((tool: any) => typeof tool?.name === 'string' ? tool.name : '')
+      })).filter((base: any) => base.id).map((base: any) => {
+        // Report what the server will enforce, so the UI only offers runnable harnesses.
+        const check = checkProfile(base.tools, 'read-only');
+        return { ...base, tools: base.tools.slice(0, 40), readOnly: check.allowed, permission: check.reason };
+      });
       res.set('Cache-Control', 'no-store').json({ models, bases });
     } catch (cause: any) {
       error(res, 502, cause?.name === 'TimeoutError' ? 'HarnessRouter model catalog timed out.' : 'HarnessRouter model catalog could not be reached.');
@@ -120,6 +125,7 @@ export function createHarnessRouterApi(store: ProviderStore) {
     const harnessId = typeof req.body?.harnessId === 'string' ? req.body.harnessId.trim() : '';
     const modelId = typeof req.body?.modelId === 'string' ? req.body.modelId.trim() : '';
     const requestId = typeof req.body?.requestId === 'string' ? req.body.requestId : '';
+    const profile: CapabilityProfile = req.body?.profile === 'research' ? 'research' : 'read-only';
     if (!prompt || prompt.length > 3000 || !harnessId || harnessId.length > 160 || !modelId || modelId.length > 200 || !/^[0-9a-f-]{36}$/i.test(requestId)) {
       return error(res, 400, 'Provide a prompt up to 3,000 characters, a listed harness and model, and a valid request ID.');
     }
@@ -143,6 +149,11 @@ export function createHarnessRouterApi(store: ProviderStore) {
       const model = (modelsPayload?.backends?.[base?.backend]?.models || [])
         .find((candidate: any) => candidate?.id === modelId && candidate?.available !== false);
       if (!model || !base) return error(res, 400, 'The selected harness or model is not currently available. Refresh the catalog and try again.');
+      // Enforce the capability profile on the tools the harness actually exposes.
+      // The instructions below are a second layer, not the permission boundary.
+      const tools = (Array.isArray(base.tools) ? base.tools : []).map((tool: any) => typeof tool?.name === 'string' ? tool.name : '');
+      const permission = checkProfile(tools, profile);
+      if (!permission.allowed) return error(res, 409, permission.reason);
 
       const upstream = await callRouter('/v1/responses', apiKey, {
         method: 'POST',
@@ -150,7 +161,7 @@ export function createHarnessRouterApi(store: ProviderStore) {
         body: JSON.stringify({
           input: prompt,
           model: modelId,
-          metadata: { harness_id: harnessId, quanta_test_run: true },
+          metadata: { harness_id: harnessId, quanta_test_run: true, quanta_capability_profile: profile },
           instructions: 'This is a bounded test run. Use only the configured tools and read-only data for this harness. Do not place trades, move money, purchase, send messages, deploy, or modify external systems. If a requested action would do so, stop and describe what approval would be needed.',
           max_output_tokens: 512,
           max_step: 2,

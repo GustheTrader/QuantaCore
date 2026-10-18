@@ -7,7 +7,8 @@ export const chatWithOpenAICompatible = async (
   systemInstruction: string,
   provider: CompatibleProvider = 'groq',
   model?: string,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  correlationId?: string
 ) => {
   const data = await completeWithProvider(provider, {
     ...(model ? { model } : {}),
@@ -17,7 +18,7 @@ export const chatWithOpenAICompatible = async (
       { role: 'user', content: message }
     ],
     temperature: 0.6
-  }, signal);
+  }, signal, correlationId);
   const text = data.choices?.[0]?.message?.content;
   if (typeof text !== 'string' || !text.trim()) throw new Error('This model did not return text. Choose a chat model in Settings.');
   return { text, model: data.model, usage: data.usage, sources: [] };

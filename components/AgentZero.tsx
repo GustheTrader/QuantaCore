@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
+import { PrototypeBanner } from './PrototypeBanner';
 import { ZeroLogEntry, AgentZeroSession } from '../types';
 import { safeGenerateContent } from '../services/geminiService';
 import { ActionHub } from './ActionHub';
@@ -258,6 +259,7 @@ const AgentZero: React.FC<AgentZeroProps> = ({ profile, onOpenChat }) => {
 
   return (
     <div className="h-[calc(100vh-160px)] flex flex-col lg:flex-row gap-8 animate-in fade-in duration-700 overflow-hidden">
+      <div className="fixed bottom-6 right-6 z-40 max-w-sm"><PrototypeBanner what="The process list and activity on this screen are simulated." /></div>
       {isContextModalOpen && (
         <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
           <div className="bg-[#0d1117] border border-slate-800 rounded-3xl p-8 w-full max-w-2xl max-h-[80vh] overflow-y-auto">

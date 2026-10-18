@@ -1,10 +1,12 @@
 
 import React, { useState, useEffect } from 'react';
+import { PrototypeBanner } from './PrototypeBanner';
 import { ActionHub } from './ActionHub';
 import { agentOS } from '../services/agentos/AgentOS';
 import { VoiceAgent } from './VoiceAgent';
 import { useFileIngestion } from '../hooks/useFileIngestion';
 import { FileIngestionZone } from './FileIngestionZone';
+import RuntimeEvidencePanel from './RuntimeEvidencePanel';
 
 interface AgenticOSProps {
   profile: { name: string, callsign: string, personality: string };
@@ -111,6 +113,7 @@ const AgenticOS: React.FC<AgenticOSProps> = ({ profile, onOpenChat }) => {
       onDrop={handleDrop}
     >
       <div className="animate-in fade-in duration-1000 max-w-7xl mx-auto pb-40">
+      <PrototypeBanner what="System metrics, tool results and memory hits on this screen are generated in the browser." />
       <VoiceAgent 
         isActive={isVoiceActive}
         agentName="AgentOS Prime"
@@ -327,4 +330,5 @@ const AgenticOS: React.FC<AgenticOSProps> = ({ profile, onOpenChat }) => {
   );
 };
 
-export default AgenticOS;
+const AgenticOSEvidence: React.FC<AgenticOSProps> = props => <RuntimeEvidencePanel kind="workflow" prototype={<AgenticOS {...props} />} />;
+export default AgenticOSEvidence;

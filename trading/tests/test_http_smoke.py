@@ -32,11 +32,24 @@ def test_real_http_fixture_cancel_and_owner_exit(worker_request, tmp_path):
                        GNOESIS_TEST_MODE="1", GNOESIS_OWNER_PID=str(owner.pid),
                        GNOESIS_DATA_DIR=str(tmp_path / "data"), GNOESIS_SIDECAR_URL=base_url)
     headers = {"Authorization": "Bearer http-smoke-service"}
+    # Keep sidecar output in the test's temp folder so a startup failure is diagnosable.
+    server_log_path = tmp_path / "sidecar.log"
+    server_log = open(server_log_path, "wb")
     server = subprocess.Popen([sys.executable, "-m", "uvicorn", "svc.main:app", "--host", "127.0.0.1", "--port", str(port)],
-                              cwd=project, env=environment, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                              cwd=project, env=environment, stdout=server_log, stderr=subprocess.STDOUT)
+
+    def server_output():
+        server_log.flush()
+        tail = server_log_path.read_bytes()[-4000:].decode("utf-8", "replace")
+        # Fixture tokens are test-only, but never echo them into reports.
+        for token in ("http-smoke-service", "http-smoke-gateway"):
+            tail = tail.replace(token, "[redacted]")
+        return tail or "(no sidecar output)"
     try:
         with httpx.Client(base_url=base_url, timeout=60, trust_env=False) as client:
-            deadline = time.monotonic() + 90
+            ready_seconds = float(os.environ.get("GNOESIS_HTTP_SMOKE_READY_SECONDS", "90"))
+            started = time.monotonic()
+            deadline = started + ready_seconds
             while True:
                 try:
                     health = client.get("/health", headers=headers, timeout=1)
@@ -44,9 +57,10 @@ def test_real_http_fixture_cancel_and_owner_exit(worker_request, tmp_path):
                         break
                 except httpx.HTTPError:
                     pass
-                assert server.poll() is None, "Sidecar exited before readiness"
-                assert time.monotonic() < deadline, "Sidecar did not become ready"
+                assert server.poll() is None, f"Sidecar exited before readiness (code {server.returncode}):\n{server_output()}"
+                assert time.monotonic() < deadline, f"Sidecar did not become ready within {ready_seconds:.0f}s:\n{server_output()}"
                 time.sleep(0.2)
+            print(f"sidecar ready after {time.monotonic() - started:.1f}s")
             assert health.json()["engine"]["commit"] == ENGINE_COMMIT
             assert client.get("/health").status_code == 401
             complete = client.post("/execute", json=worker_request, headers=headers)
@@ -100,3 +114,4 @@ def test_real_http_fixture_cancel_and_owner_exit(worker_request, tmp_path):
         if owner.poll() is None:
             owner.terminate()
             owner.wait(timeout=5)
+        server_log.close()

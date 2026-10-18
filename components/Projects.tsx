@@ -294,7 +294,8 @@ const Projects: React.FC = () => {
           {deleteModal && (
             <ConfirmationModal
               isOpen={deleteModal.isOpen}
-              onClose={() => setDeleteModal(null)}
+              onCancel={() => setDeleteModal(null)}
+              cancelLabel="Cancel"
               onConfirm={() => {
                 if (deleteModal.type === 'project') {
                   const updated = projects.filter(p => p.id !== deleteModal.id);

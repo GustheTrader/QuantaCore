@@ -42,7 +42,7 @@ export const ContextOptimizerModal: React.FC<ContextOptimizerModalProps> = ({ is
             <div>
               <h2 className="text-2xl font-outfit font-black text-white uppercase tracking-tighter italic">Context <span className="text-indigo-400">Refinery</span></h2>
               <div className="flex items-center space-x-2 mt-1">
-                <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Managed by Langfuse</span>
+                <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Langfuse tracing simulated · console only</span>
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
               </div>
             </div>

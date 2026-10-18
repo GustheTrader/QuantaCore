@@ -1,12 +1,9 @@
 
 import { GoogleGenAI } from "@google/genai";
 import { MechNode, HotPathLog, EdgeDomain } from "../types";
-import { getLocalGeminiApiKey } from './browserCredentials';
+import { createGeminiClient } from './geminiClient';
 
-const getAI = () => {
-  const apiKey = getLocalGeminiApiKey();
-  return new GoogleGenAI({ apiKey });
-};
+const getAI = (): GoogleGenAI => createGeminiClient();
 
 const REGIONS = ['us-east', 'us-west', 'eu-central', 'ap-northeast', 'sa-east'];
 

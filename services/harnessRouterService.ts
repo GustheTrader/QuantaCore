@@ -23,6 +23,9 @@ export interface HarnessRouterBase {
   status: string;
   tools: string[];
   testAllowed?: boolean;
+  // Server-checked: true only when every exposed tool is read-only.
+  readOnly?: boolean;
+  permission?: string;
 }
 
 export interface HarnessRouterRunResult {

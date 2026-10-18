@@ -1,8 +1,10 @@
 
 import React, { useState, useEffect, useRef } from 'react';
+import { PrototypeBanner } from './PrototypeBanner';
 import { ActionHub } from './ActionHub';
 import { EdgeDomain, EdgeSession, MechNode } from '../types';
-import { spinUpMechNode, simulateRedisMetrics, generateEdgeLogic } from '../services/edgeService';
+import { spinUpMechNode, simulateRedisMetrics } from '../services/edgeService';
+import RuntimeEvidencePanel from './RuntimeEvidencePanel';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 const EdgeMechNetwork: React.FC = () => {
@@ -49,9 +51,7 @@ const EdgeMechNetwork: React.FC = () => {
 
         // Occasional Logic Generation
         if (Math.random() > 0.7) {
-           generateEdgeLogic(session.domains, (newLog) => {
-             setSession(prev => ({ ...prev, logs: [...prev.logs, newLog] }));
-           });
+           setSession(prev => ({ ...prev, logs: [...prev.logs.slice(-99), { id: crypto.randomUUID(), timestamp: Date.now(), level: 'info', source: 'CORE', message: 'Local design example: adapter handoff. No worker execution was observed.' }] }));
         }
 
       }, 1000);
@@ -76,14 +76,13 @@ const EdgeMechNetwork: React.FC = () => {
       // Spin up initial nodes
       const nodes = Array.from({ length: 6 }).map((_, i) => spinUpMechNode(`mech-${i}`));
       setSession(prev => ({ ...prev, isActive: true, nodes }));
-      generateEdgeLogic(session.domains.length ? session.domains : ['crypto'], (l) => {
-         setSession(prev => ({ ...prev, logs: [...prev.logs, l] }));
-      });
+      setSession(prev => ({ ...prev, logs: [...prev.logs.slice(-99), { id: crypto.randomUUID(), timestamp: Date.now(), level: 'info', source: 'CORE', message: 'Local design demonstration started. Metrics below are simulated.' }] }));
     }
   };
 
   return (
     <div className="animate-in fade-in duration-700 pb-32">
+      <PrototypeBanner what="Edge node, Redis and execution metrics on this screen are simulated or model-generated." />
       <header className="mb-12 flex items-center justify-between">
         <div>
           <div className="flex items-center space-x-3 mb-4">
@@ -235,4 +234,5 @@ const EdgeMechNetwork: React.FC = () => {
   );
 };
 
-export default EdgeMechNetwork;
+const EdgeMechEvidence: React.FC = () => <RuntimeEvidencePanel kind="delivery" prototype={<EdgeMechNetwork />} />;
+export default EdgeMechEvidence;

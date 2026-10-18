@@ -46,15 +46,25 @@ export const NAVIGATION_GROUPS: NavigationGroup[] = [
     accent: 'blue',
     items: [
       { name: 'Agent Control Plane', path: '/agent', icon: agentIcon, description: 'Chat and work with your operational agent' },
+      { name: 'Herald Hermes', path: '/hermes', icon: boltIcon, description: 'Hermes agent workspace: Personal, Work, Ideas, coding agents and connections' },
       { name: 'Open House Channel', path: '/agent-house', icon: networkIcon, description: 'Named agents, task harnesses, private KBs and a shared master KB' },
       { name: 'OpenMuse Agent', path: '/openmuse', icon: agentIcon, description: 'Personal and Consumer agent workspace' },
       { name: 'OpenDots Agents', path: '/opendots', icon: networkIcon, description: 'Persistent specialist coworkers and optional per-agent computers' },
+      { name: 'SMB Launchpad', path: '/smb', icon: networkIcon, description: 'Business creation, GTM, revenue operations and back-office planning' },
       { name: 'Operator Work Zone', path: '/work-zone', icon: networkIcon, description: 'Paperclip organizations, workboard, onboarding and skill reviews' },
       { name: 'QuantaTrade', path: '/quantatrade', icon: searchIcon, description: 'SME trading desk, stock research and reviewed decisions' },
+      { name: 'Lost Asset Manager', path: '/lost-assets', icon: folderIcon, description: 'Local DuckDB search, prepared Heir Recovery cases and evidence' },
       { name: 'Agent Directory', path: '/agents', icon: agentIcon, description: 'Agents grouped by purpose with optional computer sessions' },
+      { name: 'Cloudroom', path: '/cloudroom', icon: 'M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z', description: 'Coding agents on this computer or your Zo cloud sandbox, with teleport between them' },
       { name: 'Coding Harnesses', path: '/coding-harness', icon: 'M8 8l-4 4 4 4m8-8l4 4-4 4M14 4l-4 16', description: 'FireConnect setup and Quanta CLI' },
       { name: 'Gnoesis Agenic Research', path: '/research', icon: searchIcon, description: 'TradingAgents research, evidence and decision journal' },
+      { name: 'RSI Lab', path: '/rsi-lab', icon: networkIcon, description: 'Harness evolution, Reference / Intent / Taste and QS Systems Lab' },
+      { name: 'Readiness & Evidence', path: '/rsi-lab/evidence', icon: shieldIcon, description: 'Module readiness, correlated request metadata and reviewed evidence packages' },
       { name: 'Skills & Growth', path: '/rsi-lab/skills', icon: bookIcon, description: 'SkillForge review, Active Skillference curriculum and staged Hermes edits' },
+      { name: 'Composability Copilot', path: '/compose', icon: agentIcon, description: 'Four short questions to prepare a simple agent setup' },
+      { name: 'QS Read-only Bridge', path: '/qs-bridge', icon: shieldIcon, description: 'Inspect a separately running QS source; review its exact endpoint and schema' },
+      { name: 'Firecrawl Alexandria', path: '/alexandria', icon: searchIcon, description: 'Discover specialist data providers, inspect pricing and retrieve reviewed research data' },
+      { name: 'TinyFish Search & Fetch', path: '/tinyfish', icon: searchIcon, description: 'Search the live web and fetch clean page content through TinyFish' },
       { name: 'SME Council', path: '/council', icon: 'M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2' },
       { name: 'SME Builder', path: '/sme-builder', icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z' },
       { name: 'Deep Agent', path: '/deep-agent', icon: searchIcon },
@@ -72,8 +82,8 @@ export const NAVIGATION_GROUPS: NavigationGroup[] = [
     items: [
       { name: 'Neural Core', path: '/neural-core', icon: networkIcon, description: 'Memory architecture and runtime status' },
       { name: 'Agentic OS', path: '/agentic-os', icon: 'M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z' },
-      { name: 'Hermes Protocol', path: '/hermes', icon: boltIcon },
       { name: 'Unified Gateway', path: '/gateway', icon: 'M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
+      { name: 'System guide', path: '/system-guide', icon: bookIcon, description: 'Add-on setup, sign-in references and operating instructions' },
       { name: 'MCP Connectors', path: '/mcp', icon: 'M8 12h8m-4-4v8M7 4h10a3 3 0 013 3v10a3 3 0 01-3 3H7a3 3 0 01-3-3V7a3 3 0 013-3z' },
       { name: 'Edge Mech Network', path: '/edge-mech', icon: networkIcon },
       { name: 'Process Flow', path: '/tasks', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 3h6v4H9V3z' },
@@ -93,11 +103,12 @@ export const NAVIGATION_GROUPS: NavigationGroup[] = [
 ];
 
 export const AGENT_CATEGORIES: Record<string, string> = {
-  '/work-zone': 'Command & collaboration', '/quantatrade': 'Trading & markets', '/agents': 'Command & collaboration', '/agent': 'Command & collaboration', '/agent-house': 'Command & collaboration',
+  '/smb': 'Command & collaboration', '/work-zone': 'Command & collaboration', '/quantatrade': 'Trading & markets', '/agents': 'Command & collaboration', '/agent': 'Command & collaboration', '/agent-house': 'Command & collaboration',
   '/openmuse': 'Personal & consumer', '/opendots': 'Persistent coworkers',
-  '/research': 'Research & specialists', '/council': 'Research & specialists', '/sme-builder': 'Research & specialists',
+  '/lost-assets': 'Asset recovery',
+  '/research': 'Research & specialists', '/rsi-lab': 'Research & specialists', '/council': 'Research & specialists', '/sme-builder': 'Research & specialists',
   '/deep-agent': 'Research & specialists', '/deep-diver': 'Research & specialists',
-  '/coding-harness': 'Execution & security', '/agent-zero': 'Execution & security', '/iron-claw': 'Execution & security',
+  '/coding-harness': 'Execution & security', '/cloudroom': 'Execution & security', '/agent-zero': 'Execution & security', '/iron-claw': 'Execution & security',
   '/images': 'Creative studios', '/videos': 'Creative studios',
-  '/hermes': 'Execution & security', '/agentic-os': 'Orchestration'
+  '/hermes': 'Command & collaboration', '/agentic-os': 'Orchestration'
 };

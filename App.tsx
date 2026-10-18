@@ -1,10 +1,12 @@
 import { logConnection } from './services/connectionLog';
+import LocalOnly from './components/LocalOnly';
 
 import React, { Component, useState, useEffect, ErrorInfo, ReactNode } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
 import StartupConnection from './components/StartupConnection';
+import SystemLaunchpad from './components/SystemLaunchpad';
 import ChatInterface from './components/ChatInterface';
 import DeepAgent from './components/DeepAgent';
 import DeepDiverAgent from './components/DeepDiverAgent';
@@ -18,6 +20,8 @@ import AuthPage from './components/AuthPage';
 import ProfileSetup from './components/ProfileSetup';
 import Notebook from './components/Notebook';
 import DataIntake from './components/DataIntake';
+import SmbLaunchpad from './components/SmbLaunchpad';
+import SystemGuide from './components/SystemGuide';
 import Council from './components/Council';
 import Projects from './components/Projects';
 import SMEBuilder from './components/SMEBuilder';
@@ -25,7 +29,9 @@ import PersistentMemory from './components/PersistentMemory';
 import Settings from './components/Settings';
 import MCPConnectors from './components/MCPConnectors';
 import AgenticOS from './components/AgenticOS';
-import HermesAgent from './components/HermesAgent';
+import QsReadOnlyBridge from './components/QsReadOnlyBridge';
+import RuntimeEvidencePanel from './components/RuntimeEvidencePanel';
+import { HermesWorkspace } from './components/HermesWorkspace';
 import Gateway from './components/Gateway';
 import { FloatingChatManager } from './components/FloatingChatManager';
 import { useChatWindows } from './hooks/useChatWindows';
@@ -39,12 +45,16 @@ import OpenDotsAgent from './components/OpenDotsAgent';
 import AgentDirectory from './components/AgentDirectory';
 import QuantaCliTerminal from './components/QuantaCliTerminal';
 import GnoesisResearch from './components/GnoesisResearch';
-import SkillGrowthLab from './components/SkillGrowthLab';
+import FirecrawlAlexandria from './components/FirecrawlAlexandria';
+import TinyFishResearch from './components/TinyFishResearch';
+import RsiWorkspace from './components/RsiWorkspace';
 import OperatorWorkZone from './components/OperatorWorkZone';
 import QuantaTrade from './components/QuantaTrade';
 import { isLocalResearchHost } from './services/researchService';
 import GnoesisSiHarnessRouter from './components/GnoesisSiHarnessRouter';
 import AgentHouseChannel from './components/AgentHouseChannel';
+import LostAssetManager from './components/LostAssetManager';
+import CloudroomWorkspace from './components/CloudroomWorkspace';
 
 interface ErrorBoundaryProps {
   children?: ReactNode;
@@ -102,12 +112,13 @@ const App: React.FC = () => {
   const [pendingAgent, setPendingAgent] = useState<UserTrack | null>(null);
   const [startupReviewed, setStartupReviewed] = useState(() => sessionStorage.getItem('quanta_startup_reviewed') === '1');
   const finishStartup = () => { sessionStorage.setItem('quanta_startup_reviewed', '1'); setStartupReviewed(true); window.location.hash = '/'; };
+  const launchSetup = (mode: 'chat' | 'work') => { sessionStorage.setItem('quanta_startup_reviewed', '1'); setStartupReviewed(true); window.location.hash = `/agent?mode=${mode}&setup=1`; };
   const [session, setSession] = useState<{ email: string, track: UserTrack, userId?: string } | null>(null);
   const [profile, setProfile] = useState<{ name: string, callsign: string, personality: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [terminalOpen, setTerminalOpen] = useState(false);
   const [currentHash, setCurrentHash] = useState(window.location.hash);
-  const localResearchRoute = isLocalResearchHost() && ['/research', '/work-zone', '/quantatrade', '/rsi-lab/skills'].includes(currentHash.replace(/^#/, '').split('?')[0]);
+  const localResearchRoute = isLocalResearchHost() && ['/research', '/work-zone', '/quantatrade', '/hermes', '/rsi-lab', '/rsi-lab/intent', '/rsi-lab/systems', '/rsi-lab/skills', '/rsi-lab/evidence', '/rsi-lab/adoption', '/agentic-os', '/iron-claw', '/edge-mech', '/qs-bridge', '/compose'].includes(currentHash.replace(/^#/, '').split('?')[0]);
   const localResearchAccess = localResearchRoute && (!session || !profile);
   const { windows, openChat, closeChat, toggleMinimize, focusWindow, addMessage } = useChatWindows();
   const openTerminal = () => {
@@ -140,8 +151,10 @@ const App: React.FC = () => {
           setLoading(false);
           return;
         }
-        const allowedTracks: UserTrack[] = ['personal', 'consumer', 'business', 'trading', 'education', 'guest', 'investing', 'growth', 'credit', 'rwa-defi', 'asset-recovery', 'prediction'];
-        const requestedTrack = user.user_metadata?.track;
+        const allowedTracks: UserTrack[] = ['personal', 'consumer', 'business', 'trading', 'education', 'guest', 'investing', 'growth', 'credit', 'rwa-defi', 'asset-recovery', 'prediction', 'clipping'];
+        let pendingTrack: string | null = null;
+        try { pendingTrack = localStorage.getItem('quanta_pending_track'); } catch {}
+        const requestedTrack = user.user_metadata?.track || pendingTrack;
         const sessionEmail = user.email || user.user_metadata?.contact_email || `guest-${String(user.id).slice(0, 8)}@guest.invalid`;
         const nextSession = { email: String(sessionEmail).toLowerCase(), userId: String(user.id), track: allowedTracks.includes(requestedTrack) ? requestedTrack as UserTrack : 'personal' as UserTrack };
         setSession(nextSession);
@@ -178,6 +191,21 @@ const App: React.FC = () => {
     };
 
     initApp();
+    // Google or GitHub sign-in also works in the local app when Supabase is configured.
+    if (!isSupabaseConfigured) return;
+    const adopt = (authSession: any) => {
+      const user = authSession?.user;
+      if (!user?.id || user.is_anonymous) return;
+      let track: UserTrack = 'personal';
+      try { track = (user.user_metadata?.track || localStorage.getItem('quanta_pending_track') || 'personal') as UserTrack; } catch {}
+      const next = { email: String(user.email || user.user_metadata?.email || `user-${String(user.id).slice(0, 8)}@users.invalid`).toLowerCase(), userId: String(user.id), track };
+      localStorage.setItem('quanta_session', JSON.stringify(next));
+      setSession(next);
+      try { const saved = localStorage.getItem(`quanta_profile_${next.email}`); if (saved) setProfile(JSON.parse(saved)); } catch {}
+    };
+    supabase.auth.getSession().then(({ data }: any) => adopt(data.session)).catch(() => {});
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: string, authSession: any) => adopt(authSession));
+    return () => subscription.unsubscribe();
   }, []);
 
   const handleLogin = (userData: { email: string, track: UserTrack }) => {
@@ -240,12 +268,12 @@ const App: React.FC = () => {
   return (
     <ErrorBoundary>
       <HashRouter>
-        {localResearchAccess ? (
+        {currentHash.startsWith('#/welcome') ? <AuthPage replayWelcome onLogin={handleLogin} /> : localResearchAccess ? (
           <div className="min-h-screen bg-[#020617] text-gray-100 p-5 md:p-10">
             <div className="max-w-7xl mx-auto">
               <a href="#/" className="inline-block text-sm text-slate-400 hover:text-white mb-6">← QuantaCore</a>
-              <div className="flex flex-wrap gap-5 mb-6 text-sm text-cyan-300"><a href="#/work-zone">Work Zone</a><a href="#/quantatrade">QuantaTrade</a><a href="#/research">Research</a><a href="#/rsi-lab/skills">Skills & growth</a><span className="ml-auto text-slate-500">Trusted local operator</span></div>
-              {currentHash.startsWith('#/rsi-lab/skills') ? <SkillGrowthLab /> : currentHash.startsWith('#/work-zone') ? <OperatorWorkZone /> : currentHash.startsWith('#/quantatrade') ? <QuantaTrade /> : <GnoesisResearch />}
+              <div className="flex flex-wrap gap-5 mb-6 text-sm text-cyan-300"><a href="#/compose">Setup copilot</a><a href="#/work-zone">Work Zone</a><a href="#/quantatrade">QuantaTrade</a><a href="#/research">Research</a><a href="#/hermes">Hermes</a><span className="ml-auto text-slate-500">Trusted local operator</span></div>
+              {currentHash.startsWith('#/compose') ? <SystemLaunchpad owner="local-operator" track="personal" onLaunch={launchSetup} startWithCopilot /> : currentHash.startsWith('#/qs-bridge') ? <QsReadOnlyBridge /> : currentHash.startsWith('#/agentic-os') ? <RuntimeEvidencePanel kind="workflow" /> : currentHash.startsWith('#/iron-claw') ? <RuntimeEvidencePanel kind="security" /> : currentHash.startsWith('#/edge-mech') ? <RuntimeEvidencePanel kind="delivery" /> : currentHash.startsWith('#/work-zone') ? <OperatorWorkZone /> : currentHash.startsWith('#/quantatrade') ? <QuantaTrade /> : currentHash.startsWith('#/hermes') ? <HermesWorkspace /> : currentHash.startsWith('#/rsi-lab') ? <RsiWorkspace /> : <GnoesisResearch />}
             </div>
           </div>
         ) : !session ? (
@@ -280,36 +308,45 @@ const App: React.FC = () => {
               <div className="flex-1 overflow-y-auto p-6 lg:p-14 custom-scrollbar">
                 <div className="max-w-7xl mx-auto w-full h-full relative">
                   <Routes>
-                    <Route path="/" element={startupReviewed ? <Dashboard track={session.track} profile={profile} onOpenChat={openChat} onActivateAgent={handleActivateAgent} onOpenTerminal={openTerminal} /> : <StartupConnection onContinue={finishStartup} />} />
-                    <Route path="/startup" element={<StartupConnection onContinue={finishStartup} />} />
-                    <Route path="/coding-harness" element={<CodingHarness onOpenTerminal={openTerminal} />} />
-                    <Route path="/harness-router" element={<GnoesisSiHarnessRouter />} />
-                    <Route path="/agent-house" element={<AgentHouseChannel key={session.userId || session.email} owner={session.userId || session.email} />} />
-                    <Route path="/openmuse" element={<OpenMuseAgent track={session.track} onActivateAgent={handleActivateAgent} />} />
-                    <Route path="/opendots" element={<OpenDotsAgent />} />
-                    <Route path="/agents" element={<AgentDirectory onActivateAgent={handleActivateAgent} />} />
+                    <Route path="/" element={startupReviewed ? <Dashboard track={session.track} profile={profile} onOpenChat={openChat} onActivateAgent={handleActivateAgent} onOpenTerminal={openTerminal} /> : <SystemLaunchpad owner={session.email} track={session.track} onLaunch={launchSetup} />} />
+                    <Route path="/startup" element={<SystemLaunchpad owner={session.email} track={session.track} onLaunch={launchSetup} />} />
+                    <Route path="/compose" element={<SystemLaunchpad owner={session.email} track={session.track} onLaunch={launchSetup} startWithCopilot />} />
+                    <Route path="/connections" element={<StartupConnection onContinue={finishStartup} />} />
+                    <Route path="/coding-harness" element={<LocalOnly><CodingHarness onOpenTerminal={openTerminal} /></LocalOnly>} />
+                    <Route path="/harness-router" element={<LocalOnly><GnoesisSiHarnessRouter /></LocalOnly>} />
+                    <Route path="/agent-house" element={<LocalOnly><AgentHouseChannel key={session.userId || session.email} owner={session.userId || session.email} /></LocalOnly>} />
+                    <Route path="/openmuse" element={<LocalOnly><OpenMuseAgent track={session.track} onActivateAgent={handleActivateAgent} /></LocalOnly>} />
+                    <Route path="/opendots" element={<LocalOnly><OpenDotsAgent /></LocalOnly>} />
+                    <Route path="/agents" element={<LocalOnly><AgentDirectory onActivateAgent={handleActivateAgent} /></LocalOnly>} />
                     <Route path="/chat" element={<ChatInterface profile={profile} />} />
                     <Route path="/neural-core" element={<NeuralCoreConsole />} />
                     <Route path="/gateway" element={<Gateway />} />
-                    <Route path="/agentic-os" element={<AgenticOS profile={profile} onOpenChat={openChat} />} />
-                    <Route path="/hermes" element={<HermesAgent profile={profile} onOpenChat={openChat} />} />
+                    <Route path="/agentic-os" element={<LocalOnly><AgenticOS profile={profile} onOpenChat={openChat} /></LocalOnly>} />
+                    <Route path="/hermes" element={<LocalOnly><HermesWorkspace /></LocalOnly>} />
                     <Route path="/deep-agent" element={<DeepAgent />} />
                     <Route path="/deep-diver" element={<DeepDiverAgent />} />
                     <Route path="/agent-zero" element={<AgentZero profile={profile} onOpenChat={openChat} />} />
-                    <Route path="/iron-claw" element={<IronClawAgent />} />
-                    <Route path="/edge-mech" element={<EdgeMechNetwork />} />
-                    <Route path="/work-zone" element={<OperatorWorkZone />} />
-                    <Route path="/quantatrade" element={<QuantaTrade />} />
-                    <Route path="/research" element={<GnoesisResearch />} />
-                    <Route path="/rsi-lab/skills" element={<SkillGrowthLab owner={session.email} />} />
+                    <Route path="/iron-claw" element={<LocalOnly><IronClawAgent /></LocalOnly>} />
+                    <Route path="/qs-bridge" element={<LocalOnly><QsReadOnlyBridge /></LocalOnly>} />
+                    <Route path="/edge-mech" element={<LocalOnly><EdgeMechNetwork /></LocalOnly>} />
+                    <Route path="/work-zone" element={<LocalOnly><OperatorWorkZone /></LocalOnly>} />
+                    <Route path="/quantatrade" element={<LocalOnly><QuantaTrade /></LocalOnly>} />
+              <Route path="/lost-assets" element={<LocalOnly><LostAssetManager /></LocalOnly>} />
+              <Route path="/cloudroom" element={<LocalOnly><CloudroomWorkspace /></LocalOnly>} />
+                    <Route path="/research" element={<LocalOnly><GnoesisResearch /></LocalOnly>} />
+                    <Route path="/alexandria" element={<LocalOnly><FirecrawlAlexandria /></LocalOnly>} />
+                    <Route path="/tinyfish" element={<LocalOnly><TinyFishResearch /></LocalOnly>} />
+                    <Route path="/rsi-lab/*" element={<LocalOnly><RsiWorkspace owner={session.email} /></LocalOnly>} />
                     <Route path="/council" element={<Council track={session.track} />} />
                     <Route path="/projects" element={<Projects />} />
-                    <Route path="/mcp" element={<MCPConnectors />} />
+                    <Route path="/mcp" element={<LocalOnly><MCPConnectors /></LocalOnly>} />
                     <Route path="/images" element={<ImageGenerator />} />
                     <Route path="/videos" element={<VideoGenerator />} />
                     <Route path="/tasks" element={<TaskBoard />} />
                     <Route path="/notebook" element={<Notebook />} />
                     <Route path="/data-intake" element={<DataIntake />} />
+                    <Route path="/smb" element={<SmbLaunchpad />} />
+                    <Route path="/system-guide" element={<SystemGuide />} />
                     <Route path="/sme-builder" element={<SMEBuilder />} />
                     <Route path="/memory" element={<PersistentMemory />} />
                     <Route path="/settings" element={<Settings />} />

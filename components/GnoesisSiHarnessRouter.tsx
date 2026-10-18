@@ -38,7 +38,7 @@ const GnoesisSiHarnessRouter: React.FC = () => {
   useEffect(() => { void refresh(); }, [refresh]);
 
   useEffect(() => {
-    const eligibleBases = bases.filter(base => (mode === 'hosted' ? base.testAllowed : true) && !['disabled', 'unavailable', 'error'].includes(base.status.toLowerCase()));
+    const eligibleBases = bases.filter(base => (mode === 'hosted' ? base.testAllowed : base.readOnly !== false) && !['disabled', 'unavailable', 'error'].includes(base.status.toLowerCase()));
     const backend = bases.find(base => base.id === selectedHarnessId)?.backend;
     const eligibleModels = models.filter(model => model.available && model.backend === backend && (mode === 'hosted' ? model.testAllowed : true));
     if (!eligibleBases.some(base => base.id === selectedHarnessId)) setSelectedHarnessId(eligibleBases[0]?.id || '');
@@ -88,7 +88,7 @@ const GnoesisSiHarnessRouter: React.FC = () => {
 
   const reachable = status?.reachable === true;
   const keyConfigured = status?.apiKeyConfigured === true;
-  const runnableBases = bases.filter(base => (mode === 'hosted' ? base.testAllowed : true) && !['disabled', 'unavailable', 'error'].includes(base.status.toLowerCase()));
+  const runnableBases = bases.filter(base => (mode === 'hosted' ? base.testAllowed : base.readOnly !== false) && !['disabled', 'unavailable', 'error'].includes(base.status.toLowerCase()));
   const harnessBackend = bases.find(base => base.id === selectedHarnessId)?.backend;
   const runnableModels = models.filter(model => model.available && model.backend === harnessBackend && (mode === 'hosted' ? model.testAllowed : true));
   const runnable = reachable && keyConfigured && (mode === 'local' || status?.executionEnabled === true) && runnableBases.length > 0 && runnableModels.length > 0;
@@ -166,7 +166,7 @@ const GnoesisSiHarnessRouter: React.FC = () => {
 
       <section className="rounded-3xl border border-slate-800 bg-slate-950/70 p-6 sm:p-8">
         <div className="flex flex-wrap items-end justify-between gap-4"><div><h2 className="text-lg font-bold text-white">Installed agent harnesses</h2><p className="mt-1 text-xs text-slate-400">Runtime options and tool surfaces reported by HarnessRouter.</p></div><span className="rounded-full border border-slate-700 px-3 py-1 text-[10px] text-slate-400">{bases.length} listed</span></div>
-        {!keyConfigured || !reachable ? <div className="mt-5 flex items-center gap-3 rounded-xl border border-dashed border-slate-800 px-4 py-5 text-sm text-slate-500"><CircleDashed size={17} /> Connect the runtime and validate an API key to load its harness list.</div> : bases.length === 0 ? <div className="mt-5 rounded-xl border border-slate-800 px-4 py-5 text-sm text-slate-400">The router did not report any base harnesses.</div> : <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{bases.map(base => <article key={base.id} className="rounded-xl border border-slate-800 bg-slate-900/50 p-4"><div className="flex items-center justify-between gap-3"><h3 className="truncate text-sm font-bold text-white">{base.label}</h3><span className="rounded-full bg-indigo-400/10 px-2 py-1 text-[9px] font-bold uppercase text-indigo-200">{base.status}</span></div><p className="mt-2 font-mono text-[10px] text-slate-500">{base.backend} · {base.id}</p><p className="mt-3 text-[10px] text-slate-400">{base.tools.length ? base.tools.join(' · ') : 'No tools reported'}</p></article>)}</div>}
+        {!keyConfigured || !reachable ? <div className="mt-5 flex items-center gap-3 rounded-xl border border-dashed border-slate-800 px-4 py-5 text-sm text-slate-500"><CircleDashed size={17} /> Connect the runtime and validate an API key to load its harness list.</div> : bases.length === 0 ? <div className="mt-5 rounded-xl border border-slate-800 px-4 py-5 text-sm text-slate-400">The router did not report any base harnesses.</div> : <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{bases.map(base => <article key={base.id} className="rounded-xl border border-slate-800 bg-slate-900/50 p-4"><div className="flex items-center justify-between gap-3"><h3 className="truncate text-sm font-bold text-white">{base.label}</h3><span className="rounded-full bg-indigo-400/10 px-2 py-1 text-[9px] font-bold uppercase text-indigo-200">{base.status}</span></div><p className="mt-2 font-mono text-[10px] text-slate-500">{base.backend} · {base.id}</p><p className="mt-3 text-[10px] text-slate-400">{base.tools.length ? base.tools.join(' · ') : 'No tools reported'}</p>{base.permission && <p className={`mt-2 text-[10px] ${base.readOnly ? 'text-emerald-300' : 'text-amber-300'}`}>{base.readOnly ? 'Read-only · test runs allowed. ' : 'Test runs blocked. '}{base.permission}</p>}</article>)}</div>}
       </section>
 
       <section className="rounded-3xl border border-slate-800 bg-slate-950/70 p-6 sm:p-8">

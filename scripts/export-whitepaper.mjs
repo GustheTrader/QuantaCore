@@ -7,6 +7,7 @@ const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 for (const folder of ['docs', 'public/whitepapers', 'dist/whitepapers']) {
   const directory = path.join(root, folder);
   await mkdir(directory, { recursive: true });
+  await writeFile(path.join(directory, 'QuantaOS_Sovereign_Intelligence_Whitepaper_v1.5.txt'), WHITEPAPER_TEXT.trim() + '\n');
   await writeFile(path.join(directory, 'QuantaOS_Sovereign_Intelligence_Whitepaper_v1.4.txt'), WHITEPAPER_TEXT.trim() + '\n');
 }
-console.log('Whitepaper v1.4 exported to docs and local static downloads.');
+console.log('Whitepaper v1.5 exported to docs and local static downloads.');

@@ -94,7 +94,7 @@ export function createGoogleOAuthRouter(google: GoogleOAuth) {
     if (!local(req)) { res.status(403).send('Local callback required.'); return; }
     const binding = req.get('cookie')?.split(';').map(v => v.trim()).find(v => v.startsWith('quanta_google_oauth='))?.slice('quanta_google_oauth='.length) || '';
     res.clearCookie('quanta_google_oauth', { path: '/auth/google' });
-    try { await google.callback(req.query, binding); res.redirect(303, '/hybrid.html?google=connected'); } catch { res.redirect(303, '/hybrid.html?google=failed'); }
+    try { await google.callback(req.query, binding); res.redirect(303, '/?auth_provider=google-api&auth_result=connected#/startup'); } catch { res.redirect(303, '/?auth_provider=google-api&auth_result=failed#/startup'); }
   });
   return { api, callback };
 }
