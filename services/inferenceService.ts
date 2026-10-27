@@ -9,7 +9,7 @@ export interface ProviderConfigResponse {
 }
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
-  if (import.meta.env.PROD && !['127.0.0.1', 'localhost', '[::1]'].includes(window.location.hostname)) {
+  if (import.meta.env.PROD && !['127.0.0.1', 'localhost', '[::1]', 'quanta-herb.zo.computer'].includes(window.location.hostname)) {
     if (!isSupabaseConfigured) throw new Error('Hosted inference is not configured. Add the VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY build variables in Vercel.');
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.access_token) throw new Error('Sign in with your email link to use hosted model services.');
@@ -61,3 +61,26 @@ export const setPreferredInferenceProvider = async (provider: ComputeProvider) =
 };
 export const completeWithProvider = (provider: CompatibleProvider, body: Record<string, unknown>, signal?: AbortSignal, correlationId?: string) =>
   request<any>('/chat/completions', { method: 'POST', body: JSON.stringify({ ...body, provider }), signal, ...(correlationId ? { headers: { 'X-Quanta-Correlation-ID': correlationId } } : {}) });
+
+export interface SubscriptionModel { agent: string; model: string; label: string }
+async function subscriptionRequest<T>(path: string, body?: unknown, signal?: AbortSignal): Promise<T> {
+  const response = await fetch(`/api/hermes/work/coding/${path}`, {
+    method: body === undefined ? 'GET' : 'POST', signal,
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-Quanta-Client': 'local-ui' },
+    ...(body === undefined ? {} : { body: JSON.stringify(body) })
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error?.message || 'Subscription request failed.');
+  return data;
+}
+export const loadSubscriptionModels = () => subscriptionRequest<{ models: SubscriptionModel[] }>('subscription-models');
+export const chatWithSubscription = (agent: string, model: string, prompt: string, signal?: AbortSignal) =>
+  subscriptionRequest<{ reply: string }>('chat', { agent, model, prompt }, signal);
+
+export function saveVerifiedSubscription(model: SubscriptionModel) {
+  const provider = ({ codex: 'openai-compatible', claude: 'claude', 'grok-native': 'grok', gemini: 'gemini' } as Record<string, string>)[model.agent];
+  if (!provider) throw new Error('Unsupported subscription provider.');
+  localStorage.setItem('quanta_subscription_model', JSON.stringify({ ...model, verifiedAt: new Date().toISOString() }));
+  localStorage.setItem('quanta_preferred_provider', provider);
+  window.dispatchEvent(new Event('quanta_provider_changed'));
+}

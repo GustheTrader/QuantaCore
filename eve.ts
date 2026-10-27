@@ -1,4 +1,5 @@
 import express from 'express';
+import { supabaseProxy } from './server/supabase-proxy';
 import { existsSync } from 'node:fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -30,6 +31,7 @@ import { HermesManager } from './server/hermes-manager';
 import { createHermesRouter } from './server/hermes-router';
 import { createHermesSkillRouter } from './server/hermes-skill-router';
 import { createFirecrawlAlexandriaRouter } from './server/firecrawl-alexandria-router';
+import { createComposioRouter } from './server/composio-router';
 import { createTinyFishRouter } from './server/tinyfish-router';
 import { RsiManager } from './server/rsi-manager';
 import { createRsiRouter } from './server/rsi-router';
@@ -49,6 +51,7 @@ async function startServer() {
   const hermes = new HermesManager(__dirname);
   const PORT = Number(process.env.QUANTA_PORT || 3000);
 
+  app.use('/supa', supabaseProxy);
   app.use(express.json({ limit: '2mb' }));
   const operatingEvidence = new OperatingEvidence(__dirname);
   app.use(operatingEvidence.middleware());
@@ -76,6 +79,7 @@ async function startServer() {
   app.use('/api/lost-assets', createLostAssetsRouter(__dirname));
   app.use('/api/cloudroom', createCloudroomRouter(providerStore, __dirname));
   app.use('/api/firecrawl-alexandria', createFirecrawlAlexandriaRouter());
+  app.use('/api/composio', createComposioRouter(providerStore));
   app.use('/api/tinyfish', createTinyFishRouter());
   app.use('/api/rsi', createRsiRouter(rsi));
   app.use('/api/harness-router', createHarnessRouterApi(providerStore));

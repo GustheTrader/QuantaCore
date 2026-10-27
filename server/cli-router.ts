@@ -1,3 +1,4 @@
+import { isLocalHost, isLoopbackSocket, sameOrigin, publicOrigin } from './local-access';
 import express from 'express';
 import { spawnSync } from 'node:child_process';
 import { AGENT_TRACKS } from '../lib/agent-tracks';
@@ -27,8 +28,8 @@ export function createCliRouter(store: ProviderStore, research?: ResearchManager
   const router = express.Router();
   router.use((req, res, next) => {
     const origin = req.get('origin');
-    if (!localHosts.has(req.hostname) || req.get('X-Quanta-Client') !== 'local-ui') return res.status(403).json({ error: 'Local Quanta access required.' });
-    if (origin && origin !== `${req.protocol}://${req.get('host')}`) return res.status(403).json({ error: 'Cross-origin CLI access denied.' });
+    if (!isLocalHost(req.hostname) || req.get('X-Quanta-Client') !== 'local-ui') return res.status(403).json({ error: 'Local Quanta access required.' });
+    if (origin && !sameOrigin(req)) return res.status(403).json({ error: 'Cross-origin CLI access denied.' });
     next();
   });
 

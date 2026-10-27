@@ -36,10 +36,10 @@ const AgentActivationSelector: React.FC<AgentActivationSelectorProps> = ({
       <p className="mb-5 text-left text-sm leading-relaxed text-slate-400">
         Explore each specialist’s typical work and research-backed harness fit. These capability matches should be compared on your tasks for quality, tool success, cost, latency and failures; confirm availability in your connected catalog.
       </p>
-      <div className="space-y-8">
+      <div className="space-y-10">
         {groups.map(group => <section key={group} aria-labelledby={`activation-group-${group.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}`}>
-          <h2 id={`activation-group-${group.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}`} className="mb-3 text-left text-xs font-black uppercase tracking-[0.18em] text-cyan-300">{group}</h2>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-4">
+          <h2 id={`activation-group-${group.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}`} className="mb-4 border-b border-cyan-300/20 pb-2 text-left text-sm font-black uppercase tracking-[0.22em] text-cyan-300">{group}</h2>
+          <div className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2 lg:grid-cols-3">
         {AGENT_TRACKS.filter(agent => agent.directoryGroup === group).map(agent => {
           const selected = value === agent.id;
           return (

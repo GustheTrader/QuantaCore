@@ -119,7 +119,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, onLogout, track, p
         </div>
 
         <nav aria-label="Quanta operating model" className="flex-1 min-h-0 px-4 py-2 overflow-y-auto custom-scrollbar">
-          <div className="mb-2">{renderNavLink({ name: 'System setup', path: '/startup', icon: 'M12 3v9m-6-6a8 8 0 1012 0', description: 'Start with one agent and add optional modules' }, 'emerald')}</div>
+          <div className="mb-2">{renderNavLink({ name: '1 · Connect models & tools', path: '/connections', icon: 'M12 3v9m-6-6a8 8 0 1012 0', description: 'Connect a provider and verify your first reply' }, 'emerald')}</div>
           <div className="mb-2">{renderNavLink(MISSION_CONTROL_NAV)}</div>
           <button 
             onClick={() => onOpenChat('Neural Terminal')}

@@ -212,25 +212,24 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin, replayWelcome = false }) =
                 </div>
               </div>
             ))}
-            <article className="sme-card-enhanced group flex flex-col rounded-[3rem] border border-lime-300/35 p-10 transition-all duration-500" style={{ background: 'linear-gradient(145deg, #b6ff3612, #020617 60%, #67e8f910)' }}>
-              <div aria-hidden="true" className="mb-8 flex h-14 w-14 items-center justify-center rounded-2xl border border-lime-300/30 bg-lime-300/10 text-lime-300">
-                <svg className="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 3v4m-2-2h4M5 10h14l-3 5h-3v3h4v3H7v-3h4v-3H8l-3-5Z" /></svg>
-              </div>
-              <p className="mb-3 text-[9px] font-black uppercase tracking-[0.2em] text-lime-300">Your vision · your agents</p>
-              <h3 className="mb-4 font-outfit text-2xl font-black leading-tight text-white">Forge your own Agent or Agentic Team</h3>
-              <p className="text-sm leading-6 text-slate-400">Define your agent’s purpose, personality and skills. Shape the roles and workflow for the team you want to build.</p>
-              <div className="my-6 flex flex-wrap gap-2 text-[10px] font-bold text-cyan-200"><span className="rounded-full border border-cyan-300/20 px-3 py-1.5">Purpose</span><span className="rounded-full border border-cyan-300/20 px-3 py-1.5">Skills</span><span className="rounded-full border border-cyan-300/20 px-3 py-1.5">Team roles</span></div>
-              <a href="#/sme-builder" onClick={() => authFormRef.current?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })} className="mt-auto inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-lime-300 px-5 py-3 text-xs font-black uppercase tracking-[0.12em] text-slate-950 transition-colors hover:bg-lime-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-lime-200">Open the Forge <span aria-hidden="true">→</span></a>
-            </article>
           </div>
+
+
+          <SovereignTrustSection />
+
+          <HarnessRouterShowcase />
+
+          <SovereignTokensShowcase />
+
+          <HindsightGnoesisNeuralCore />
 
           <section aria-labelledby="specialist-agents-title" className="mt-28 text-left">
             <div className="mx-auto mb-10 max-w-3xl text-center">
               <p className="text-[10px] font-black uppercase tracking-[0.3em] text-orange-300">Specialist hands · built for real workflows</p>
-              <h2 id="specialist-agents-title" className="mt-4 text-3xl font-outfit font-black uppercase tracking-tight text-white sm:text-5xl">Four more agents. Clear use cases.</h2>
+              <h2 id="specialist-agents-title" className="mt-4 text-3xl font-outfit font-black uppercase tracking-tight text-white sm:text-5xl">Agents &amp; use cases. Or forge your own.</h2>
               <p className="mt-4 text-sm leading-6 text-slate-400 sm:text-base">Bring focused analysis into your sovereign agent system. Each specialist starts with a role, practical examples and a suggested harness fit.</p>
             </div>
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
               {featuredSpecialists.map(agent => (
                 <article key={agent.id} className="sme-card-enhanced group flex h-full flex-col rounded-[2rem] border p-6 transition-all duration-500 hover:-translate-y-1" style={{ borderColor: `${agent.from}55`, background: `linear-gradient(145deg, ${agent.from}14, rgba(2,6,23,.94) 56%, ${agent.to}12)` }}>
                   <div className="mb-5 flex items-center justify-between gap-3">
@@ -267,16 +266,18 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin, replayWelcome = false }) =
                   </button>
                 </article>
               ))}
+                <article className="sme-card-enhanced group flex flex-col h-full rounded-[2rem] border border-lime-300/35 p-6 transition-all duration-500" style={{ background: 'linear-gradient(145deg, #b6ff3612, #020617 60%, #67e8f910)' }}>
+                  <div aria-hidden="true" className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl border border-lime-300/30 bg-lime-300/10 text-lime-300">
+                    <svg className="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 3v4m-2-2h4M5 10h14l-3 5h-3v3h4v3H7v-3h4v-3H8l-3-5Z" /></svg>
+                  </div>
+                  <p className="mb-3 text-[9px] font-black uppercase tracking-[0.2em] text-lime-300">Your vision · your agents</p>
+                  <h3 className="mb-4 font-outfit text-2xl font-black leading-tight text-white">Forge your own Agent or Agentic Team</h3>
+                  <p className="text-sm leading-6 text-slate-400">Define your agent’s purpose, personality and skills. Shape the roles and workflow for the team you want to build.</p>
+                  <div className="my-6 flex flex-wrap gap-2 text-[10px] font-bold text-cyan-200"><span className="rounded-full border border-cyan-300/20 px-3 py-1.5">Purpose</span><span className="rounded-full border border-cyan-300/20 px-3 py-1.5">Skills</span><span className="rounded-full border border-cyan-300/20 px-3 py-1.5">Team roles</span></div>
+                  <a href="#/sme-builder" onClick={() => authFormRef.current?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })} className="mt-auto inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-lime-300 px-5 py-3 text-xs font-black uppercase tracking-[0.12em] text-slate-950 transition-colors hover:bg-lime-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-lime-200">Open the Forge <span aria-hidden="true">→</span></a>
+                </article>
             </div>
           </section>
-
-          <SovereignTrustSection />
-
-          <HarnessRouterShowcase />
-
-          <SovereignTokensShowcase />
-
-          <HindsightGnoesisNeuralCore />
         </div>
       </div>
 

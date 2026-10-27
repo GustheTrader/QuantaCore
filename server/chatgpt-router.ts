@@ -1,3 +1,4 @@
+import { isLocalHost, isLoopbackSocket, sameOrigin, publicOrigin } from './local-access';
 import express from 'express';
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import type { ChatGptPlan } from './chatgpt-plan';
@@ -9,7 +10,8 @@ export function createChatGptRouter(plan: ChatGptPlan) {
   const transactions = new Map<string, { binding: Buffer; expiresAt: number }>();
   api.use((req, res, next) => {
     res.setHeader('Cache-Control', 'no-store'); res.setHeader('Referrer-Policy', 'no-referrer');
-    if (req.hostname !== '127.0.0.1' || !['127.0.0.1', '::ffff:127.0.0.1'].includes(req.socket.remoteAddress || '') || req.get('X-Quanta-Client') !== 'local-ui' || (req.get('origin') && req.get('origin') !== `http://${req.get('host')}`)) {
+    if (!isLocalHost(req.hostname) || !isLoopbackSocket(req) || req.get('X-Quanta-Client') !== 'local-ui' || !sameOrigin(req)) {
+      console.warn('chatgpt 403', JSON.stringify({ host: req.hostname, hostHeader: req.get('host'), origin: req.get('origin'), xfh: req.get('x-forwarded-host'), client: req.get('X-Quanta-Client'), socket: req.socket.remoteAddress }));
       res.status(403).json({ error: { message: 'Open ChatGPT settings at http://127.0.0.1:3000/hybrid.html' } }); return;
     }
     next();
@@ -28,6 +30,18 @@ export function createChatGptRouter(plan: ChatGptPlan) {
     res.cookie('quanta_chatgpt_oauth', binding, { httpOnly: true, sameSite: 'lax', path: '/auth/openai', maxAge: 600000 });
     return attempt;
   }));
+  // Remote hosts cannot receive OpenAI's 127.0.0.1 redirect, so the signed-in user pastes the address they land on.
+  api.post('/complete', handle(async req => {
+    let landed: URL;
+    try { landed = new URL(String(req.body?.callbackUrl || '').trim()); } catch { throw Object.assign(new Error('Paste the full address from the browser after approving.'), { status: 400 }); }
+    if (landed.pathname !== '/auth/openai/callback' || !['127.0.0.1', 'localhost'].includes(landed.hostname)) throw Object.assign(new Error('That is not the ChatGPT sign-in address. It should start with http://127.0.0.1:3000/auth/openai/callback'), { status: 400 });
+    const state = landed.searchParams.get('state') || '';
+    const transaction = transactions.get(state);
+    if (!transaction || transaction.expiresAt < Date.now()) throw Object.assign(new Error('This sign-in expired. Press Connect again.'), { status: 400 });
+    transactions.delete(state);
+    await plan.oauth.callback(Object.fromEntries(landed.searchParams));
+    return plan.status();
+  }));
   api.post('/select', handle(req => plan.oauth.select(req.body?.accountId)));
   api.post('/disconnect', handle(req => plan.oauth.disconnect(req.body?.accountId)));
   api.get('/models', handle(async () => ({ models: await plan.models() })));
@@ -41,7 +55,7 @@ export function createChatGptRouter(plan: ChatGptPlan) {
     const state = typeof req.query.state === 'string' ? req.query.state : '';
     const transaction = transactions.get(state);
     const binding = req.get('cookie')?.split(';').map(v => v.trim()).find(v => v.startsWith('quanta_chatgpt_oauth='))?.slice('quanta_chatgpt_oauth='.length) || '';
-    if (req.hostname !== '127.0.0.1' || !['127.0.0.1', '::ffff:127.0.0.1'].includes(req.socket.remoteAddress || '') || !transaction || transaction.expiresAt < Date.now() || !timingSafeEqual(transaction.binding, hash(binding))) { res.status(400).send('Invalid or expired browser-bound sign-in. Return to the local panel and start again.'); return; }
+    if (!isLocalHost(req.hostname) || !isLoopbackSocket(req) || !transaction || transaction.expiresAt < Date.now() || !timingSafeEqual(transaction.binding, hash(binding))) { res.status(400).send('Invalid or expired browser-bound sign-in. Return to the local panel and start again.'); return; }
     transactions.delete(state); res.clearCookie('quanta_chatgpt_oauth', { path: '/auth/openai' });
     try { await plan.oauth.callback(req.query); res.redirect(303, '/?auth_provider=openai-compatible&auth_result=connected#/startup'); }
     catch { res.redirect(303, '/?auth_provider=openai-compatible&auth_result=failed#/startup'); }

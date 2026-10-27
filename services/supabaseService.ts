@@ -13,7 +13,16 @@ try {
   if (!isSupabaseConfigured) throw new Error('Supabase auth is not configured.');
   supabaseInstance = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     // PKCE returns ?code=… instead of #access_token=…, which would collide with the app's #/ routes.
-    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: 'pkce' }
+    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: 'pkce' },
+    // The Zo edge drops Authorization on browser requests, so the user's token also travels in a custom header that the /supa proxy maps back.
+    global: {
+      fetch: (input: RequestInfo | URL, init?: RequestInit) => {
+        const headers = new Headers(init?.headers);
+        const auth = headers.get('Authorization');
+        if (auth) headers.set('x-quanta-auth', auth);
+        return fetch(input, { ...init, headers });
+      }
+    }
   });
 } catch (e) {
   if (import.meta.env.PROD) console.error("Supabase client is not configured.");

@@ -1,3 +1,4 @@
+import { isLocalHost, isLoopbackSocket, sameOrigin, publicOrigin } from './local-access';
 import express from 'express';
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import type { ProviderStore } from './provider-store';
@@ -19,7 +20,7 @@ export class OpenRouterOAuth {
   }
   async begin(binding: string, callbackUrl: string) {
     const url = new URL(callbackUrl);
-    if (url.protocol !== 'http:' || url.hostname !== '127.0.0.1' || url.pathname !== '/auth/openrouter/callback' || url.username || url.password || url.search || url.hash) throw fail('Use the local OpenRouter callback.');
+    if (!((url.protocol === 'http:' && url.hostname === '127.0.0.1') || (url.protocol === 'https:' && url.hostname !== '127.0.0.1' && isLocalHost(url.hostname))) || url.pathname !== '/auth/openrouter/callback' || url.username || url.password || url.search || url.hash) throw fail('Use the local OpenRouter callback.');
     for (const [state, p] of this.pending) if (p.expiresAt < Date.now()) this.pending.delete(state);
     if (this.pending.size >= 10) throw fail('Too many pending sign-ins. Wait before trying again.', 429);
     const state = randomBytes(32).toString('base64url'), verifier = randomBytes(32).toString('base64url');
@@ -67,10 +68,10 @@ export class OpenRouterOAuth {
 
 export function createOpenRouterOAuthRouter(oauth: OpenRouterOAuth) {
   const api = express.Router(), callback = express.Router();
-  const local = (req: express.Request) => req.hostname === '127.0.0.1' && ['127.0.0.1', '::ffff:127.0.0.1'].includes(req.socket.remoteAddress || '');
+  const local = (req: express.Request) => (req.hostname === '127.0.0.1' || isLocalHost(req.hostname)) && isLoopbackSocket(req);
   api.use((req, res, next) => {
     res.setHeader('Cache-Control', 'no-store');
-    if (!local(req) || req.get('X-Quanta-Client') !== 'local-ui' || (req.get('origin') && req.get('origin') !== `http://${req.get('host')}`)) { res.status(403).json({ error: { message: 'Local application access required.' } }); return; }
+    if (!local(req) || req.get('X-Quanta-Client') !== 'local-ui' || !sameOrigin(req)) { res.status(403).json({ error: { message: 'Local application access required.' } }); return; }
     next();
   });
   const handle = (fn: (req: express.Request, res: express.Response) => Promise<unknown>) => async (req: express.Request, res: express.Response) => {
@@ -80,7 +81,7 @@ export function createOpenRouterOAuthRouter(oauth: OpenRouterOAuth) {
   api.post('/validate', handle(() => oauth.validate()));
   api.post('/authorize', handle(async (req, res) => {
     const binding = randomBytes(32).toString('base64url');
-    const result = await oauth.begin(binding, `http://${req.get('host')}/auth/openrouter/callback`);
+    const result = await oauth.begin(binding, `${publicOrigin(req)}/auth/openrouter/callback`);
     res.cookie('quanta_openrouter_oauth', binding, { httpOnly: true, sameSite: 'lax', path: '/auth/openrouter', maxAge: 600000 });
     return result;
   }));

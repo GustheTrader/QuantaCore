@@ -1,3 +1,4 @@
+import { isLocalHost, isLoopbackSocket, sameOrigin, publicOrigin } from './local-access';
 import express from 'express';
 import { HermesManager } from './hermes-manager';
 import { hermesSpace } from './hermes-space';
@@ -11,10 +12,10 @@ export function createHermesRouter(manager: HermesManager, root: string) {
   router.use((req, res, next) => {
     res.setHeader('Cache-Control', 'no-store');
     const origin = req.get('origin');
-    if (!['127.0.0.1', 'localhost', '[::1]'].includes(req.hostname)
+    if (!isLocalHost(req.hostname)
       || req.get('X-Quanta-Client') !== 'local-ui'
-      || !['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(req.socket.remoteAddress || '')
-      || (origin && origin !== `http://${req.get('host')}`)) {
+      || !isLoopbackSocket(req)
+      || (origin && !sameOrigin(req))) {
       res.status(403).json({ error: { message: 'Use the local Gnoesis Hermes workspace.' } }); return;
     }
     next();
@@ -30,6 +31,19 @@ export function createHermesRouter(manager: HermesManager, root: string) {
   router.get('/:workspace/coding/auth-status', route(async (req,res) => {
     hermesSpace(root,String(req.params.workspace));
     res.json({agents:await coding.authentication()});
+  }));
+  router.get('/:workspace/coding/subscription-models', route(async (req,res) => {
+    hermesSpace(root,String(req.params.workspace));
+    res.json(await coding.subscriptionModels());
+  }));
+  router.post('/:workspace/coding/chat', route(async (req,res) => {
+    hermesSpace(root,String(req.params.workspace));
+    if (typeof req.body.prompt !== 'string' || !req.body.prompt.trim()) throw new Error('A chat prompt is required.');
+    res.json(await coding.testSubscription(req.body.agent, req.body.model, req.body.prompt));
+  }));
+  router.post('/:workspace/coding/test-inference', route(async (req,res) => {
+    hermesSpace(root,String(req.params.workspace));
+    res.json(await coding.testSubscription(req.body.agent, req.body.model));
   }));
   router.get('/:workspace/coding/:id/output', route(async (req,res) => { res.json(coding.output(String(req.params.workspace),String(req.params.id),Number(req.query.after)||0)); }));
   router.post('/:workspace/coding/:id/input', route(async (req,res) => { coding.input(String(req.params.workspace),String(req.params.id),req.body.data);res.json({accepted:true}); }));

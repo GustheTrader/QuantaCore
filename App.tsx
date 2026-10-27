@@ -17,6 +17,7 @@ import ImageGenerator from './components/ImageGenerator';
 import VideoGenerator from './components/VideoGenerator';
 import TaskBoard from './components/TaskBoard';
 import AuthPage from './components/AuthPage';
+import { getAgentTrack } from './lib/agent-tracks';
 import ProfileSetup from './components/ProfileSetup';
 import Notebook from './components/Notebook';
 import DataIntake from './components/DataIntake';
@@ -110,9 +111,9 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
 const App: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [pendingAgent, setPendingAgent] = useState<UserTrack | null>(null);
-  const [startupReviewed, setStartupReviewed] = useState(() => sessionStorage.getItem('quanta_startup_reviewed') === '1');
-  const finishStartup = () => { sessionStorage.setItem('quanta_startup_reviewed', '1'); setStartupReviewed(true); window.location.hash = '/'; };
-  const launchSetup = (mode: 'chat' | 'work') => { sessionStorage.setItem('quanta_startup_reviewed', '1'); setStartupReviewed(true); window.location.hash = `/agent?mode=${mode}&setup=1`; };
+  const [startupReviewed, setStartupReviewed] = useState(() => sessionStorage.getItem('quanta_connections_reviewed_v2') === '1');
+  const finishStartup = () => { sessionStorage.setItem('quanta_connections_reviewed_v2', '1'); setStartupReviewed(true); window.location.hash = '/'; };
+  const launchSetup = (mode: 'chat' | 'work') => { sessionStorage.setItem('quanta_connections_reviewed_v2', '1'); setStartupReviewed(true); window.location.hash = `/agent?mode=${mode}&setup=1`; };
   const [session, setSession] = useState<{ email: string, track: UserTrack, userId?: string } | null>(null);
   const [profile, setProfile] = useState<{ name: string, callsign: string, personality: string } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -130,6 +131,12 @@ const App: React.FC = () => {
   };
 
   useEffect(() => {
+    if (!session || profile) return;
+    const name = session.email.endsWith('@guest.invalid') ? 'Guest' : session.email.split('@')[0];
+    setProfile({ name, callsign: name, personality: getAgentTrack(session.track).personality });
+  }, [session, profile]);
+
+  useEffect(() => {
     const updateHash = () => setCurrentHash(window.location.hash);
     window.addEventListener('hashchange', updateHash);
     return () => window.removeEventListener('hashchange', updateHash);
@@ -142,10 +149,12 @@ const App: React.FC = () => {
         return;
       }
       let active = true;
-      const applyAuthSession = (authSession: any) => {
+      let hadUser = false;
+      const applyAuthSession = (authSession: any, _event?: string) => {
         if (!active) return;
         const user = authSession?.user;
         if (!user?.id) {
+          hadUser = false;
           setSession(null);
           setProfile(null);
           setLoading(false);
@@ -155,6 +164,8 @@ const App: React.FC = () => {
         let pendingTrack: string | null = null;
         try { pendingTrack = localStorage.getItem('quanta_pending_track'); } catch {}
         const requestedTrack = user.user_metadata?.track || pendingTrack;
+        if (!hadUser && _event === 'SIGNED_IN') window.location.hash = '/connections';
+        hadUser = true;
         const sessionEmail = user.email || user.user_metadata?.contact_email || `guest-${String(user.id).slice(0, 8)}@guest.invalid`;
         const nextSession = { email: String(sessionEmail).toLowerCase(), userId: String(user.id), track: allowedTracks.includes(requestedTrack) ? requestedTrack as UserTrack : 'personal' as UserTrack };
         setSession(nextSession);
@@ -164,7 +175,7 @@ const App: React.FC = () => {
         } catch { setProfile(null); }
         setLoading(false);
       };
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: string, authSession: any) => applyAuthSession(authSession));
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: string, authSession: any) => applyAuthSession(authSession, _event));
       supabase.auth.getSession().then(({ data }: any) => applyAuthSession(data.session)).catch(() => {
         if (active) { setSession(null); setLoading(false); }
       });
@@ -211,7 +222,7 @@ const App: React.FC = () => {
   const handleLogin = (userData: { email: string, track: UserTrack }) => {
     localStorage.setItem('quanta_session', JSON.stringify(userData));
     setSession(userData);
-    window.location.hash = '/';
+    window.location.hash = '/connections';
     const savedProfile = localStorage.getItem(`quanta_profile_${userData.email}`);
     if (savedProfile) {
       setProfile(JSON.parse(savedProfile));
@@ -308,8 +319,8 @@ const App: React.FC = () => {
               <div className="flex-1 overflow-y-auto p-6 lg:p-14 custom-scrollbar">
                 <div className="max-w-7xl mx-auto w-full h-full relative">
                   <Routes>
-                    <Route path="/" element={startupReviewed ? <Dashboard track={session.track} profile={profile} onOpenChat={openChat} onActivateAgent={handleActivateAgent} onOpenTerminal={openTerminal} /> : <SystemLaunchpad owner={session.email} track={session.track} onLaunch={launchSetup} />} />
-                    <Route path="/startup" element={<SystemLaunchpad owner={session.email} track={session.track} onLaunch={launchSetup} />} />
+                    <Route path="/" element={startupReviewed ? <Dashboard track={session.track} profile={profile} onOpenChat={openChat} onActivateAgent={handleActivateAgent} onOpenTerminal={openTerminal} /> : <StartupConnection onContinue={finishStartup} />} />
+                    <Route path="/startup" element={<StartupConnection onContinue={finishStartup} />} />
                     <Route path="/compose" element={<SystemLaunchpad owner={session.email} track={session.track} onLaunch={launchSetup} startWithCopilot />} />
                     <Route path="/connections" element={<StartupConnection onContinue={finishStartup} />} />
                     <Route path="/coding-harness" element={<LocalOnly><CodingHarness onOpenTerminal={openTerminal} /></LocalOnly>} />

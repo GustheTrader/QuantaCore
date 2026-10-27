@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 
 export type NativeSignInStatus = {
-  id: 'claude' | 'grok-native' | 'gemini';
+  id: 'codex' | 'claude' | 'grok-native' | 'gemini';
   connected: boolean;
   state: 'connected' | 'disconnected' | 'expired' | 'unavailable';
   label: string;
@@ -67,6 +67,11 @@ export class NativeSignIn {
       const executable = this.executable(id);
       if (!executable) return { id, connected: false, state: 'unavailable', label: 'Sign-in tool not installed', checkedAt };
       try {
+        if (id === 'codex') {
+          const data = readCredentials(path.join(process.env.CODEX_HOME || path.join(home, '.codex'), 'auth.json'));
+          const connected = data?.auth_mode === 'chatgpt' && present(data?.tokens?.refresh_token);
+          return { id, connected, state: connected ? 'connected' : 'disconnected', label: connected ? 'Connected · Codex' : 'Not connected', checkedAt };
+        }
         if (id === 'claude') {
           const file = path.join(process.env.CLAUDE_CONFIG_DIR || path.join(home, '.claude'), '.credentials.json');
           const credentials = readCredentials(file);
@@ -87,6 +92,6 @@ export class NativeSignIn {
         return { id, ...(id === 'grok-native' ? grokSignInStatus(data) : geminiSignInStatus(data)), checkedAt };
       } catch { return { id, connected: false, state: 'unavailable', label: 'Native sign-in status unavailable', checkedAt }; }
     };
-    return Promise.all((['claude', 'grok-native', 'gemini'] as const).map(check));
+    return Promise.all((['codex', 'claude', 'grok-native', 'gemini'] as const).map(check));
   }
 }

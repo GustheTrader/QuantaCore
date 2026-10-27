@@ -1,3 +1,4 @@
+import { isLocalHost, isLoopbackSocket, sameOrigin, publicOrigin } from './local-access';
 import express, { type Request, type Response } from 'express';
 import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { Readable } from 'node:stream';
@@ -41,8 +42,8 @@ export function createInferenceRouters(store: ProviderStore, hooks?: InferenceHo
     res.setHeader('Cache-Control', 'no-store');
     const host = req.hostname;
     const origin = req.get('origin');
-    if (!localHosts.has(host) || !['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(req.socket.remoteAddress || '') || req.get('X-Quanta-Client') !== 'local-ui') return res.status(403).json({ error: { message: 'Local application access required.' } });
-    if (origin && origin !== `${req.protocol}://${req.get('host')}`) return res.status(403).json({ error: { message: 'Cross-origin settings access denied.' } });
+    if (!isLocalHost(host) || !isLoopbackSocket(req) || req.get('X-Quanta-Client') !== 'local-ui') return res.status(403).json({ error: { message: 'Local application access required.' } });
+    if (origin && !sameOrigin(req)) return res.status(403).json({ error: { message: 'Cross-origin settings access denied.' } });
     next();
   });
 
