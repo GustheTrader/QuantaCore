@@ -56,6 +56,7 @@ import GnoesisSiHarnessRouter from './components/GnoesisSiHarnessRouter';
 import AgentHouseChannel from './components/AgentHouseChannel';
 import LostAssetManager from './components/LostAssetManager';
 import CloudroomWorkspace from './components/CloudroomWorkspace';
+import GovernanceSection from './components/GovernanceSection';
 
 interface ErrorBoundaryProps {
   children?: ReactNode;
@@ -361,6 +362,8 @@ const App: React.FC = () => {
                     <Route path="/sme-builder" element={<SMEBuilder />} />
                     <Route path="/memory" element={<PersistentMemory />} />
                     <Route path="/settings" element={<Settings />} />
+                    <Route path="/policy" element={<GovernanceSection section="policy" />} />
+                    <Route path="/security" element={<GovernanceSection section="security" />} />
                     <Route path="*" element={<Navigate to="/" />} />
                   </Routes>
                 </div>
